@@ -6,6 +6,10 @@ import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
 
 const Contact = () => {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
@@ -239,17 +243,17 @@ const Contact = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2">
-                <li><Link to="/about" className="text-gray-300 hover:text-white">About Us</Link></li>
-                <li><Link to="/services" className="text-gray-300 hover:text-white">Services</Link></li>
-                <li><Link to="/contact" className="text-white font-medium">Contact</Link></li>
+                <li><Link to="/about" className="text-gray-300 hover:text-white" onClick={scrollToTop}>About Us</Link></li>
+                <li><Link to="/services" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Services</Link></li>
+                <li><Link to="/contact" className="text-white font-medium" onClick={scrollToTop}>Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Support</h4>
               <ul className="space-y-2">
-                <li><Link to="/help" className="text-gray-300 hover:text-white">Help Center</Link></li>
-                <li><Link to="/privacy" className="text-gray-300 hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="text-gray-300 hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/help" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Help Center</Link></li>
+                <li><Link to="/privacy" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Privacy Policy</Link></li>
+                <li><Link to="/terms" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Terms of Service</Link></li>
               </ul>
             </div>
           </div>

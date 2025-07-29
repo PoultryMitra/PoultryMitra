@@ -3,6 +3,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Link } from "react-router-dom";
 
 const Index = () => {
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
       {/* Header */}
@@ -46,7 +50,7 @@ const Index = () => {
               </Button>
             </Link>
             <Link to="/dealer-login">
-              <Button size="lg" variant="outline">
+              <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
                 Dealer Login
               </Button>
             </Link>
@@ -139,17 +143,17 @@ const Index = () => {
             <div>
               <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
               <ul className="space-y-2">
-                <li><Link to="/about" className="text-gray-300 hover:text-white">About Us</Link></li>
-                <li><Link to="/services" className="text-gray-300 hover:text-white">Services</Link></li>
-                <li><Link to="/contact" className="text-gray-300 hover:text-white">Contact</Link></li>
+                <li><Link to="/about" onClick={scrollToTop} className="text-gray-300 hover:text-white">About Us</Link></li>
+                <li><Link to="/services" onClick={scrollToTop} className="text-gray-300 hover:text-white">Services</Link></li>
+                <li><Link to="/contact" onClick={scrollToTop} className="text-gray-300 hover:text-white">Contact</Link></li>
               </ul>
             </div>
             <div>
               <h4 className="text-lg font-semibold mb-4">Support</h4>
               <ul className="space-y-2">
-                <li><Link to="/help" className="text-gray-300 hover:text-white">Help Center</Link></li>
-                <li><Link to="/privacy" className="text-gray-300 hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/terms" className="text-gray-300 hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/help" onClick={scrollToTop} className="text-gray-300 hover:text-white">Help Center</Link></li>
+                <li><Link to="/privacy" onClick={scrollToTop} className="text-gray-300 hover:text-white">Privacy Policy</Link></li>
+                <li><Link to="/terms" onClick={scrollToTop} className="text-gray-300 hover:text-white">Terms of Service</Link></li>
               </ul>
             </div>
           </div>
