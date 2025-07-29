@@ -1,20 +1,35 @@
-import { Outlet } from "react-router-dom";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/AppSidebar";
-import { TopBar } from "@/components/layout/TopBar";
+import { Outlet, useLocation } from "react-router-dom";
+import { AppSidebar } from "./AppSidebar";
+import { TopBar } from "./TopBar";
+
+const getPageTitle = (pathname: string) => {
+  switch (pathname) {
+    case "/dashboard":
+      return "Dashboard";
+    case "/rates":
+      return "Chick/Broiler Rate Update";
+    case "/orders":
+      return "Dealer Dashboard";
+    case "/users":
+      return "Admin Panel";
+    default:
+      return "Farmer Dashboard";
+  }
+};
 
 export function AppLayout() {
+  const location = useLocation();
+  const title = getPageTitle(location.pathname);
+
   return (
-    <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-gradient-to-br from-background to-muted/20">
-        <AppSidebar />
-        <div className="flex-1 flex flex-col">
-          <TopBar />
-          <main className="flex-1 p-6">
-            <Outlet />
-          </main>
-        </div>
+    <div className="min-h-screen bg-gray-50 flex">
+      <AppSidebar />
+      <div className="flex-1">
+        <TopBar title={title} />
+        <main className="p-6">
+          <Outlet />
+        </main>
       </div>
-    </SidebarProvider>
+    </div>
   );
 }

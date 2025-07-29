@@ -8,6 +8,9 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
+import FarmerDashboard from "./pages/FarmerDashboard";
+import DealerDashboard from "./pages/DealerDashboard";
+import AdminPanel from "./pages/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculator";
 import Expenses from "./pages/Expenses";
 import Vaccines from "./pages/Vaccines";
@@ -29,8 +32,10 @@ const App = () => (
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/" element={<AppLayout />}>
-            <Route index element={<Dashboard />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route index element={<FarmerDashboard />} />
+            <Route path="dashboard" element={<FarmerDashboard />} />
+            <Route path="orders" element={<DealerDashboard />} />
+            <Route path="users" element={<AdminPanel />} />
             <Route path="fcr-calculator" element={<FCRCalculator />} />
             <Route path="expenses" element={<Expenses />} />
             <Route path="vaccines" element={<Vaccines />} />

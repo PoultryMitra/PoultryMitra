@@ -11,103 +11,107 @@ import {
   Package,
   Shield,
 } from "lucide-react";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  useSidebar,
-} from "@/components/ui/sidebar";
 
 // Mock user role - in real app this would come from auth context
 const userRole = "farmer"; // "farmer" | "dealer" | "admin"
 
-const farmerItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Expenses", url: "/expenses", icon: DollarSign },
-  { title: "FCR Calculator", url: "/fcr-calculator", icon: Calculator },
-  { title: "Vaccine Reminders", url: "/vaccines", icon: Calendar },
-  { title: "Rates", url: "/rates", icon: TrendingUp },
-];
-
-const dealerItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Farmers", url: "/farmers", icon: Users },
-  { title: "Rates", url: "/rates", icon: TrendingUp },
-  { title: "Inventory", url: "/inventory", icon: Package },
-];
-
-const adminItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Users", url: "/users", icon: Users },
-  { title: "Rates Management", url: "/rates-management", icon: Settings },
-  { title: "Analytics", url: "/analytics", icon: TrendingUp },
-];
-
-const getItemsByRole = (role: string) => {
-  switch (role) {
-    case "dealer":
-      return dealerItems;
-    case "admin":
-      return adminItems;
-    default:
-      return farmerItems;
-  }
+const navigationGroups = {
+  farmer: {
+    FARMER: [
+      { title: "Dashboard", url: "/dashboard", icon: Home },
+      { title: "Crops", url: "/crops", icon: Package },
+      { title: "Tasks", url: "/tasks", icon: Calendar },
+    ],
+    DEALER: [
+      { title: "Orders", url: "/orders", icon: DollarSign },
+      { title: "Customers", url: "/customers", icon: Users },
+      { title: "Products", url: "/products", icon: Package },
+    ],
+    ADMIN: [
+      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Broiler Rate", url: "/rates", icon: TrendingUp, active: true },
+      { title: "Users", url: "/users", icon: Users },
+      { title: "Reports", url: "/reports", icon: TrendingUp },
+    ],
+  },
+  dealer: {
+    FARMER: [
+      { title: "Dashboard", url: "/dashboard", icon: Home },
+      { title: "Crops", url: "/crops", icon: Package },
+      { title: "Tasks", url: "/tasks", icon: Calendar },
+    ],
+    DEALER: [
+      { title: "Orders", url: "/orders", icon: DollarSign, active: true },
+      { title: "Customers", url: "/customers", icon: Users },
+      { title: "Products", url: "/products", icon: Package },
+    ],
+    ADMIN: [
+      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Broiler Rate", url: "/rates", icon: TrendingUp },
+      { title: "Users", url: "/users", icon: Users },
+      { title: "Reports", url: "/reports", icon: TrendingUp },
+    ],
+  },
+  admin: {
+    FARMER: [
+      { title: "Dashboard", url: "/dashboard", icon: Home },
+      { title: "Crops", url: "/crops", icon: Package },
+      { title: "Tasks", url: "/tasks", icon: Calendar },
+    ],
+    DEALER: [
+      { title: "Orders", url: "/orders", icon: DollarSign },
+      { title: "Customers", url: "/customers", icon: Users },
+      { title: "Products", url: "/products", icon: Package },
+    ],
+    ADMIN: [
+      { title: "Settings", url: "/settings", icon: Settings },
+      { title: "Broiler Rate", url: "/rates", icon: TrendingUp },
+      { title: "Users", url: "/users", icon: Users, active: true },
+      { title: "Reports", url: "/reports", icon: TrendingUp },
+    ],
+  },
 };
 
 export function AppSidebar() {
-  const { state } = useSidebar();
-  const collapsed = state === "collapsed";
   const location = useLocation();
   const currentPath = location.pathname;
-  const items = getItemsByRole(userRole);
+  const groups = navigationGroups[userRole as keyof typeof navigationGroups];
 
-  const isActive = (path: string) => currentPath === path;
-  const getNavCls = ({ isActive }: { isActive: boolean }) =>
-    isActive ? "bg-primary/10 text-primary font-medium" : "hover:bg-muted/50";
+  const isActive = (path: string, itemActive?: boolean) => 
+    currentPath === path || itemActive;
 
   return (
-    <Sidebar
-      className={collapsed ? "w-14" : "w-60"}
-      collapsible="icon"
-    >
-      <SidebarContent className="border-r bg-card/50 backdrop-blur-sm">
-        <div className="p-4">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 bg-gradient-to-br from-primary to-accent rounded-lg flex items-center justify-center">
-              <Shield className="h-4 w-4 text-primary-foreground" />
-            </div>
-            {!collapsed && (
-              <div>
-                <h2 className="font-semibold text-sm text-foreground">PoultryCare</h2>
-                <p className="text-xs text-muted-foreground capitalize">{userRole}</p>
-              </div>
-            )}
-          </div>
-        </div>
+    <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
+      <div className="p-6">
+        <h1 className="text-xl font-bold text-gray-900">App Name</h1>
+      </div>
 
-        <SidebarGroup>
-          <SidebarGroupLabel>Menu</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
+      <nav className="px-4 space-y-8">
+        {Object.entries(groups).map(([groupName, items]) => (
+          <div key={groupName}>
+            <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+              {groupName}
+            </h3>
+            <ul className="space-y-1">
               {items.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink to={item.url} end className={getNavCls}>
-                      <item.icon className="h-4 w-4" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
+                <li key={item.title}>
+                  <NavLink
+                    to={item.url}
+                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                      isActive(item.url, item.active)
+                        ? "bg-green-100 text-green-700"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <item.icon className="mr-3 h-4 w-4" />
+                    {item.title}
+                  </NavLink>
+                </li>
               ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      </SidebarContent>
-    </Sidebar>
+            </ul>
+          </div>
+        ))}
+      </nav>
+    </div>
   );
 }

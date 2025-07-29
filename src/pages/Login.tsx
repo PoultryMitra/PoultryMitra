@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import roosterImage from "@/assets/rooster-hero.jpg";
 
 export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
@@ -31,64 +32,63 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen flex">
-      {/* Left side - Form */}
-      <div className="flex-1 flex items-center justify-center p-8 bg-gradient-to-br from-background to-muted/20">
-        <div className="w-full max-w-md space-y-6">
-          <div className="text-center space-y-2">
-            <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center mb-4">
-              <span className="text-2xl font-bold text-primary-foreground">PC</span>
-            </div>
-            <h1 className="text-3xl font-bold text-foreground">Welcome Back</h1>
-            <p className="text-muted-foreground">
-              Sign in to your PoultryCare account
-            </p>
-          </div>
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl">
+        {/* Language Toggle */}
+        <div className="text-center mb-8">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
+            className="text-gray-600"
+          >
+            {language === "en" ? "English" : "हिंदी"} | {language === "en" ? "Hindi" : "English"}
+          </Button>
+        </div>
 
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-              className="gap-2"
-            >
-              <Globe className="h-4 w-4" />
-              {language === "en" ? "English" : "हिंदी"}
-            </Button>
-          </div>
+        {/* Main Content */}
+        <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="grid lg:grid-cols-2">
+            {/* Left side - Form */}
+            <div className="p-8 lg:p-12">
+              <div className="text-center mb-8">
+                <h1 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back!</h1>
+                <p className="text-gray-600">Login or create an account to continue.</p>
+              </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>Sign In</CardTitle>
-              <CardDescription>
-                Enter your credentials to access your account
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
+              {/* Tab Navigation */}
+              <div className="flex bg-gray-100 rounded-lg p-1 mb-6">
+                <button className="flex-1 py-2 text-center bg-white rounded-md shadow-sm font-medium text-gray-900">
+                  Login
+                </button>
+                <Link 
+                  to="/register"
+                  className="flex-1 py-2 text-center text-gray-600 font-medium"
+                >
+                  Register
+                </Link>
+              </div>
+
               <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="email"
-                      type="email"
-                      placeholder="Enter your email"
-                      className="pl-10"
-                      required
-                    />
-                  </div>
+                <div>
+                  <Label htmlFor="email" className="text-gray-700">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    placeholder="Enter your email"
+                    className="mt-1"
+                    required
+                  />
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                <div>
+                  <Label htmlFor="password" className="text-gray-700">Password</Label>
+                  <div className="relative mt-1">
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
-                      className="pl-10 pr-10"
+                      className="pr-10"
                       required
                     />
                     <Button
@@ -107,11 +107,11 @@ export default function Login() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
+                <div>
+                  <Label htmlFor="role" className="text-gray-700">Role</Label>
                   <Select>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
+                    <SelectTrigger className="mt-1">
+                      <SelectValue placeholder="Farmer" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="farmer">Farmer</SelectItem>
@@ -121,34 +121,25 @@ export default function Login() {
                   </Select>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Signing in..." : "Sign In"}
+                <Button 
+                  type="submit" 
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-medium"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Signing in..." : "Login"}
                 </Button>
-
-                <div className="text-center text-sm">
-                  <span className="text-muted-foreground">Don't have an account? </span>
-                  <Link to="/register" className="text-primary hover:underline">
-                    Sign up
-                  </Link>
-                </div>
               </form>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+            </div>
 
-      {/* Right side - Image/Illustration */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/10 to-accent/10 items-center justify-center p-8">
-        <div className="text-center space-y-6 max-w-md">
-          <div className="w-64 h-64 mx-auto bg-gradient-to-br from-primary to-accent rounded-full flex items-center justify-center">
-            <span className="text-6xl">🐔</span>
+            {/* Right side - Image */}
+            <div className="hidden lg:block">
+              <img 
+                src={roosterImage} 
+                alt="Rooster" 
+                className="w-full h-full object-cover"
+              />
+            </div>
           </div>
-          <h2 className="text-2xl font-bold text-foreground">
-            Modern Poultry Management
-          </h2>
-          <p className="text-muted-foreground text-lg">
-            Track expenses, monitor health, and optimize your poultry operations with our comprehensive management system.
-          </p>
         </div>
       </div>
     </div>
