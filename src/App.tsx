@@ -23,6 +23,7 @@ import Customers from "./pages/Customers";
 import Products from "./pages/Products";
 import FarmerLogin from "./pages/FarmerLogin";
 import DealerLogin from "./pages/DealerLogin";
+import AdminLogin from "./pages/AdminLogin";
 import Settings from "./pages/admin/Settings";
 import BroilerRate from "./pages/admin/BroilerRate";
 import Users from "./pages/admin/Users";
@@ -54,6 +55,7 @@ const App = () => (
           <Route path="/register" element={<Register />} />
           <Route path="/farmer-login" element={<FarmerLogin />} />
           <Route path="/dealer-login" element={<DealerLogin />} />
+          <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/complete-profile" element={<ProfileCompletion />} />
           
           {/* Farmer Routes */}

@@ -53,15 +53,14 @@ export default function Login() {
                   Register here
                 </Link>
               </p>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 mb-2">
                 <Link to="/" className="text-green-600 hover:underline">
                   ← Back to home
                 </Link>
               </p>
-              <p className="text-xs text-gray-500 mt-4">
-                Admin access:{" "}
-                <Link to="/admin" className="text-gray-600 hover:underline">
-                  Admin Portal
+              <p className="text-xs text-gray-500">
+                <Link to="/admin-login" className="text-purple-600 hover:underline">
+                  Admin Login
                 </Link>
               </p>
             </div>

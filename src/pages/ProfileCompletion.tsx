@@ -60,7 +60,7 @@ const ProfileCompletion = () => {
       // Redirect based on role
       if (formData.role === 'farmer') {
         navigate('/farmer/dashboard', { replace: true });
-      } else {
+      } else if (formData.role === 'dealer') {
         navigate('/dealer/dashboard', { replace: true });
       }
     } catch (error: any) {

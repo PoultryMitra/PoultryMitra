@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProfileGuardProps {
@@ -8,6 +8,7 @@ interface ProfileGuardProps {
 
 const ProfileGuard: React.FC<ProfileGuardProps> = ({ children }) => {
   const { currentUser, userProfile, loading } = useAuth();
+  const location = useLocation();
 
   if (loading) {
     return (
@@ -29,6 +30,20 @@ const ProfileGuard: React.FC<ProfileGuardProps> = ({ children }) => {
   // If user profile doesn't exist at all, also redirect to profile completion
   if (!userProfile) {
     return <Navigate to="/complete-profile" replace />;
+  }
+
+  // Check if accessing admin routes
+  if (location.pathname.startsWith('/admin')) {
+    if (userProfile.role !== 'admin') {
+      // Non-admin users trying to access admin panel - redirect to appropriate dashboard
+      if (userProfile.role === 'farmer') {
+        return <Navigate to="/farmer/dashboard" replace />;
+      } else if (userProfile.role === 'dealer') {
+        return <Navigate to="/dealer/dashboard" replace />;
+      } else {
+        return <Navigate to="/login" replace />;
+      }
+    }
   }
 
   return <>{children}</>;
