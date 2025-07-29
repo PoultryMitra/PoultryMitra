@@ -37,9 +37,10 @@ export const googleProvider = new GoogleAuthProvider();
 // Add additional scopes for better user information
 googleProvider.addScope('profile');
 googleProvider.addScope('email');
-// Disable auto-select to prevent popup issues
+// Configure for multi-domain support
 googleProvider.setCustomParameters({
-  prompt: 'select_account'
+  prompt: 'select_account',
+  hd: undefined // Allow any domain, not restricted to specific hosted domain
 });
 
 // Initialize Cloud Firestore and get a reference to the service
