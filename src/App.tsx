@@ -28,6 +28,12 @@ import Settings from "./pages/admin/Settings";
 import BroilerRate from "./pages/admin/BroilerRate";
 import Users from "./pages/admin/Users";
 import ProfileCompletion from "./pages/ProfileCompletion";
+import AboutUs from "./pages/AboutUs";
+import Services from "./pages/Services";
+import Contact from "./pages/Contact";
+import HelpCenter from "./pages/HelpCenter";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
+import TermsOfService from "./pages/TermsOfService";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -57,6 +63,14 @@ const App = () => (
           <Route path="/dealer-login" element={<DealerLogin />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/complete-profile" element={<ProfileCompletion />} />
+          
+          {/* Public Information Pages */}
+          <Route path="/about" element={<AboutUs />} />
+          <Route path="/services" element={<Services />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="/help" element={<HelpCenter />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
           
           {/* Farmer Routes */}
           <Route path="/farmer" element={
