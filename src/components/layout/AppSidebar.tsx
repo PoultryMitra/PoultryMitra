@@ -12,78 +12,44 @@ import {
   Shield,
 } from "lucide-react";
 
-// Mock user role - in real app this would come from auth context
-const userRole = "farmer"; // "farmer" | "dealer" | "admin"
+interface AppSidebarProps {
+  userType?: "farmer" | "dealer" | "admin";
+}
 
 const navigationGroups = {
   farmer: {
     FARMER: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Crops", url: "/crops", icon: Package },
-      { title: "Tasks", url: "/tasks", icon: Calendar },
-    ],
-    DEALER: [
-      { title: "Orders", url: "/orders", icon: DollarSign },
-      { title: "Customers", url: "/customers", icon: Users },
-      { title: "Products", url: "/products", icon: Package },
-    ],
-    ADMIN: [
-      { title: "Settings", url: "/settings", icon: Settings },
-      { title: "Broiler Rate", url: "/rates", icon: TrendingUp, active: true },
-      { title: "Users", url: "/users", icon: Users },
-      { title: "Reports", url: "/reports", icon: TrendingUp },
+      { title: "Dashboard", url: "/farmer/dashboard", icon: Home },
+      { title: "Crops", url: "/farmer/crops", icon: Package },
+      { title: "Tasks", url: "/farmer/tasks", icon: Calendar },
+      { title: "Expenses", url: "/farmer/expenses", icon: DollarSign },
+      { title: "Vaccines", url: "/farmer/vaccines", icon: Shield },
+      { title: "FCR Calculator", url: "/farmer/fcr-calculator", icon: Calculator },
     ],
   },
   dealer: {
-    FARMER: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Crops", url: "/crops", icon: Package },
-      { title: "Tasks", url: "/tasks", icon: Calendar },
-    ],
     DEALER: [
-      { title: "Orders", url: "/orders", icon: DollarSign, active: true },
-      { title: "Customers", url: "/customers", icon: Users },
-      { title: "Products", url: "/products", icon: Package },
-    ],
-    ADMIN: [
-      { title: "Settings", url: "/settings", icon: Settings },
-      { title: "Broiler Rate", url: "/rates", icon: TrendingUp },
-      { title: "Users", url: "/users", icon: Users },
-      { title: "Reports", url: "/reports", icon: TrendingUp },
-    ],
-  },
-  admin: {
-    FARMER: [
-      { title: "Dashboard", url: "/dashboard", icon: Home },
-      { title: "Crops", url: "/crops", icon: Package },
-      { title: "Tasks", url: "/tasks", icon: Calendar },
-    ],
-    DEALER: [
-      { title: "Orders", url: "/orders", icon: DollarSign },
-      { title: "Customers", url: "/customers", icon: Users },
-      { title: "Products", url: "/products", icon: Package },
-    ],
-    ADMIN: [
-      { title: "Settings", url: "/settings", icon: Settings },
-      { title: "Broiler Rate", url: "/rates", icon: TrendingUp },
-      { title: "Users", url: "/users", icon: Users, active: true },
-      { title: "Reports", url: "/reports", icon: TrendingUp },
+      { title: "Dashboard", url: "/dealer/dashboard", icon: Home },
+      { title: "Orders", url: "/dealer/orders", icon: DollarSign },
+      { title: "Customers", url: "/dealer/customers", icon: Users },
+      { title: "Products", url: "/dealer/products", icon: Package },
+      { title: "Reports", url: "/dealer/reports", icon: TrendingUp },
+      { title: "Rates", url: "/dealer/rates", icon: TrendingUp },
     ],
   },
 };
 
-export function AppSidebar() {
+export function AppSidebar({ userType = "farmer" }: AppSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
-  const groups = navigationGroups[userRole as keyof typeof navigationGroups];
+  const groups = navigationGroups[userType as keyof typeof navigationGroups];
 
-  const isActive = (path: string, itemActive?: boolean) => 
-    currentPath === path || itemActive;
+  const isActive = (path: string) => currentPath === path;
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
       <div className="p-6">
-        <h1 className="text-xl font-bold text-gray-900">App Name</h1>
+        <h1 className="text-xl font-bold text-gray-900">Poultry Mitra</h1>
       </div>
 
       <nav className="px-4 space-y-8">
@@ -98,7 +64,7 @@ export function AppSidebar() {
                   <NavLink
                     to={item.url}
                     className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
-                      isActive(item.url, item.active)
+                      isActive(item.url)
                         ? "bg-green-100 text-green-700"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}

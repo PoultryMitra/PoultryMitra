@@ -5,46 +5,104 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Pages
+import Index from "./pages/Index";
 import Login from "./pages/Login";
-import Register from "./pages/Register";
-import Dashboard from "./pages/Dashboard";
+import Register from "./pages/RegisterNew";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import DealerDashboard from "./pages/DealerDashboard";
-import AdminPanel from "./pages/AdminPanel";
+import AdminPanel from "./pages/admin/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculator";
 import Expenses from "./pages/Expenses";
 import Vaccines from "./pages/Vaccines";
 import Rates from "./pages/Rates";
 import NotFound from "./pages/NotFound";
+import Crops from "./pages/Crops";
+import Tasks from "./pages/Tasks";
+import Reports from "./pages/Reports";
+import Customers from "./pages/Customers";
+import Products from "./pages/Products";
+import FarmerLogin from "./pages/FarmerLogin";
+import DealerLogin from "./pages/DealerLogin";
+import Settings from "./pages/admin/Settings";
+import BroilerRate from "./pages/admin/BroilerRate";
+import Users from "./pages/admin/Users";
+import ProfileCompletion from "./pages/ProfileCompletion";
 
-// Layout
-import { AppLayout } from "./components/layout/AppLayout";
+// Layouts
+import { FarmerLayout } from "./components/layout/FarmerLayout";
+import { DealerLayout } from "./components/layout/DealerLayout";
+import { AdminLayout } from "./components/layout/AdminLayout";
+
+// Auth Context
+import { AuthProvider } from "./contexts/AuthContext";
+import ProtectedRoute from "./components/ProtectedRoute";
+import ProfileGuard from "./components/ProfileGuard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+    <AuthProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
         <Routes>
+          {/* Public Routes */}
+          <Route path="/" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
-          <Route path="/" element={<AppLayout />}>
-            <Route index element={<FarmerDashboard />} />
+          <Route path="/farmer-login" element={<FarmerLogin />} />
+          <Route path="/dealer-login" element={<DealerLogin />} />
+          <Route path="/complete-profile" element={<ProfileCompletion />} />
+          
+          {/* Farmer Routes */}
+          <Route path="/farmer" element={
+            <ProfileGuard>
+              <FarmerLayout />
+            </ProfileGuard>
+          }>
             <Route path="dashboard" element={<FarmerDashboard />} />
-            <Route path="orders" element={<DealerDashboard />} />
-            <Route path="users" element={<AdminPanel />} />
-            <Route path="fcr-calculator" element={<FCRCalculator />} />
+            <Route path="crops" element={<Crops />} />
+            <Route path="tasks" element={<Tasks />} />
             <Route path="expenses" element={<Expenses />} />
             <Route path="vaccines" element={<Vaccines />} />
+            <Route path="fcr-calculator" element={<FCRCalculator />} />
+          </Route>
+          
+          {/* Dealer Routes */}
+          <Route path="/dealer" element={
+            <ProfileGuard>
+              <DealerLayout />
+            </ProfileGuard>
+          }>
+            <Route path="dashboard" element={<DealerDashboard />} />
+            <Route path="orders" element={<DealerDashboard />} />
+            <Route path="customers" element={<Customers />} />
+            <Route path="products" element={<Products />} />
+            <Route path="reports" element={<Reports />} />
             <Route path="rates" element={<Rates />} />
           </Route>
+          
+          {/* Admin Routes */}
+          <Route path="/admin" element={
+            <ProfileGuard>
+              <AdminLayout />
+            </ProfileGuard>
+          }>
+            <Route index element={<AdminPanel />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="rates" element={<BroilerRate />} />
+            <Route path="users" element={<Users />} />
+            <Route path="reports" element={<Reports />} />
+          </Route>
+          
+          {/* 404 Route */}
           <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+    </AuthProvider>
   </QueryClientProvider>
 );
 
