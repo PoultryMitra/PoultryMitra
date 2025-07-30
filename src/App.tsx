@@ -9,7 +9,7 @@ import Index from "./pages/Index";
 import Login from "./pages/Login";
 import Register from "./pages/RegisterNew";
 import FarmerDashboard from "./pages/FarmerDashboard";
-import DealerDashboard from "./pages/DealerDashboard";
+import DealerDashboard from "./pages/DealerDashboardNew";
 import AdminPanel from "./pages/admin/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculatorNew";
 import Expenses from "./pages/Expenses";
@@ -28,6 +28,7 @@ import Settings from "./pages/admin/Settings";
 import BroilerRate from "./pages/admin/BroilerRate";
 import Users from "./pages/admin/Users";
 import ProfileCompletion from "./pages/ProfileCompletion";
+import FarmerConnect from "./pages/FarmerConnect";
 import AboutUs from "./pages/AboutUs";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
@@ -63,6 +64,7 @@ const App = () => (
           <Route path="/dealer-login" element={<DealerLogin />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/complete-profile" element={<ProfileCompletion />} />
+          <Route path="/farmer-connect" element={<FarmerConnect />} />
           
           {/* Public Information Pages */}
           <Route path="/about" element={<AboutUs />} />

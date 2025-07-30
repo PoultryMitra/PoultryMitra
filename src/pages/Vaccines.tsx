@@ -1,4 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  addVaccineReminder, 
+  subscribeToVaccineReminders,
+  type VaccineReminder 
+} from "@/services/farmerService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,56 +22,31 @@ import {
 } from "@/components/ui/dialog";
 import { Calendar, Plus, AlertTriangle, CheckCircle } from "lucide-react";
 
-const mockReminders = [
-  {
-    id: 1,
-    title: "Newcastle Disease Vaccine",
-    dueDate: "2023-12-20",
-    status: "upcoming",
-    description: "First dose for new batch of chicks",
-    birdGroup: "Batch A",
-  },
-  {
-    id: 2,
-    title: "IBD Vaccine",
-    dueDate: "2023-12-18",
-    status: "overdue",
-    description: "Infectious Bursal Disease vaccination",
-    birdGroup: "Batch B",
-  },
-  {
-    id: 3,
-    title: "Marek's Disease",
-    dueDate: "2023-12-25",
-    status: "upcoming",
-    description: "Day-old chick vaccination",
-    birdGroup: "Batch C",
-  },
-  {
-    id: 4,
-    title: "Fowl Pox Vaccine",
-    dueDate: "2023-12-15",
-    status: "completed",
-    description: "Wing web method administered",
-    birdGroup: "Batch A",
-  },
-];
-
 export default function Vaccines() {
   const { toast } = useToast();
-  const [reminders, setReminders] = useState(mockReminders);
+  const { currentUser } = useAuth();
+  const [reminders, setReminders] = useState<VaccineReminder[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    title: "",
-    dueDate: "",
+    vaccine: "",
+    date: "",
     description: "",
     birdGroup: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Load vaccine reminders from Firebase
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = subscribeToVaccineReminders(currentUser.uid, setReminders);
+    
+    return unsubscribe; // Cleanup subscription on unmount
+  }, [currentUser]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.title || !formData.dueDate || !formData.birdGroup) {
+    if (!formData.vaccine || !formData.date || !formData.birdGroup) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -73,40 +54,43 @@ export default function Vaccines() {
       });
       return;
     }
-    
-    const newReminder = {
-      id: Date.now(),
-      ...formData,
-      status: "upcoming" as const,
-    };
 
-    setReminders([newReminder, ...reminders]);
-    setFormData({
-      title: "",
-      dueDate: "",
-      description: "",
-      birdGroup: "",
-    });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Reminder Added",
-      description: `Vaccine reminder for ${formData.title} added successfully.`,
-    });
-  };
-
-  const markAsCompleted = (id: number) => {
-    setReminders(reminders.map(reminder => 
-      reminder.id === id 
-        ? { ...reminder, status: "completed" as const }
-        : reminder
-    ));
-    
-    const reminder = reminders.find(r => r.id === id);
-    if (reminder) {
+    if (!currentUser) {
       toast({
-        title: "Vaccination Completed",
-        description: `${reminder.title} marked as completed.`,
+        title: "Error",
+        description: "You must be logged in to add vaccine reminders.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    try {
+      await addVaccineReminder(currentUser.uid, {
+        vaccine: formData.vaccine,
+        date: formData.date,
+        description: formData.description,
+        birdGroup: formData.birdGroup,
+      });
+
+      toast({
+        title: "Success",
+        description: `Vaccine reminder for ${formData.vaccine} added successfully.`,
+      });
+
+      // Reset form
+      setFormData({
+        vaccine: "",
+        date: "",
+        description: "",
+        birdGroup: "",
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding vaccine reminder:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add vaccine reminder. Please try again.",
+        variant: "destructive",
       });
     }
   };
@@ -114,16 +98,11 @@ export default function Vaccines() {
   const getStatusBadge = (status: string, dueDate: string) => {
     const today = new Date();
     const due = new Date(dueDate);
+    const daysDiff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 3600 * 24));
     
-    if (status === "completed") {
-      return <Badge variant="default" className="bg-success">Completed</Badge>;
-    }
-    
-    if (status === "overdue" || due < today) {
+    if (due < today) {
       return <Badge variant="destructive">Overdue</Badge>;
     }
-    
-    const daysDiff = Math.ceil((due.getTime() - today.getTime()) / (1000 * 3600 * 24));
     
     if (daysDiff <= 2) {
       return <Badge variant="destructive">Due Soon</Badge>;
@@ -132,13 +111,17 @@ export default function Vaccines() {
     return <Badge variant="secondary">Upcoming</Badge>;
   };
 
-  const upcomingCount = reminders.filter(r => r.status === "upcoming").length;
+  const upcomingCount = reminders.filter(r => {
+    const today = new Date();
+    const due = new Date(r.date);
+    return due >= today;
+  }).length;
+  
   const overdueCount = reminders.filter(r => {
     const today = new Date();
-    const due = new Date(r.dueDate);
-    return r.status === "overdue" || (r.status !== "completed" && due < today);
+    const due = new Date(r.date);
+    return due < today;
   }).length;
-  const completedCount = reminders.filter(r => r.status === "completed").length;
 
   return (
     <div className="space-y-6">
@@ -165,23 +148,23 @@ export default function Vaccines() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="title">Vaccine Name</Label>
+                <Label htmlFor="vaccine">Vaccine Name</Label>
                 <Input
-                  id="title"
+                  id="vaccine"
                   placeholder="e.g., Newcastle Disease Vaccine"
-                  value={formData.title}
-                  onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                  value={formData.vaccine}
+                  onChange={(e) => setFormData({ ...formData, vaccine: e.target.value })}
                   required
                 />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="dueDate">Due Date</Label>
+                <Label htmlFor="date">Due Date</Label>
                 <Input
-                  id="dueDate"
+                  id="date"
                   type="date"
-                  value={formData.dueDate}
-                  onChange={(e) => setFormData({ ...formData, dueDate: e.target.value })}
+                  value={formData.date}
+                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
                   required
                 />
               </div>
@@ -242,19 +225,6 @@ export default function Vaccines() {
             </p>
           </CardContent>
         </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Completed</CardTitle>
-            <CheckCircle className="h-4 w-4 text-success" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-success">{completedCount}</div>
-            <p className="text-xs text-muted-foreground">
-              This month
-            </p>
-          </CardContent>
-        </Card>
       </div>
 
       {/* Reminders List */}
@@ -268,17 +238,17 @@ export default function Vaccines() {
         <CardContent>
           <div className="space-y-4">
             {reminders
-              .sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
               .map((reminder) => (
                 <div key={reminder.id} className="flex items-start justify-between p-4 border rounded-lg">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{reminder.title}</h3>
-                      {getStatusBadge(reminder.status, reminder.dueDate)}
+                      <h3 className="font-medium">{reminder.vaccine}</h3>
+                      {getStatusBadge("upcoming", reminder.date)}
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">
-                        <strong>Due:</strong> {new Date(reminder.dueDate).toLocaleDateString()}
+                        <strong>Due:</strong> {new Date(reminder.date).toLocaleDateString()}
                       </p>
                       <p className="text-sm text-muted-foreground">
                         <strong>Group:</strong> {reminder.birdGroup}
@@ -290,17 +260,6 @@ export default function Vaccines() {
                       )}
                     </div>
                   </div>
-                  
-                  {reminder.status !== "completed" && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => markAsCompleted(reminder.id)}
-                    >
-                      <CheckCircle className="mr-2 h-4 w-4" />
-                      Mark Complete
-                    </Button>
-                  )}
                 </div>
               ))}
           </div>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +27,32 @@ const Register = () => {
 
   const { register, loginWithGoogle } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Check for invitation code and user type in URL params
+  useEffect(() => {
+    const inviteFromUrl = searchParams.get('invite');
+    const typeFromUrl = searchParams.get('type');
+    
+    if (inviteFromUrl) {
+      localStorage.setItem('pendingInvitation', inviteFromUrl);
+    }
+    
+    if (typeFromUrl === 'farmer') {
+      setFormData(prev => ({ ...prev, role: 'farmer' }));
+    }
+  }, [searchParams]);
+
+  const handlePostRegistrationNavigation = () => {
+    const pendingInvitation = localStorage.getItem('pendingInvitation');
+    if (pendingInvitation) {
+      // Clear the pending invitation and redirect to farmer-connect for auto-connection
+      localStorage.removeItem('pendingInvitation');
+      navigate(`/farmer-connect?invite=${pendingInvitation}`, { replace: true });
+    } else {
+      navigate('/complete-profile', { replace: true });
+    }
+  };
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -65,12 +91,8 @@ const Register = () => {
 
       await register(formData.email, formData.password, userData);
       
-      // Redirect based on role
-      if (formData.role === 'farmer') {
-        navigate('/farmer/dashboard', { replace: true });
-      } else if (formData.role === 'dealer') {
-        navigate('/dealer/dashboard', { replace: true });
-      }
+      // Handle post-registration navigation
+      handlePostRegistrationNavigation();
     } catch (error: any) {
       setError(error.message);
     }
@@ -85,10 +107,8 @@ const Register = () => {
       // Use popup mode for consistent experience with login pages
       await loginWithGoogle(false); // false = use popup instead of redirect
       console.log('RegisterNew: Google signup successful, redirecting to profile completion...');
-      // For new Google users, they'll need to complete their profile
-      // The ProfileGuard will redirect them to /complete-profile if needed
-      // For existing users, they'll go to their dashboard
-      navigate('/complete-profile', { replace: true });
+      // Handle post-registration navigation
+      handlePostRegistrationNavigation();
     } catch (error: any) {
       console.error('Google signup error in RegisterNew:', error);
       setError(error.message);

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,26 @@ const FarmerLogin = () => {
 
   const { login, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+
+  // Check for invitation code in URL params or localStorage
+  useEffect(() => {
+    const inviteFromUrl = searchParams.get('invite');
+    if (inviteFromUrl) {
+      localStorage.setItem('pendingInvitation', inviteFromUrl);
+    }
+  }, [searchParams]);
+
+  const handlePostLoginNavigation = () => {
+    const pendingInvitation = localStorage.getItem('pendingInvitation');
+    if (pendingInvitation) {
+      // Clear the pending invitation and redirect to farmer-connect for auto-connection
+      localStorage.removeItem('pendingInvitation');
+      navigate(`/farmer-connect?invite=${pendingInvitation}`, { replace: true });
+    } else {
+      navigate('/farmer/dashboard', { replace: true });
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,7 +51,7 @@ const FarmerLogin = () => {
       setError('');
       setLoading(true);
       await login(email, password);
-      navigate('/farmer/dashboard', { replace: true });
+      handlePostLoginNavigation();
     } catch (error: any) {
       setError(error.message);
     }
@@ -45,9 +65,7 @@ const FarmerLogin = () => {
       console.log('FarmerLogin: Starting Google login...');
       await loginWithGoogle(false); // false = use popup instead of redirect
       console.log('FarmerLogin: Google login successful, redirecting...');
-      // After successful Google login, redirect based on profile completion
-      // The ProfileGuard will handle checking if profile is complete
-      navigate('/farmer/dashboard', { replace: true });
+      handlePostLoginNavigation();
     } catch (error: any) {
       console.error('Google login error in FarmerLogin:', error);
       setError(error.message);

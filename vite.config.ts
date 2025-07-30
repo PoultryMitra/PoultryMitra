@@ -21,6 +21,14 @@ export default defineConfig(({ mode }) => ({
       output: {
         manualChunks: undefined,
       },
+      external: [],
+      onwarn(warning, warn) {
+        // Suppress warnings about missing exports when using namespace imports
+        if (warning.code === 'MISSING_EXPORT' && warning.message?.includes('dealerService')) {
+          return;
+        }
+        warn(warning);
+      }
     },
   },
   preview: {

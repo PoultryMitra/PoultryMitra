@@ -1,4 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/contexts/AuthContext";
+import { 
+  addTransaction, 
+  getTransactions, 
+  subscribeToTransactions,
+  type Transaction 
+} from "@/services/farmerService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,17 +41,10 @@ const expenseCategories = [
   "Other",
 ];
 
-const mockExpenses = [
-  { id: 1, date: "2023-12-15", category: "Feed", description: "Layer mash 50kg", amount: 2500, type: "expense" },
-  { id: 2, date: "2023-12-15", category: "Sales", description: "Egg sales - 100 trays", amount: 4200, type: "income" },
-  { id: 3, date: "2023-12-14", category: "Medicine", description: "Antibiotics", amount: 850, type: "expense" },
-  { id: 4, date: "2023-12-13", category: "Utilities", description: "Electricity bill", amount: 1200, type: "expense" },
-  { id: 5, date: "2023-12-12", category: "Sales", description: "Chicken sales", amount: 3500, type: "income" },
-];
-
 export default function Expenses() {
   const { toast } = useToast();
-  const [transactions, setTransactions] = useState(mockExpenses);
+  const { currentUser } = useAuth();
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
     type: "expense",
@@ -53,6 +53,15 @@ export default function Expenses() {
     amount: "",
     date: new Date().toISOString().split('T')[0],
   });
+
+  // Load transactions from Firebase
+  useEffect(() => {
+    if (!currentUser) return;
+
+    const unsubscribe = subscribeToTransactions(currentUser.uid, setTransactions);
+    
+    return unsubscribe; // Cleanup subscription on unmount
+  }, [currentUser]);
 
   const totalIncome = transactions
     .filter(t => t.type === "income")
@@ -64,7 +73,7 @@ export default function Expenses() {
 
   const netProfit = totalIncome - totalExpenses;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!formData.category || !formData.description || !formData.amount) {
@@ -76,29 +85,46 @@ export default function Expenses() {
       return;
     }
 
-    const newTransaction = {
-      id: Date.now(),
-      date: formData.date,
-      category: formData.category,
-      description: formData.description,
-      amount: parseFloat(formData.amount),
-      type: formData.type as "income" | "expense",
-    };
+    if (!currentUser) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to add transactions.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-    setTransactions([newTransaction, ...transactions]);
-    setFormData({
-      type: "expense",
-      category: "",
-      description: "",
-      amount: "",
-      date: new Date().toISOString().split('T')[0],
-    });
-    setIsDialogOpen(false);
-    
-    toast({
-      title: "Transaction Added",
-      description: `${formData.type === 'income' ? 'Income' : 'Expense'} of ₹${formData.amount} added successfully.`,
-    });
+    try {
+      await addTransaction(currentUser.uid, {
+        type: formData.type as "income" | "expense",
+        category: formData.category,
+        note: formData.description,
+        amount: parseFloat(formData.amount),
+        date: formData.date,
+      });
+
+      toast({
+        title: "Success",
+        description: `${formData.type === "expense" ? "Expense" : "Income"} added successfully!`,
+      });
+
+      // Reset form
+      setFormData({
+        type: "expense",
+        category: "",
+        description: "",
+        amount: "",
+        date: new Date().toISOString().split('T')[0],
+      });
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error("Error adding transaction:", error);
+      toast({
+        title: "Error",
+        description: "Failed to add transaction. Please try again.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -268,12 +294,12 @@ export default function Expenses() {
               <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
                 <div className="space-y-1">
                   <div className="flex items-center gap-2">
-                    <p className="font-medium">{transaction.description}</p>
+                    <p className="font-medium">{transaction.note}</p>
                     <Badge variant={transaction.type === "income" ? "default" : "secondary"}>
                       {transaction.category}
                     </Badge>
                   </div>
-                  <p className="text-sm text-muted-foreground">{transaction.date}</p>
+                  <p className="text-sm text-muted-foreground">{new Date(transaction.date).toLocaleDateString()}</p>
                 </div>
                 <div className="text-right">
                   <div className={`text-lg font-bold ${
