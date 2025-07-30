@@ -3,7 +3,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Link } from "react-router-dom";
 
 declare global {
   interface Window {
@@ -16,10 +15,6 @@ const FCRCalculator: React.FC = () => {
   const [results, setResults] = useState<string>("");
   const [warning, setWarning] = useState<string>("");
   const chartRef = useRef<HTMLCanvasElement>(null);
-
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
 
   useEffect(() => {
     // Load Chart.js
@@ -146,7 +141,7 @@ const FCRCalculator: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header */}
+      {/* Header 
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
@@ -170,7 +165,7 @@ const FCRCalculator: React.FC = () => {
             </div>
           </div>
         </div>
-      </header>
+      </header>*/}
 
       {/* Hero Section */}
       <section className="py-20">
@@ -446,46 +441,6 @@ const FCRCalculator: React.FC = () => {
           </Card>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Poultry Mitra</h4>
-              <p className="text-gray-300 text-sm">Your trusted partner in poultry farming success.</p>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
-              <ul className="space-y-2">
-                <li><Link to="/" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Home</Link></li>
-                <li><Link to="/about" className="text-gray-300 hover:text-white" onClick={scrollToTop}>About Us</Link></li>
-                <li><Link to="/services" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Services</Link></li>
-                <li><Link to="/contact" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Contact</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Tools</h4>
-              <ul className="space-y-2">
-                <li><Link to="/fcr-calculator" className="text-gray-300 hover:text-white" onClick={scrollToTop}>FCR Calculator</Link></li>
-                <li><Link to="/dashboard" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Dashboard</Link></li>
-                <li><Link to="/rates" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Market Rates</Link></li>
-              </ul>
-            </div>
-            <div>
-              <h4 className="text-lg font-semibold mb-4">Support</h4>
-              <ul className="space-y-2">
-                <li><Link to="/help" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Help Center</Link></li>
-                <li><Link to="/privacy" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Privacy Policy</Link></li>
-                <li><Link to="/terms" className="text-gray-300 hover:text-white" onClick={scrollToTop}>Terms of Service</Link></li>
-              </ul>
-            </div>
-          </div>
-          <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-gray-300">&copy; 2025 Poultry Mitra. All rights reserved.</p>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 };

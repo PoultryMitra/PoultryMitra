@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   Select,
   SelectContent,
@@ -42,6 +43,7 @@ const mockExpenses = [
 ];
 
 export default function Expenses() {
+  const { toast } = useToast();
   const [transactions, setTransactions] = useState(mockExpenses);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -65,8 +67,17 @@ export default function Expenses() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.category || !formData.description || !formData.amount) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const newTransaction = {
-      id: transactions.length + 1,
+      id: Date.now(),
       date: formData.date,
       category: formData.category,
       description: formData.description,
@@ -83,6 +94,11 @@ export default function Expenses() {
       date: new Date().toISOString().split('T')[0],
     });
     setIsDialogOpen(false);
+    
+    toast({
+      title: "Transaction Added",
+      description: `${formData.type === 'income' ? 'Income' : 'Expense'} of ₹${formData.amount} added successfully.`,
+    });
   };
 
   return (

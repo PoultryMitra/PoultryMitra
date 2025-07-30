@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   Dialog,
   DialogContent,
@@ -51,6 +52,7 @@ const mockReminders = [
 ];
 
 export default function Vaccines() {
+  const { toast } = useToast();
   const [reminders, setReminders] = useState(mockReminders);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
@@ -63,8 +65,17 @@ export default function Vaccines() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (!formData.title || !formData.dueDate || !formData.birdGroup) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     const newReminder = {
-      id: reminders.length + 1,
+      id: Date.now(),
       ...formData,
       status: "upcoming" as const,
     };
@@ -77,12 +88,27 @@ export default function Vaccines() {
       birdGroup: "",
     });
     setIsDialogOpen(false);
+    
+    toast({
+      title: "Reminder Added",
+      description: `Vaccine reminder for ${formData.title} added successfully.`,
+    });
   };
 
-  const markCompleted = (id: number) => {
+  const markAsCompleted = (id: number) => {
     setReminders(reminders.map(reminder => 
-      reminder.id === id ? { ...reminder, status: "completed" as const } : reminder
+      reminder.id === id 
+        ? { ...reminder, status: "completed" as const }
+        : reminder
     ));
+    
+    const reminder = reminders.find(r => r.id === id);
+    if (reminder) {
+      toast({
+        title: "Vaccination Completed",
+        description: `${reminder.title} marked as completed.`,
+      });
+    }
   };
 
   const getStatusBadge = (status: string, dueDate: string) => {
@@ -269,7 +295,7 @@ export default function Vaccines() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => markCompleted(reminder.id)}
+                      onClick={() => markAsCompleted(reminder.id)}
                     >
                       <CheckCircle className="mr-2 h-4 w-4" />
                       Mark Complete
