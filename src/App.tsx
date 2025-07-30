@@ -11,7 +11,7 @@ import Register from "./pages/RegisterNew";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import DealerDashboard from "./pages/DealerDashboard";
 import AdminPanel from "./pages/admin/AdminPanel";
-import FCRCalculator from "./pages/FCRCalculator";
+import FCRCalculator from "./pages/FCRCalculatorNew";
 import Expenses from "./pages/Expenses";
 import Vaccines from "./pages/Vaccines";
 import Rates from "./pages/Rates";
@@ -71,6 +71,7 @@ const App = () => (
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/fcr-calculator" element={<FCRCalculator />} />
           
           {/* Farmer Routes */}
           <Route path="/farmer" element={

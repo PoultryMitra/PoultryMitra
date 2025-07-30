@@ -21,6 +21,7 @@ const routes = [
   'help',
   'privacy',
   'terms',
+  'fcr-calculator',
   'farmer',
   'dealer', 
   'admin'

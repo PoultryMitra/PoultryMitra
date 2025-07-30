@@ -26,7 +26,7 @@ const HelpCenter = () => {
             </nav>
             <div className="flex space-x-4">
               <Link to="/login">
-                <Button variant="outline">Login</Button>
+                <Button className="bg-white text-green-600 hover:bg-gray-100">Login</Button>
               </Link>
               <Link to="/register">
                 <Button className="bg-green-600 hover:bg-green-700">Register</Button>
@@ -46,7 +46,8 @@ const HelpCenter = () => {
             Find answers to common questions and get the help you need to make the most of Poultry Mitra.
           </p>
           
-          {/* Search Bar */}
+          {/* Search Bar - Commented out for now */}
+          {/* 
           <div className="max-w-2xl mx-auto mb-8">
             <div className="flex gap-2">
               <Input 
@@ -56,6 +57,7 @@ const HelpCenter = () => {
               <Button className="bg-green-600 hover:bg-green-700">Search</Button>
             </div>
           </div>
+          */}
         </div>
       </section>
 

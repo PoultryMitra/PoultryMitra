@@ -94,6 +94,13 @@ const Index = () => {
               </CardHeader>
               <CardContent>
                 <p>Calculate and monitor Feed Conversion Ratio to optimize feed efficiency and reduce costs.</p>
+                <div className="mt-4">
+                  <Link to="/fcr-calculator">
+                    <Button className="bg-green-600 hover:bg-green-700 text-white">
+                      Try Calculator
+                    </Button>
+                  </Link>
+                </div>
               </CardContent>
             </Card>
 

@@ -95,12 +95,17 @@ const Services = () => {
               </CardHeader>
               <CardContent>
                 <p className="mb-4">Calculate and monitor Feed Conversion Ratio to optimize feed efficiency and reduce costs.</p>
-                <ul className="text-sm text-gray-600 space-y-1">
+                <ul className="text-sm text-gray-600 space-y-1 mb-4">
                   <li>• Real-time FCR calculation</li>
                   <li>• Feed efficiency tracking</li>
-                  <li>• Cost optimization</li>
-                  <li>• Performance benchmarks</li>
+                  <li>• Cost optimization analysis</li>
+                  <li>• Profitability insights</li>
                 </ul>
+                <Link to="/fcr-calculator">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white">
+                    Try Calculator
+                  </Button>
+                </Link>
               </CardContent>
             </Card>
 
