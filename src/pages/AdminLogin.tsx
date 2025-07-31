@@ -49,7 +49,7 @@ const AdminLogin = () => {
       setError('');
       setLoading(true);
       console.log('AdminLogin: Starting Google login...');
-      await loginWithGoogle(false); // false = use popup instead of redirect
+      await loginWithGoogle(); // Use default redirect mode to avoid CORS issues
       console.log('AdminLogin: Google login successful, checking admin access...');
       // After successful Google login, redirect to admin panel
       // The ProfileGuard will handle checking if user has admin role

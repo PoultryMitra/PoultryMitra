@@ -43,17 +43,15 @@ const DealerLogin = () => {
       setError('');
       setLoading(true);
       console.log('DealerLogin: Starting Google login...');
-      // Temporarily try popup mode for testing
-      await loginWithGoogle(false); // false = use popup instead of redirect
-      console.log('DealerLogin: Google login successful, redirecting...');
-      // After successful Google login, redirect based on profile completion
-      // The ProfileGuard will handle checking if profile is complete
-      navigate('/dealer/dashboard', { replace: true });
+      // Use redirect mode to avoid CORS issues
+      await loginWithGoogle(true); // true = use redirect instead of popup
+      console.log('DealerLogin: Google login redirect initiated...');
+      // Note: After redirect, user will be brought back and ProfileGuard will handle navigation
     } catch (error: any) {
       console.error('Google login error in DealerLogin:', error);
       setError(error.message);
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   const handleResetPassword = async () => {

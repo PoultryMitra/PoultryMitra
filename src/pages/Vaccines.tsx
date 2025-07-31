@@ -3,6 +3,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import { 
   addVaccineReminder, 
   subscribeToVaccineReminders,
+  updateVaccineReminder,
+  deleteVaccineReminder,
   type VaccineReminder 
 } from "@/services/farmerService";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -20,7 +22,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Calendar, Plus, AlertTriangle, CheckCircle } from "lucide-react";
+import { Calendar, Plus, AlertTriangle, CheckCircle, Syringe, Trash2 } from "lucide-react";
 
 export default function Vaccines() {
   const { toast } = useToast();
@@ -28,10 +30,12 @@ export default function Vaccines() {
   const [reminders, setReminders] = useState<VaccineReminder[]>([]);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [formData, setFormData] = useState({
-    vaccine: "",
-    date: "",
-    description: "",
-    birdGroup: "",
+    vaccineName: "",
+    reminderDate: "",
+    notes: "",
+    flock: "",
+    dosage: "",
+    method: "",
   });
 
   // Load vaccine reminders from Firebase
@@ -46,7 +50,7 @@ export default function Vaccines() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.vaccine || !formData.date || !formData.birdGroup) {
+    if (!formData.vaccineName || !formData.reminderDate || !formData.flock) {
       toast({
         title: "Error",
         description: "Please fill in all required fields.",
@@ -66,23 +70,28 @@ export default function Vaccines() {
     
     try {
       await addVaccineReminder(currentUser.uid, {
-        vaccine: formData.vaccine,
-        date: formData.date,
-        description: formData.description,
-        birdGroup: formData.birdGroup,
+        vaccineName: formData.vaccineName,
+        reminderDate: new Date(formData.reminderDate),
+        notes: formData.notes,
+        flock: formData.flock,
+        dosage: formData.dosage,
+        method: formData.method,
+        status: 'pending'
       });
 
       toast({
         title: "Success",
-        description: `Vaccine reminder for ${formData.vaccine} added successfully.`,
+        description: `Vaccine reminder for ${formData.vaccineName} added successfully.`,
       });
 
       // Reset form
       setFormData({
-        vaccine: "",
-        date: "",
-        description: "",
-        birdGroup: "",
+        vaccineName: "",
+        reminderDate: "",
+        notes: "",
+        flock: "",
+        dosage: "",
+        method: "",
       });
       setIsDialogOpen(false);
     } catch (error) {
@@ -113,13 +122,13 @@ export default function Vaccines() {
 
   const upcomingCount = reminders.filter(r => {
     const today = new Date();
-    const due = new Date(r.date);
+    const due = new Date(r.reminderDate.toDate());
     return due >= today;
   }).length;
   
   const overdueCount = reminders.filter(r => {
     const today = new Date();
-    const due = new Date(r.date);
+    const due = new Date(r.reminderDate.toDate());
     return due < today;
   }).length;
 
@@ -152,8 +161,8 @@ export default function Vaccines() {
                 <Input
                   id="vaccine"
                   placeholder="e.g., Newcastle Disease Vaccine"
-                  value={formData.vaccine}
-                  onChange={(e) => setFormData({ ...formData, vaccine: e.target.value })}
+                  value={formData.vaccineName}
+                  onChange={(e) => setFormData({ ...formData, vaccineName: e.target.value })}
                   required
                 />
               </div>
@@ -163,8 +172,8 @@ export default function Vaccines() {
                 <Input
                   id="date"
                   type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                  value={formData.reminderDate}
+                  onChange={(e) => setFormData({ ...formData, reminderDate: e.target.value })}
                   required
                 />
               </div>
@@ -174,8 +183,8 @@ export default function Vaccines() {
                 <Input
                   id="birdGroup"
                   placeholder="e.g., Batch A, Layer House 1"
-                  value={formData.birdGroup}
-                  onChange={(e) => setFormData({ ...formData, birdGroup: e.target.value })}
+                  value={formData.flock}
+                  onChange={(e) => setFormData({ ...formData, flock: e.target.value })}
                   required
                 />
               </div>
@@ -185,8 +194,8 @@ export default function Vaccines() {
                 <Textarea
                   id="description"
                   placeholder="Additional notes about the vaccination"
-                  value={formData.description}
-                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  value={formData.notes}
+                  onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 />
               </div>
 
@@ -238,24 +247,24 @@ export default function Vaccines() {
         <CardContent>
           <div className="space-y-4">
             {reminders
-              .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
+              .sort((a, b) => new Date(a.reminderDate.toDate()).getTime() - new Date(b.reminderDate.toDate()).getTime())
               .map((reminder) => (
                 <div key={reminder.id} className="flex items-start justify-between p-4 border rounded-lg">
                   <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <h3 className="font-medium">{reminder.vaccine}</h3>
-                      {getStatusBadge("upcoming", reminder.date)}
+                      <h3 className="font-medium">{reminder.vaccineName}</h3>
+                      {getStatusBadge("upcoming", reminder.reminderDate.toDate().toISOString())}
                     </div>
                     <div className="space-y-1">
                       <p className="text-sm text-muted-foreground">
-                        <strong>Due:</strong> {new Date(reminder.date).toLocaleDateString()}
+                        <strong>Due:</strong> {new Date(reminder.reminderDate.toDate()).toLocaleDateString()}
                       </p>
                       <p className="text-sm text-muted-foreground">
-                        <strong>Group:</strong> {reminder.birdGroup}
+                        <strong>Group:</strong> {reminder.flock}
                       </p>
-                      {reminder.description && (
+                      {reminder.notes && (
                         <p className="text-sm text-muted-foreground">
-                          {reminder.description}
+                          {reminder.notes}
                         </p>
                       )}
                     </div>

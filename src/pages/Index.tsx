@@ -7,6 +7,14 @@ import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feathe
 const Index = () => {
   const [language, setLanguage] = useState("hi");
   
+  const toggleLanguage = () => {
+    setLanguage(language === "hi" ? "en" : "hi");
+  };
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+  
   const content = {
     hi: {
       header: {
@@ -132,10 +140,18 @@ const Index = () => {
     }
   };
 
-  const t = content[language as keyof typeof content];
+  const currentContent = content[language as keyof typeof content];
   
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Translation function
+  const t = (key: string) => {
+    const keys = key.split('.');
+    let value: any = currentContent;
+    
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    
+    return value || key;
   };
 
   return (

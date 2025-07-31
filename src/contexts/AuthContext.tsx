@@ -106,15 +106,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login with Google
-  const loginWithGoogle = async (useRedirect = true) => {
+  const loginWithGoogle = async (useRedirect = false) => {
     try {
-      console.log('Starting Google login with popup mode...');
       if (useRedirect) {
-        // Use redirect to avoid CORS issues (default behavior)
+        console.log('Starting Google login with redirect mode...');
+        // Use redirect to avoid CORS issues
         await signInWithRedirect(auth, googleProvider);
         // Note: The result will be handled by the auth state change listener
       } else {
-        // Try popup (less reliable due to popup blockers and CORS)
+        console.log('Starting Google login with popup mode...');
+        // Try popup (default behavior)
         console.log('Opening Google popup...');
         const result = await signInWithPopup(auth, googleProvider);
         console.log('Google popup result:', result);
@@ -129,12 +130,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (error.code === 'auth/unauthorized-domain') {
         throw new Error('This domain is not authorized for Google Sign-in. Please contact support.');
       } else if (error.code === 'auth/popup-blocked') {
-        throw new Error('Popup was blocked. Please allow popups or try again.');
+        // If popup is blocked, automatically try redirect
+        console.log('Popup blocked, trying redirect method...');
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          return; // Redirect initiated successfully
+        } catch (redirectError) {
+          throw new Error('Popup was blocked. Please allow popups for this site or try again.');
+        }
       } else if (error.code === 'auth/cancelled-popup-request') {
         throw new Error('Sign-in was cancelled. Please try again.');
       } else if (error.code === 'auth/operation-not-allowed') {
         throw new Error('Google Sign-in is not enabled. Please contact support.');
       } else {
+        // For CORS/popup errors, try redirect as fallback
+        if (error.message.includes('Cross-Origin') || error.message.includes('popup')) {
+          console.log('CORS/Popup error detected, falling back to redirect...');
+          try {
+            await signInWithRedirect(auth, googleProvider);
+            return; // Redirect initiated successfully
+          } catch (redirectError) {
+            throw new Error('Authentication failed. Please try again or contact support.');
+          }
+        }
         throw new Error(`Google Sign-in failed: ${error.message}`);
       }
     }
@@ -163,6 +181,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await setDoc(doc(db, 'users', user.uid), userProfile);
       setUserProfile(userProfile);
       console.log('New user profile created:', userProfile);
+      
+      // Redirect new users to profile completion
+      console.log('Redirecting new user to profile completion...');
+      setTimeout(() => {
+        window.location.href = '/complete-profile';
+      }, 500);
+      
     } else {
       console.log('Loading existing user profile...');
       const profile = userDoc.data() as UserProfile;
@@ -171,6 +196,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Update last active
       await setDoc(doc(db, 'users', user.uid), { lastActive: new Date() }, { merge: true });
+      
+      // If profile is complete, redirect to appropriate dashboard
+      if (profile.profileComplete && profile.role) {
+        console.log('Profile is complete, redirecting to dashboard...');
+        // Small delay to ensure state is updated
+        setTimeout(() => {
+          if (profile.role === 'farmer') {
+            window.location.href = '/farmer/dashboard';
+          } else if (profile.role === 'dealer') {
+            window.location.href = '/dealer/dashboard';
+          } else if (profile.role === 'admin') {
+            window.location.href = '/admin';
+          }
+        }, 500);
+      } else {
+        // Existing user but incomplete profile
+        console.log('Existing user with incomplete profile, redirecting to profile completion...');
+        setTimeout(() => {
+          window.location.href = '/complete-profile';
+        }, 500);
+      }
     }
     
     console.log('Google auth result processing complete');
@@ -235,11 +281,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      console.log('🔥 Auth state changed:', user?.email || 'No user');
       setCurrentUser(user);
       
       if (user) {
+        console.log('📝 Loading user profile for:', user.uid);
         await loadUserProfile(user.uid);
       } else {
+        console.log('❌ No user, clearing profile');
         setUserProfile(null);
       }
       

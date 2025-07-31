@@ -66,6 +66,11 @@ const Register = () => {
       return;
     }
 
+    if (formData.role === 'dealer' && !formData.phone) {
+      setError('Phone number is required for dealers');
+      return;
+    }
+
     if (formData.password !== formData.confirmPassword) {
       setError('Passwords do not match');
       return;
@@ -105,7 +110,7 @@ const Register = () => {
       setLoading(true);
       console.log('RegisterNew: Starting Google signup...');
       // Use popup mode for consistent experience with login pages
-      await loginWithGoogle(false); // false = use popup instead of redirect
+      await loginWithGoogle(); // Use default redirect mode to avoid CORS issues
       console.log('RegisterNew: Google signup successful, redirecting to profile completion...');
       // Handle post-registration navigation
       handlePostRegistrationNavigation();
@@ -178,7 +183,9 @@ const Register = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone Number</Label>
+              <Label htmlFor="phone">
+                Phone Number {formData.role === 'dealer' && <span className="text-red-500">*</span>}
+              </Label>
               <div className="relative">
                 <Phone className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
@@ -188,6 +195,7 @@ const Register = () => {
                   value={formData.phone}
                   onChange={(e) => handleChange('phone', e.target.value)}
                   className="pl-10"
+                  required={formData.role === 'dealer'}
                 />
               </div>
             </div>

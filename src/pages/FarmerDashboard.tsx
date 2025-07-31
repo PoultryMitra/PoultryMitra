@@ -13,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
+import { 
   addTransaction,
   addVaccineReminder,
   subscribeToTransactions,
@@ -23,10 +23,11 @@ import {
   type VaccineReminder,
 } from "@/services/farmerService";
 import { getFarmerDealers, type FarmerDealerData } from "@/services/connectionService";
-import * as dealerService from "@/services/dealerService";
-import type { RateUpdate } from "@/services/dealerService";
-
-export default function FarmerDashboard() {
+import { 
+  subscribeToConnectedDealerProducts,
+  type Product,
+  type RateUpdate 
+} from "@/services/dealerService";export default function FarmerDashboard() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   
@@ -51,7 +52,7 @@ export default function FarmerDashboard() {
   const [vaccineReminders, setVaccineReminders] = useState<VaccineReminder[]>([]);
   
   // Dealer Rates State
-  const [dealerRates, setDealerRates] = useState<RateUpdate[]>([]);
+  const [dealerProducts, setDealerProducts] = useState<Product[]>([]);
   const [connectedDealers, setConnectedDealers] = useState<FarmerDealerData[]>([]);
 
   // Calculate totals from Firebase data
@@ -79,59 +80,27 @@ export default function FarmerDashboard() {
     });
 
     // Create a local version to test if it's a module issue
-    const localGetDealerRates = (dealerId: string, callback: (rates: any[]) => void) => {
-      console.log('Local version called with dealerId:', dealerId);
-      // Just return dummy data for now to test the UI
-      setTimeout(() => {
-        callback([
-          { 
-            id: '1', 
-            category: 'chicks', 
-            productName: 'Day Old Chicks',
-            newRate: 25, 
-            unit: 'piece',
-            updatedAt: new Date() 
-          },
-          { 
-            id: '2', 
-            category: 'feed', 
-            productName: 'Starter Feed',
-            newRate: 30, 
-            unit: 'kg',
-            updatedAt: new Date() 
-          },
-          { 
-            id: '3', 
-            category: 'vaccines', 
-            productName: 'Newcastle Vaccine',
-            newRate: 15, 
-            unit: 'dose',
-            updatedAt: new Date() 
-          }
-        ]);
-      }, 1000);
-      return () => console.log('Cleanup called');
-    };
+    const unsubscribeProducts = subscribeToConnectedDealerProducts(currentUser.uid, (products) => {
+      console.log('📦 Received products from connected dealers:', products.length);
+      setDealerProducts(products);
+    });
 
     // Subscribe to connected dealers
     const unsubscribeDealers = getFarmerDealers(currentUser.uid, (dealers) => {
-      console.log('Received connected dealers:', dealers.length);
+      console.log('🏪 Received connected dealers:', dealers.length);
+      console.log('👤 Current farmer user:', {
+        uid: currentUser.uid,
+        email: currentUser.email,
+        displayName: currentUser.displayName
+      });
+      console.log('📊 Dealer details:', dealers);
       setConnectedDealers(dealers);
-      
-      // Load rates from all connected dealers
-      if (dealers.length > 0) {
-        // For now, just use the first dealer's rates
-        const firstDealer = dealers[0];
-        localGetDealerRates(firstDealer.dealerId, (data) => {
-          console.log('Received dealer rates (local):', data.length);
-          setDealerRates(data);
-        });
-      }
     });
 
     return () => {
       unsubscribeTransactions();
       unsubscribeVaccines();
+      unsubscribeProducts();
       unsubscribeDealers();
     };
   }, [currentUser?.uid]);
@@ -236,10 +205,10 @@ export default function FarmerDashboard() {
     setLoading(true);
     try {
       await addVaccineReminder(currentUser.uid, {
-        vaccine: vaccineName.trim(),
-        date: vaccineDate,
-        description: '',
-        birdGroup: 'General',
+        vaccineName: vaccineName.trim(),
+        reminderDate: new Date(vaccineDate),
+        notes: 'Reminder set from dashboard',
+        status: 'pending',
       });
 
       // Clear form
@@ -269,7 +238,7 @@ export default function FarmerDashboard() {
     const reminder = vaccineReminders.find(r => r.id === reminderId);
     toast({
       title: "Vaccination Completed",
-      description: `${reminder?.vaccine} marked as completed.`,
+      description: `${reminder?.vaccineName} marked as completed.`,
     });
     
     // Note: In a full implementation, you might want to delete the reminder
@@ -461,48 +430,45 @@ export default function FarmerDashboard() {
           <div className="space-y-3">
             {vaccineReminders.map((reminder) => (
               <div key={reminder.id} className="flex justify-between items-center p-3 bg-gray-50 rounded-lg">
-                <span className="font-medium">{reminder.vaccine}</span>
-                <span className="text-gray-600">{new Date(reminder.date).toLocaleDateString()}</span>
+                <span className="font-medium">{reminder.vaccineName}</span>
+                <span className="text-gray-600">{new Date(reminder.reminderDate.toDate()).toLocaleDateString()}</span>
               </div>
             ))}
           </div>
         </CardContent>
       </Card>
 
-      {/* Dealer Rates Section */}
+      {/* Dealer Products Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Current Dealer Rates</CardTitle>
+          <CardTitle>Available Products from Connected Dealers</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-3">
-            {dealerRates.slice(0, 8).map((rate) => (
-              <div key={rate.id} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
+            {dealerProducts.slice(0, 8).map((product) => (
+              <div key={product.id} className="flex justify-between items-center p-3 bg-blue-50 rounded-lg border border-blue-200">
                 <div>
-                  <div className="font-medium text-blue-900">{rate.productName}</div>
-                  <div className="text-sm text-blue-600">{rate.category}</div>
+                  <div className="font-medium text-blue-900">{product.productName}</div>
+                  <div className="text-sm text-blue-600">{product.category}</div>
                   <div className="text-xs text-gray-500">
-                    Updated: {rate.updatedAt?.toDate ? 
-                      rate.updatedAt.toDate().toLocaleDateString() : 
-                      (rate.updatedAt instanceof Date ? rate.updatedAt.toLocaleDateString() : new Date(rate.updatedAt as any).toLocaleDateString())
-                    }
+                    Stock: {product.currentStock} {product.unit} | Supplier: {product.supplier || 'N/A'}
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold text-lg text-blue-800">
-                    ₹{rate.newRate.toLocaleString()}
+                    ₹{product.pricePerUnit.toLocaleString()}
                   </div>
                   <div className="text-sm text-blue-600">
-                    per {rate.unit}
+                    per {product.unit}
                   </div>
                 </div>
               </div>
             ))}
-            {dealerRates.length === 0 && (
+            {dealerProducts.length === 0 && (
               <div className="text-center text-gray-500 py-4">
-                <div className="text-gray-400 mb-2">No Data</div>
-                <div>No dealer rates available.</div>
-                <div className="text-sm">Connect with a dealer to see current market rates.</div>
+                <div className="text-gray-400 mb-2">No Products Available</div>
+                <div>No products available from connected dealers.</div>
+                <div className="text-sm">Connect with a dealer to see their products and prices.</div>
               </div>
             )}
           </div>

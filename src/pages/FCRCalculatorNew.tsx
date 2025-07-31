@@ -142,32 +142,6 @@ const FCRCalculator: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
-      {/* Header 
-      <header className="bg-white shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-6">
-            <div className="flex items-center">
-              <Link to="/" onClick={scrollToTop}>
-                <h1 className="text-2xl font-bold text-green-600">Poultry Mitra</h1>
-              </Link>
-            </div>
-            <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-500 hover:text-gray-900" onClick={scrollToTop}>About</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900" onClick={scrollToTop}>Services</Link>
-              <Link to="/contact" className="text-gray-500 hover:text-gray-900" onClick={scrollToTop}>Contact</Link>
-            </nav>
-            <div className="flex space-x-4">
-              <Link to="/login">
-                <Button className="bg-white text-green-600 hover:bg-gray-100">Login</Button>
-              </Link>
-              <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">Register</Button>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </header>*/}
-
       {/* Hero Section */}
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
@@ -177,32 +151,11 @@ const FCRCalculator: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Calculate Feed Conversion Ratio and analyze your poultry farm profitability with our comprehensive calculator designed by industry experts.
           </p>
-          
-          {/* Premium Features Banner */}
-          <div className="max-w-2xl mx-auto mb-8">
-            <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-green-200">
-              <CardContent className="pt-6">
-                <div className="text-center">
-                  <h3 className="text-lg font-semibold text-green-700 mb-2">
-                    Want Advanced Features?
-                  </h3>
-                  <p className="text-gray-600 mb-4">
-                    Get access to <strong>Batch Management</strong>, <strong>Batch Tracking</strong>, and <strong>Farm History</strong> by creating your free account!
-                  </p>
-                  <div className="flex gap-3 justify-center">
-                    <Button asChild className="bg-green-600 hover:bg-green-700">
-                      <a href="/register">Sign Up Free</a>
-                    </Button>
-                    <Button asChild variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
-                      <a href="/farmer-login">Login</a>
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
         </div>
       </section>
+          
+          
+          
 
       {/* Calculator Section */}
       <section className="py-16 bg-white">

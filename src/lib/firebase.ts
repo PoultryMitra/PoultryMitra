@@ -24,6 +24,22 @@ if (import.meta.env.DEV) {
     messagingSenderId: firebaseConfig.messagingSenderId ? '✓ Loaded' : '✗ Missing',
     appId: firebaseConfig.appId ? '✓ Loaded' : '✗ Missing'
   });
+  
+  // Check if we're using fallback values
+  const usingFallbacks = [
+    firebaseConfig.apiKey === "your-api-key",
+    firebaseConfig.authDomain === "your-auth-domain",
+    firebaseConfig.projectId === "your-project-id",
+    firebaseConfig.storageBucket === "your-storage-bucket",
+    firebaseConfig.messagingSenderId === "your-messaging-sender-id",
+    firebaseConfig.appId === "your-app-id"
+  ];
+  
+  if (usingFallbacks.some(Boolean)) {
+    console.error('🚨 FIREBASE CONFIG ERROR: Using fallback values!');
+    console.error('Please create a .env file with your Firebase credentials.');
+    console.error('Copy .env.example to .env and fill in your values.');
+  }
 }
 
 // Initialize Firebase

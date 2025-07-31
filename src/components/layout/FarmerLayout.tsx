@@ -6,16 +6,12 @@ const getPageTitle = (pathname: string) => {
   switch (pathname) {
     case "/farmer/dashboard":
       return "Farmer Dashboard";
-    case "/farmer/crops":
-      return "Crops Management";
-    case "/farmer/tasks":
-      return "Task Management";
-    case "/farmer/expenses":
-      return "Expenses";
-    case "/farmer/vaccines":
-      return "Vaccines";
+    case "/farmer/feed-prices":
+      return "Feed Prices & Dealers";
     case "/farmer/fcr-calculator":
       return "FCR Calculator";
+    case "/farmer/vaccines":
+      return "Vaccine Reminders";
     default:
       return "Farmer Portal";
   }

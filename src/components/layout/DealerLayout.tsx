@@ -6,14 +6,8 @@ const getPageTitle = (pathname: string) => {
   switch (pathname) {
     case "/dealer/dashboard":
       return "Dealer Dashboard";
-    case "/dealer/orders":
-      return "Orders Management";
-    case "/dealer/customers":
-      return "Customer Management";
-    case "/dealer/products":
-      return "Product Management";
-    case "/dealer/reports":
-      return "Reports";
+    case "/dealer/feed-prices":
+      return "Feed Prices & Catalog";
     default:
       return "Dealer Portal";
   }

@@ -65,7 +65,10 @@ export interface FarmerDealerData {
 // Create invitation code and store in database
 export const createInvitationCode = async (dealerId: string, dealerName: string, dealerEmail: string): Promise<string> => {
   try {
-    const inviteCode = `dealer-${dealerId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    // Generate a simpler, more user-friendly code
+    const timestamp = Date.now().toString(36).toUpperCase();
+    const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
+    const inviteCode = `DEAL${timestamp}${randomPart}`;
     
     // Store invitation in Firebase
     await addDoc(collection(db, 'dealerInvitations'), {
@@ -88,9 +91,32 @@ export const createInvitationCode = async (dealerId: string, dealerName: string,
   }
 };
 
+// Get dealer's active invitation codes
+export const getDealerInvitationCodes = async (dealerId: string) => {
+  try {
+    const q = query(
+      collection(db, 'dealerInvitations'),
+      where('dealerId', '==', dealerId),
+      where('isActive', '==', true),
+      orderBy('createdAt', 'desc')
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data()
+    }));
+  } catch (error) {
+    console.error('Error fetching dealer invitation codes:', error);
+    return [];
+  }
+};
+
 // Validate invitation code
 export const validateInvitationCode = async (inviteCode: string): Promise<{valid: boolean, data?: any}> => {
   try {
+    console.log(`Validating invitation code: ${inviteCode}`);
+    
     const q = query(
       collection(db, 'dealerInvitations'),
       where('inviteCode', '==', inviteCode),
@@ -100,17 +126,108 @@ export const validateInvitationCode = async (inviteCode: string): Promise<{valid
     const snapshot = await getDocs(q);
     
     if (snapshot.empty) {
+      console.log(`No active invitation found for code: ${inviteCode}`);
+      
+      // As a fallback for demo codes, check if this is a dealer ID
+      // This helps connect farmers directly with dealers during demos
+      if (inviteCode.startsWith('demo-') || inviteCode.length > 10) {
+        try {
+          // Try to get dealer profile directly using the code as ID
+          const dealerProfilesQuery = query(
+            collection(db, 'dealerProfiles'),
+            where('dealerId', '==', inviteCode)
+          );
+          
+          const dealerProfileSnapshot = await getDocs(dealerProfilesQuery);
+          
+          if (!dealerProfileSnapshot.empty) {
+            const dealerData = dealerProfileSnapshot.docs[0].data();
+            console.log(`Found dealer directly via ID lookup: ${inviteCode}`);
+            
+            return { 
+              valid: true, 
+              data: {
+                dealerId: inviteCode,
+                dealerName: dealerData.businessName || dealerData.displayName || dealerData.email?.split('@')[0] || 'Unknown Dealer',
+                dealerEmail: dealerData.email,
+                invitationId: 'direct-connect'
+              }
+            };
+          }
+        } catch (err) {
+          console.error('Error in direct dealer lookup:', err);
+        }
+      }
+      
+      // Additional fallback: Check users collection for dealer by ID
+      try {
+        console.log(`Trying to find dealer in users collection with ID: ${inviteCode}`);
+        const dealerUserQuery = query(
+          collection(db, 'users'),
+          where('uid', '==', inviteCode)
+        );
+        
+        const userSnapshot = await getDocs(dealerUserQuery);
+        
+        if (!userSnapshot.empty) {
+          const userData = userSnapshot.docs[0].data();
+          if (userData.role === 'dealer') {
+            console.log(`Found dealer in users collection: ${inviteCode}`);
+            
+            return { 
+              valid: true, 
+              data: {
+                dealerId: inviteCode,
+                dealerName: userData.displayName || userData.businessName || userData.email?.split('@')[0] || 'Unknown Dealer',
+                dealerEmail: userData.email,
+                invitationId: 'user-direct-connect'
+              }
+            };
+          }
+        }
+        
+        // Also try searching by email if the code looks like an email
+        if (inviteCode.includes('@')) {
+          const dealerEmailQuery = query(
+            collection(db, 'users'),
+            where('email', '==', inviteCode),
+            where('role', '==', 'dealer')
+          );
+          
+          const emailSnapshot = await getDocs(dealerEmailQuery);
+          
+          if (!emailSnapshot.empty) {
+            const userData = emailSnapshot.docs[0].data();
+            console.log(`Found dealer by email: ${inviteCode}`);
+            
+            return { 
+              valid: true, 
+              data: {
+                dealerId: emailSnapshot.docs[0].id,
+                dealerName: userData.displayName || userData.businessName || 'Dealer',
+                dealerEmail: userData.email,
+                invitationId: 'email-direct-connect'
+              }
+            };
+          }
+        }
+      } catch (err) {
+        console.error('Error in users collection lookup:', err);
+      }
+      
       return { valid: false };
     }
     
     const invitation = snapshot.docs[0];
     const data = invitation.data();
+    console.log(`Found invitation data:`, data);
     
     // Check if expired
     const now = new Date();
     const expiresAt = data.expiresAt.toDate();
     
     if (now > expiresAt) {
+      console.log(`Invitation expired: ${inviteCode}`);
       // Mark as inactive
       await updateDoc(doc(db, 'dealerInvitations', invitation.id), {
         isActive: false
@@ -118,12 +235,13 @@ export const validateInvitationCode = async (inviteCode: string): Promise<{valid
       return { valid: false };
     }
     
+    console.log(`Invitation valid: ${inviteCode} for dealer ${data.dealerId}`);
     return { 
       valid: true, 
       data: {
         dealerId: data.dealerId,
-        dealerName: data.dealerName,
-        dealerEmail: data.dealerEmail,
+        dealerName: data.dealerName || data.displayName || data.email?.split('@')[0] || 'Unknown Dealer',
+        dealerEmail: data.dealerEmail || data.email,
         invitationId: invitation.id
       }
     };
@@ -144,6 +262,27 @@ export const connectFarmerToDealer = async (
   inviteCode: string
 ): Promise<void> => {
   try {
+    console.log('🔗 Creating connection with data:', {
+      farmerId,
+      farmerName,
+      farmerEmail,
+      dealerId,
+      dealerName,
+      dealerEmail,
+      inviteCode
+    });
+
+    // Validate that we have real dealer data, not placeholders
+    if (dealerEmail === 'dealer@example.com' || dealerName === 'Dealer') {
+      console.error('❌ Placeholder dealer data detected! Cannot create connection.');
+      throw new Error('Invalid dealer information. Please try again or contact support.');
+    }
+
+    if (!dealerEmail || !dealerName) {
+      console.error('❌ Missing dealer information:', { dealerEmail, dealerName });
+      throw new Error('Incomplete dealer information. Please try again.');
+    }
+
     const batch = writeBatch(db);
     
     // 1. Create connection record
@@ -225,21 +364,39 @@ export const getFarmerDealers = (
   farmerId: string,
   callback: (dealers: FarmerDealerData[]) => void
 ): (() => void) => {
-  const q = query(
-    collection(db, 'farmerDealers'),
-    where('farmerId', '==', farmerId),
-    orderBy('connectedDate', 'desc')
-  );
+  try {
+    const q = query(
+      collection(db, 'farmerDealers'),
+      where('farmerId', '==', farmerId)
+      // Temporarily removed orderBy to avoid index requirement
+      // orderBy('connectedDate', 'desc')
+    );
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const dealers: FarmerDealerData[] = [];
-    snapshot.forEach((doc) => {
-      dealers.push({ id: doc.id, ...doc.data() } as FarmerDealerData);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const dealers: FarmerDealerData[] = [];
+      snapshot.forEach((doc) => {
+        dealers.push({ id: doc.id, ...doc.data() } as FarmerDealerData);
+      });
+      
+      // Sort manually to avoid Firebase index requirement
+      dealers.sort((a, b) => {
+        const aDate = a.connectedDate?.toDate?.() || new Date(0);
+        const bDate = b.connectedDate?.toDate?.() || new Date(0);
+        return bDate.getTime() - aDate.getTime();
+      });
+      
+      console.log('📊 getFarmerDealers - Retrieved dealers:', dealers.length);
+      callback(dealers);
+    }, (error) => {
+      console.error('❌ Error in getFarmerDealers:', error);
+      callback([]); // Return empty array on error
     });
-    callback(dealers);
-  });
 
-  return unsubscribe;
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up getFarmerDealers:', error);
+    return () => {}; // Return empty cleanup function
+  }
 };
 
 // Get dealer's connected farmers
@@ -247,21 +404,39 @@ export const getDealerFarmers = (
   dealerId: string,
   callback: (farmers: DealerFarmerData[]) => void
 ): (() => void) => {
-  const q = query(
-    collection(db, 'dealerFarmers'),
-    where('dealerId', '==', dealerId),
-    orderBy('lastUpdated', 'desc')
-  );
+  try {
+    const q = query(
+      collection(db, 'dealerFarmers'),
+      where('dealerId', '==', dealerId)
+      // Temporarily removed orderBy to avoid index requirement
+      // orderBy('lastUpdated', 'desc')
+    );
 
-  const unsubscribe = onSnapshot(q, (snapshot) => {
-    const farmers: DealerFarmerData[] = [];
-    snapshot.forEach((doc) => {
-      farmers.push({ id: doc.id, ...doc.data() } as DealerFarmerData);
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const farmers: DealerFarmerData[] = [];
+      snapshot.forEach((doc) => {
+        farmers.push({ id: doc.id, ...doc.data() } as DealerFarmerData);
+      });
+      
+      // Sort manually to avoid Firebase index requirement
+      farmers.sort((a, b) => {
+        const aDate = a.lastUpdated?.toDate?.() || new Date(0);
+        const bDate = b.lastUpdated?.toDate?.() || new Date(0);
+        return bDate.getTime() - aDate.getTime();
+      });
+      
+      console.log('📊 getDealerFarmers - Retrieved farmers:', farmers.length);
+      callback(farmers);
+    }, (error) => {
+      console.error('❌ Error in getDealerFarmers:', error);
+      callback([]); // Return empty array on error
     });
-    callback(farmers);
-  });
 
-  return unsubscribe;
+    return unsubscribe;
+  } catch (error) {
+    console.error('❌ Error setting up getDealerFarmers:', error);
+    return () => {}; // Return empty cleanup function
+  }
 };
 
 // Update farmer data in dealer's system
@@ -316,6 +491,32 @@ export const getAllConnections = (
   });
 
   return unsubscribe;
+};
+
+// Check if a connection already exists between a farmer and dealer
+export const checkConnectionExists = async (
+  farmerId: string, 
+  dealerId: string
+): Promise<boolean> => {
+  try {
+    console.log(`Checking if connection exists: farmer=${farmerId}, dealer=${dealerId}`);
+    
+    const q = query(
+      collection(db, 'connections'),
+      where('farmerId', '==', farmerId),
+      where('dealerId', '==', dealerId),
+      where('status', '==', 'active')
+    );
+    
+    const snapshot = await getDocs(q);
+    const exists = !snapshot.empty;
+    
+    console.log(`Connection exists: ${exists}`);
+    return exists;
+  } catch (error) {
+    console.error('Error checking connection:', error);
+    return false;
+  }
 };
 
 // Disconnect farmer and dealer

@@ -10,6 +10,7 @@ import {
   TrendingUp,
   Package,
   Shield,
+  Syringe,
 } from "lucide-react";
 
 interface AppSidebarProps {
@@ -20,21 +21,15 @@ const navigationGroups = {
   farmer: {
     FARMER: [
       { title: "Dashboard", url: "/farmer/dashboard", icon: Home },
-      { title: "Crops", url: "/farmer/crops", icon: Package },
-      { title: "Tasks", url: "/farmer/tasks", icon: Calendar },
-      { title: "Expenses", url: "/farmer/expenses", icon: DollarSign },
-      { title: "Vaccines", url: "/farmer/vaccines", icon: Shield },
+      { title: "Feed Prices", url: "/farmer/feed-prices", icon: DollarSign },
       { title: "FCR Calculator", url: "/farmer/fcr-calculator", icon: Calculator },
+      { title: "Vaccine Reminders", url: "/farmer/vaccines", icon: Syringe },
     ],
   },
   dealer: {
     DEALER: [
       { title: "Dashboard", url: "/dealer/dashboard", icon: Home },
-      { title: "Orders", url: "/dealer/orders", icon: DollarSign },
-      { title: "Customers", url: "/dealer/customers", icon: Users },
-      { title: "Products", url: "/dealer/products", icon: Package },
-      { title: "Reports", url: "/dealer/reports", icon: TrendingUp },
-      { title: "Rates", url: "/dealer/rates", icon: TrendingUp },
+      { title: "Feed Prices", url: "/dealer/feed-prices", icon: DollarSign },
     ],
   },
 };

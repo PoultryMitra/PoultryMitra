@@ -191,8 +191,17 @@ const IndexNew = () => {
               <h1 className="text-2xl font-bold text-green-600">{t.header.title}</h1>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <a href="#features" className="text-gray-600 hover:text-green-600 transition-colors">{t.header.services}</a>
-              <a href="#testimonials" className="text-gray-600 hover:text-green-600 transition-colors">Reviews</a>
+              <a href="#features" className="text-gray-600 hover:text-black-600 transition-colors">{t.header.services}</a>
+              <Link to="/fcr-calculator" className="text-gray-600 hover:text-green-600 transition-colors">
+                {language === 'hi' ? 'FCR कैलकुलेटर' : 'FCR Calculator'}
+              </Link>
+              <Link to="/batch-management" className="text-gray-600 hover:text-green-600 transition-colors">
+                {language === 'hi' ? 'बैच मैनेजमेंट' : 'Batch Management'}
+              </Link>
+              <Link to="/fcr-reports" className="text-gray-600 hover:text-green-600 transition-colors">
+                {language === 'hi' ? 'FCR रिपोर्ट्स' : 'FCR Reports'}
+              </Link>
+              <a href="#testimonials" className="text-gray-600 hover:text-black-600 transition-colors">Reviews</a>
               <Link to="/contact" className="text-gray-600 hover:text-green-600 transition-colors">{t.header.contact}</Link>
             </nav>
             <div className="flex items-center space-x-3">

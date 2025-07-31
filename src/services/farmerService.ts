@@ -6,7 +6,10 @@ import {
   orderBy, 
   onSnapshot, 
   getDocs,
-  Timestamp 
+  Timestamp,
+  doc,
+  updateDoc,
+  deleteDoc
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -24,11 +27,15 @@ export interface Transaction {
 
 export interface VaccineReminder {
   id: string;
-  vaccine: string;
-  date: string;
-  description: string;
-  birdGroup: string;
+  vaccineName: string;
+  reminderDate: Timestamp;
+  notes?: string;
+  flock?: string;
+  dosage?: string;
+  method?: string;
+  status: 'pending' | 'completed';
   farmerId: string;
+  completedDate?: Timestamp;
   createdAt: Timestamp;
 }
 
@@ -41,10 +48,13 @@ export interface TransactionInput {
 }
 
 export interface VaccineReminderInput {
-  vaccine: string;
-  date: string;
-  description: string;
-  birdGroup: string;
+  vaccineName: string;
+  reminderDate: Date;
+  notes?: string;
+  flock?: string;
+  dosage?: string;
+  method?: string;
+  status: 'pending' | 'completed';
 }
 
 // Transaction functions
@@ -134,6 +144,7 @@ export const addVaccineReminder = async (userId: string, reminder: VaccineRemind
     const remindersRef = collection(db, 'userVaccineReminders');
     await addDoc(remindersRef, {
       ...reminder,
+      reminderDate: Timestamp.fromDate(reminder.reminderDate),
       farmerId: userId,
       createdAt: Timestamp.now()
     });
@@ -156,8 +167,8 @@ export const getVaccineReminders = async (userId: string): Promise<VaccineRemind
     
     // Sort on the client side
     reminders.sort((a, b) => {
-      const dateA = new Date(a.date);
-      const dateB = new Date(b.date);
+      const dateA = a.reminderDate?.toDate?.() || new Date();
+      const dateB = b.reminderDate?.toDate?.() || new Date();
       return dateA.getTime() - dateB.getTime();
     });
     
@@ -184,8 +195,8 @@ export const subscribeToVaccineReminders = (
       
       // Sort on the client side
       reminders.sort((a, b) => {
-        const dateA = new Date(a.date);
-        const dateB = new Date(b.date);
+        const dateA = a.reminderDate?.toDate?.() || new Date();
+        const dateB = b.reminderDate?.toDate?.() || new Date();
         return dateA.getTime() - dateB.getTime();
       });
       
@@ -222,5 +233,140 @@ export const calculateTotals = (transactions: Transaction[]) => {
     totalIncome,
     totalExpenses,
     netProfit: totalIncome - totalExpenses
+  };
+};
+
+// Update vaccine reminder
+export const updateVaccineReminder = async (reminderId: string, updates: Partial<VaccineReminder>): Promise<void> => {
+  try {
+    const reminderRef = doc(db, 'userVaccineReminders', reminderId);
+    await updateDoc(reminderRef, {
+      ...updates,
+      updatedAt: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error updating vaccine reminder:', error);
+    throw error;
+  }
+};
+
+// Delete vaccine reminder
+export const deleteVaccineReminder = async (reminderId: string): Promise<void> => {
+  try {
+    const reminderRef = doc(db, 'userVaccineReminders', reminderId);
+    await deleteDoc(reminderRef);
+  } catch (error) {
+    console.error('Error deleting vaccine reminder:', error);
+    throw error;
+  }
+};
+
+// Additional interfaces for dealer-farmer connections
+export interface FarmerDealerData {
+  dealerId: string;
+  dealerName: string;
+  dealerEmail: string;
+  connectedAt: Date;
+}
+
+export interface DealerProduct {
+  id: string;
+  productName: string;
+  pricePerUnit: number;
+  unit: string;
+  currentStock: number;
+  supplier: string;
+  dealerId: string;
+}
+
+// Function for farmers to get their connected dealers
+export const subscribeToConnectedDealers = (
+  farmerId: string,
+  callback: (dealers: FarmerDealerData[]) => void,
+  errorCallback?: (error: Error) => void
+): (() => void) => {
+  const dealersQuery = query(
+    collection(db, 'farmerDealers'),
+    where('farmerId', '==', farmerId)
+  );
+  
+  const unsubscribe = onSnapshot(dealersQuery, 
+    (snapshot) => {
+      const dealers: FarmerDealerData[] = [];
+      snapshot.forEach((doc) => {
+        dealers.push({ id: doc.id, ...doc.data() } as any);
+      });
+      callback(dealers);
+    },
+    (error) => {
+      console.error('Error subscribing to connected dealers:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  );
+  
+  return unsubscribe;
+};
+
+// Function for farmers to get products from connected dealers
+export const subscribeToConnectedDealerProducts = (
+  farmerId: string,
+  callback: (products: DealerProduct[]) => void,
+  errorCallback?: (error: Error) => void
+): (() => void) => {
+  let dealerUnsubscribes: (() => void)[] = [];
+  
+  // First subscribe to the farmer's dealer connections
+  const dealersQuery = query(
+    collection(db, 'farmerDealers'),
+    where('farmerId', '==', farmerId)
+  );
+  
+  const dealersUnsubscribe = onSnapshot(dealersQuery, 
+    (dealersSnapshot) => {
+      // Clean up previous product subscriptions
+      dealerUnsubscribes.forEach(unsub => unsub());
+      dealerUnsubscribes = [];
+      
+      const allProducts: DealerProduct[] = [];
+      
+      if (dealersSnapshot.docs.length === 0) {
+        callback([]);
+        return;
+      }
+      
+      // Subscribe to products from each connected dealer
+      dealersSnapshot.forEach((dealerDoc) => {
+        const dealerId = dealerDoc.data().dealerId;
+        
+        const productsQuery = query(
+          collection(db, 'dealerProducts'),
+          where('dealerId', '==', dealerId)
+        );
+        
+        const productUnsub = onSnapshot(productsQuery, (productsSnapshot) => {
+          // Remove products from this dealer and add new ones
+          const otherDealerProducts = allProducts.filter(p => p.dealerId !== dealerId);
+          const thisDealerProducts: DealerProduct[] = [];
+          
+          productsSnapshot.forEach((doc) => {
+            thisDealerProducts.push({ id: doc.id, ...doc.data() } as DealerProduct);
+          });
+          
+          const updatedProducts = [...otherDealerProducts, ...thisDealerProducts];
+          callback(updatedProducts);
+        });
+        
+        dealerUnsubscribes.push(productUnsub);
+      });
+    },
+    (error) => {
+      console.error('Error subscribing to dealer products:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  );
+  
+  return () => {
+    dealersUnsubscribe();
+    dealerUnsubscribes.forEach(unsub => unsub());
   };
 };

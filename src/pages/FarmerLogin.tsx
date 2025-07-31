@@ -20,20 +20,20 @@ const FarmerLogin = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
-  // Check for invitation code in URL params or localStorage
+  // Check for dealer code in URL params or localStorage
   useEffect(() => {
     const inviteFromUrl = searchParams.get('invite');
     if (inviteFromUrl) {
-      localStorage.setItem('pendingInvitation', inviteFromUrl);
+      localStorage.setItem('pendingDealerCode', inviteFromUrl);
     }
   }, [searchParams]);
 
   const handlePostLoginNavigation = () => {
-    const pendingInvitation = localStorage.getItem('pendingInvitation');
-    if (pendingInvitation) {
-      // Clear the pending invitation and redirect to farmer-connect for auto-connection
-      localStorage.removeItem('pendingInvitation');
-      navigate(`/farmer-connect?invite=${pendingInvitation}`, { replace: true });
+    const pendingDealerCode = localStorage.getItem('pendingDealerCode');
+    if (pendingDealerCode) {
+      // Clear the pending dealer code and redirect to farmer-connect for auto-connection
+      localStorage.removeItem('pendingDealerCode');
+      navigate('/farmer-connect', { replace: true });
     } else {
       navigate('/farmer/dashboard', { replace: true });
     }
@@ -63,7 +63,7 @@ const FarmerLogin = () => {
       setError('');
       setLoading(true);
       console.log('FarmerLogin: Starting Google login...');
-      await loginWithGoogle(false); // false = use popup instead of redirect
+      await loginWithGoogle(); // Use default redirect mode to avoid CORS issues
       console.log('FarmerLogin: Google login successful, redirecting...');
       handlePostLoginNavigation();
     } catch (error: any) {

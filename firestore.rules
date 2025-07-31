@@ -1,0 +1,154 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Function to check if the request is from an authenticated user
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    
+    // Function to check if user is accessing their own document
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    // Function to check if user has dealer role
+    function isDealer() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'dealer';
+    }
+    
+    // Function to check if user has farmer role
+    function isFarmer() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'farmer';
+    }
+    
+    // User profile rules
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isOwner(userId);
+    }
+    
+    // Dealer profile rules
+    match /dealers/{dealerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(dealerId);
+      allow delete: if isOwner(dealerId);
+    }
+    
+    // Farmer profile rules
+    match /farmers/{farmerId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isOwner(farmerId);
+      allow delete: if isOwner(farmerId);
+    }
+    
+    // Product rules
+    match /products/{productId} {
+      // Anyone authenticated can read products
+      allow read: if isAuthenticated();
+      
+      // Only users with dealer role can create/update/delete products
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
+    }
+    
+    // Connection rules
+    match /connections/{connectionId} {
+      // Allow any authenticated user to read connections
+      allow read: if isAuthenticated();
+      
+      // Allow create if authenticated
+      allow create: if isAuthenticated();
+      
+      // Allow update if user is part of the connection
+      allow update: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid);
+         
+      // Allow delete if user is part of the connection
+      allow delete: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid);
+    }
+    
+    // Invitation code rules
+    match /invitations/{invitationId} {
+      // Allow anyone authenticated to read invitations
+      allow read: if isAuthenticated();
+      
+      // Allow any authenticated user to create invitations (we'll check role in app)
+      allow create: if isAuthenticated();
+      
+      // Only the creator can update or delete
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
+    }
+    
+    // Rate update rules
+    match /rateUpdates/{updateId} {
+      // Anyone authenticated can read rate updates
+      allow read: if isAuthenticated();
+      
+      // Only authenticated users can create rate updates (role checked in app)
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid;
+      
+      // Only the creator can modify or delete
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
+    }
+    
+    // Dealer-specific collections
+    match /dealerFarmers/{farmerId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerProducts/{productId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerOrders/{orderId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerInvitations/{invitationId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerRateUpdates/{rateId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerTransactions/{transactionId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /dealerProfiles/{profileId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    // Farmer-specific collections
+    match /farmerDealers/{dealerId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /farmerProfiles/{profileId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /farmerBatches/{batchId} {
+      allow read, write: if isAuthenticated();
+    }
+    
+    match /farmerTransactions/{transactionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    // Default rule - allow reads for authenticated users, deny writes
+    match /{document=**} {
+      allow read: if isAuthenticated();
+      allow write: if false;
+    }
+  }
+}

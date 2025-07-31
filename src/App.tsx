@@ -9,13 +9,17 @@ import Index from "./pages/Index";
 import IndexNew from "./pages/IndexNew";
 import Login from "./pages/Login";
 import Register from "./pages/RegisterNew";
-import FarmerDashboard from "./pages/FarmerDashboard";
-import DealerDashboard from "./pages/DealerDashboardNew";
+import FarmerDashboard from "./pages/FarmerDashboardSimple";
+import DealerDashboard from "./pages/DealerDashboard";
 import AdminPanel from "./pages/admin/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculatorNew";
 import FreeFCRCalculator from "./pages/FreeFCRCalculator";
+import FreeFCRCalculatorPage from "./pages/FreeFCRCalculatorPage";
+import BatchManagement from "./pages/BatchManagement";
+import FCRReports from "./pages/FCRReports";
 import Expenses from "./pages/Expenses";
 import Vaccines from "./pages/Vaccines";
+import VaccinesWorking from "./pages/VaccinesWorking";
 import Rates from "./pages/Rates";
 import NotFound from "./pages/NotFound";
 import Crops from "./pages/Crops";
@@ -31,6 +35,8 @@ import BroilerRate from "./pages/admin/BroilerRate";
 import Users from "./pages/admin/Users";
 import ProfileCompletion from "./pages/ProfileCompletion";
 import FarmerConnect from "./pages/FarmerConnect";
+import ConnectionTest from "./pages/ConnectionTest";
+import FarmerFeedView from "./pages/FarmerFeedView";
 import AboutUs from "./pages/AboutUs";
 import Services from "./pages/Services";
 import Contact from "./pages/Contact";
@@ -68,8 +74,12 @@ const App = () => (
           <Route path="/farmer-login" element={<FarmerLogin />} />
           <Route path="/dealer-login" element={<DealerLogin />} />
           <Route path="/admin-login" element={<AdminLogin />} />
+          <Route path="/fcr-calculator" element={<FreeFCRCalculatorPage />} />
+          <Route path="/batch-management" element={<BatchManagement />} />
+          <Route path="/fcr-reports" element={<FCRReports />} />
           <Route path="/complete-profile" element={<ProfileCompletion />} />
           <Route path="/farmer-connect" element={<FarmerConnect />} />
+          <Route path="/connection-test" element={<ConnectionTest />} />
           
           {/* Public Information Pages */}
           <Route path="/about" element={<AboutUs />} />
@@ -78,8 +88,10 @@ const App = () => (
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/fcr-calculator" element={<FreeFCRCalculator />} />
           <Route path="/fcr-calculator-pro" element={<FCRCalculator />} />
+          
+          {/* Free Dashboard for Testing */}
+          <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
           
           {/* Farmer Routes */}
           <Route path="/farmer" element={
@@ -88,11 +100,9 @@ const App = () => (
             </ProfileGuard>
           }>
             <Route path="dashboard" element={<FarmerDashboard />} />
-            <Route path="crops" element={<Crops />} />
-            <Route path="tasks" element={<Tasks />} />
-            <Route path="expenses" element={<Expenses />} />
-            <Route path="vaccines" element={<Vaccines />} />
+            <Route path="feed-prices" element={<FarmerFeedView />} />
             <Route path="fcr-calculator" element={<FCRCalculator />} />
+            <Route path="vaccines" element={<VaccinesWorking />} />
           </Route>
           
           {/* Dealer Routes */}
@@ -102,11 +112,7 @@ const App = () => (
             </ProfileGuard>
           }>
             <Route path="dashboard" element={<DealerDashboard />} />
-            <Route path="orders" element={<DealerDashboard />} />
-            <Route path="customers" element={<Customers />} />
-            <Route path="products" element={<Products />} />
-            <Route path="reports" element={<Reports />} />
-            <Route path="rates" element={<Rates />} />
+            <Route path="feed-prices" element={<Rates />} />
           </Route>
           
           {/* Admin Routes */}
