@@ -15,6 +15,7 @@ const routes = [
   'farmer-login',
   'dealer-login',
   'complete-profile',
+  'farmer-connect',
   'about',
   'services',
   'contact',
