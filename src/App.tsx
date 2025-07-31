@@ -6,12 +6,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 // Pages
 import Index from "./pages/Index";
+import IndexNew from "./pages/IndexNew";
 import Login from "./pages/Login";
 import Register from "./pages/RegisterNew";
 import FarmerDashboard from "./pages/FarmerDashboard";
 import DealerDashboard from "./pages/DealerDashboardNew";
 import AdminPanel from "./pages/admin/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculatorNew";
+import FreeFCRCalculator from "./pages/FreeFCRCalculator";
 import Expenses from "./pages/Expenses";
 import Vaccines from "./pages/Vaccines";
 import Rates from "./pages/Rates";
@@ -43,6 +45,7 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Auth Context
 import { AuthProvider } from "./contexts/AuthContext";
+import { LanguageProvider } from "./contexts/LanguageContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProfileGuard from "./components/ProfileGuard";
 
@@ -51,13 +54,15 @@ const queryClient = new QueryClient();
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+      <LanguageProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
         <Routes>
           {/* Public Routes */}
-          <Route path="/" element={<Index />} />
+          <Route path="/" element={<IndexNew />} />
+          <Route path="/old-home" element={<Index />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
           <Route path="/farmer-login" element={<FarmerLogin />} />
@@ -73,7 +78,8 @@ const App = () => (
           <Route path="/help" element={<HelpCenter />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/fcr-calculator" element={<FCRCalculator />} />
+          <Route path="/fcr-calculator" element={<FreeFCRCalculator />} />
+          <Route path="/fcr-calculator-pro" element={<FCRCalculator />} />
           
           {/* Farmer Routes */}
           <Route path="/farmer" element={
@@ -121,6 +127,7 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+      </LanguageProvider>
     </AuthProvider>
   </QueryClientProvider>
 );

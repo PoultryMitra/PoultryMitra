@@ -74,8 +74,8 @@ export default function Products() {
             dealerId: dealerId,
             productName: 'Day Old Chicks',
             category: 'chicks',
-            currentStock: 100,
-            minStockLevel: 50,
+            currentStock: 500,
+            minStockLevel: 100,
             unit: 'piece',
             pricePerUnit: 25,
             supplier: 'Local Hatchery',
@@ -84,13 +84,73 @@ export default function Products() {
           {
             id: '2',
             dealerId: dealerId,
+            productName: 'Pre-Starter Feed',
+            category: 'feed',
+            currentStock: 20,
+            minStockLevel: 5,
+            unit: 'bags (50kg)',
+            pricePerUnit: 1800,
+            supplier: 'Godrej Agrovet',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '3',
+            dealerId: dealerId,
             productName: 'Starter Feed',
             category: 'feed',
-            currentStock: 500,
-            minStockLevel: 100,
-            unit: 'kg',
-            pricePerUnit: 30,
-            supplier: 'Feed Mill Co',
+            currentStock: 25,
+            minStockLevel: 5,
+            unit: 'bags (50kg)',
+            pricePerUnit: 1750,
+            supplier: 'Suguna Feeds',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '4',
+            dealerId: dealerId,
+            productName: 'Finisher Feed',
+            category: 'feed',
+            currentStock: 30,
+            minStockLevel: 8,
+            unit: 'bags (50kg)',
+            pricePerUnit: 1700,
+            supplier: 'CP Foods',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '5',
+            dealerId: dealerId,
+            productName: 'Multivitamin',
+            category: 'medicine',
+            currentStock: 50,
+            minStockLevel: 10,
+            unit: 'bottles',
+            pricePerUnit: 450,
+            supplier: 'Hester Biosciences',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '6',
+            dealerId: dealerId,
+            productName: 'Poultry Vaccine (Newcastle)',
+            category: 'medicine',
+            currentStock: 25,
+            minStockLevel: 5,
+            unit: 'vials',
+            pricePerUnit: 180,
+            supplier: 'Venky\'s',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '7',
+            dealerId: dealerId,
+            productName: 'Waterer (Automatic)',
+            category: 'miscellaneous',
+            currentStock: 12,
+            minStockLevel: 3,
+            unit: 'piece',
+            pricePerUnit: 2500,
+            supplier: 'Poultry Equipment Co',
             lastUpdated: { toDate: () => new Date() } as any
           }
         ];
@@ -274,8 +334,8 @@ export default function Products() {
               <SelectItem value="all">All Categories</SelectItem>
               <SelectItem value="chicks">Chicks</SelectItem>
               <SelectItem value="feed">Feed</SelectItem>
-              <SelectItem value="vaccines">Vaccines</SelectItem>
-              <SelectItem value="equipment">Equipment</SelectItem>
+              <SelectItem value="medicine">Medicine</SelectItem>
+              <SelectItem value="miscellaneous">Miscellaneous</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={() => setIsAddDialogOpen(true)}>
@@ -454,8 +514,8 @@ export default function Products() {
                 <SelectContent>
                   <SelectItem value="chicks">Chicks</SelectItem>
                   <SelectItem value="feed">Feed</SelectItem>
-                  <SelectItem value="vaccines">Vaccines</SelectItem>
-                  <SelectItem value="equipment">Equipment</SelectItem>
+                  <SelectItem value="medicine">Medicine</SelectItem>
+                  <SelectItem value="miscellaneous">Miscellaneous</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -571,8 +631,8 @@ export default function Products() {
                 <SelectContent>
                   <SelectItem value="chicks">Chicks</SelectItem>
                   <SelectItem value="feed">Feed</SelectItem>
-                  <SelectItem value="vaccines">Vaccines</SelectItem>
-                  <SelectItem value="equipment">Equipment</SelectItem>
+                  <SelectItem value="medicine">Medicine</SelectItem>
+                  <SelectItem value="miscellaneous">Miscellaneous</SelectItem>
                 </SelectContent>
               </Select>
             </div>

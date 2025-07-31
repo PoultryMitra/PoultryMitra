@@ -19,7 +19,7 @@ const Register = () => {
     phone: '',
     location: '',
     role: '',
-    farmSize: '',
+    flockSize: '',
     businessName: ''
   });
   const [error, setError] = useState('');
@@ -85,7 +85,7 @@ const Register = () => {
         role: formData.role as 'farmer' | 'dealer',
         phone: formData.phone,
         location: formData.location,
-        ...(formData.role === 'farmer' && { farmSize: formData.farmSize }),
+        ...(formData.role === 'farmer' && { flockSize: formData.flockSize }),
         ...(formData.role === 'dealer' && { businessName: formData.businessName })
       };
 
@@ -209,13 +209,15 @@ const Register = () => {
 
             {formData.role === 'farmer' && (
               <div className="space-y-2">
-                <Label htmlFor="farmSize">Farm Size</Label>
+                <Label htmlFor="flockSize">Flock Size (Number of Birds) *</Label>
                 <Input
-                  id="farmSize"
-                  type="text"
-                  placeholder="e.g., 25 acres"
-                  value={formData.farmSize}
-                  onChange={(e) => handleChange('farmSize', e.target.value)}
+                  id="flockSize"
+                  type="number"
+                  placeholder="e.g., 5000"
+                  value={formData.flockSize}
+                  onChange={(e) => handleChange('flockSize', e.target.value)}
+                  min="1"
+                  required
                 />
               </div>
             )}

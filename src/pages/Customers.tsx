@@ -15,8 +15,8 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import * as dealerService from "@/services/dealerService";
-import type { FarmerData } from "@/services/dealerService";
+import { getDealerFarmers, createInvitationCode } from "@/services/connectionService";
+import type { DealerFarmerData } from "@/services/connectionService";
 import { 
   Users, 
   Plus, 
@@ -35,8 +35,8 @@ import {
 export default function Customers() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
-  const [farmers, setFarmers] = useState<FarmerData[]>([]);
-  const [selectedFarmer, setSelectedFarmer] = useState<FarmerData | null>(null);
+  const [farmers, setFarmers] = useState<DealerFarmerData[]>([]);
+  const [selectedFarmer, setSelectedFarmer] = useState<DealerFarmerData | null>(null);
   const [isDetailDialogOpen, setIsDetailDialogOpen] = useState(false);
   const [isInviteDialogOpen, setIsInviteDialogOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -48,45 +48,13 @@ export default function Customers() {
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    // Local workaround for module resolution issue
-    const localGetDealerFarmers = (dealerId: string, callback: (data: FarmerData[]) => void) => {
-      console.log('Using local farmer data for customers');
-      // Return dummy farmer data
-      setTimeout(() => {
-        const dummyFarmers: FarmerData[] = [
-          {
-            id: '1',
-            dealerId: dealerId,
-            farmerId: 'farmer1',
-            farmerName: 'John Doe',
-            farmerEmail: 'john@example.com',
-            chicksReceived: 1000,
-            feedConsumption: 1500,
-            mortalityRate: 2.5,
-            fcr: 1.8,
-            accountBalance: 50000,
-            lastUpdated: { toDate: () => new Date() } as any
-          },
-          {
-            id: '2',
-            dealerId: dealerId,
-            farmerId: 'farmer2',
-            farmerName: 'Jane Smith',
-            farmerEmail: 'jane@example.com',
-            chicksReceived: 800,
-            feedConsumption: 1200,
-            mortalityRate: 3.0,
-            fcr: 1.9,
-            accountBalance: 35000,
-            lastUpdated: { toDate: () => new Date() } as any
-          }
-        ];
-        callback(dummyFarmers);
-      }, 1000);
-      return () => {};
-    };
+    // Use the real connection service
+    const unsubscribe = getDealerFarmers(currentUser.uid, (farmersData) => {
+      console.log('Received farmers from connection service:', farmersData.length);
+      setFarmers(farmersData);
+      setLoading(false);
+    });
 
-    const unsubscribe = localGetDealerFarmers(currentUser.uid, setFarmers);
     return unsubscribe;
   }, [currentUser?.uid]);
 
@@ -97,7 +65,7 @@ export default function Customers() {
     return { label: "Inactive", color: "bg-red-500", textColor: "text-red-700" };
   };
 
-  const getPerformanceMetrics = (farmer: FarmerData) => {
+  const getPerformanceMetrics = (farmer: DealerFarmerData) => {
     const fcrStatus = farmer.fcr <= 1.6 ? 'excellent' : farmer.fcr <= 1.8 ? 'good' : farmer.fcr <= 2.0 ? 'average' : 'poor';
     const mortalityStatus = farmer.mortalityRate <= 2 ? 'excellent' : farmer.mortalityRate <= 5 ? 'good' : farmer.mortalityRate <= 8 ? 'average' : 'poor';
     
@@ -123,14 +91,11 @@ export default function Customers() {
     
     setIsGeneratingLink(true);
     try {
-      // Local workaround for module resolution issue
-      const localCreateInvitationCode = async (dealerId: string): Promise<string> => {
-        console.log('Using local invitation code generation');
-        // Generate a dummy invitation code
-        return `dealer-${dealerId}-${Date.now()}`;
-      };
-      
-      const inviteCode = await localCreateInvitationCode(currentUser.uid);
+      const inviteCode = await createInvitationCode(
+        currentUser.uid,
+        currentUser.displayName || 'Dealer',
+        currentUser.email || ''
+      );
       const link = `${window.location.origin}/farmer-connect?invite=${inviteCode}`;
       setInvitationLink(link);
       

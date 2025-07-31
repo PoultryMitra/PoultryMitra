@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { Eye, EyeOff, Mail, Lock, User, Phone, Globe } from "lucide-react";
+import { Eye, EyeOff, Mail, Lock, User, Phone, Globe, Bird } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -17,7 +17,8 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [language, setLanguage] = useState("en");
+  const [language, setLanguage] = useState("hi"); // Default to Hindi
+  const [selectedRole, setSelectedRole] = useState("");
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,19 +32,70 @@ export default function Register() {
     }, 1000);
   };
 
+  const content = {
+    hi: {
+      title: "खाता बनाएं",
+      subtitle: "अपना पोल्ट्री केयर खाता बनाएं",
+      signUp: "साइन अप करें",
+      createAccount: "शुरू करने के लिए अपना खाता बनाएं",
+      firstName: "पहला नाम",
+      lastName: "अंतिम नाम",
+      email: "ईमेल",
+      phone: "फोन नंबर",
+      role: "भूमिका",
+      farmer: "किसान",
+      dealer: "डीलर",
+      flockSize: "मुर्गी की संख्या",
+      password: "पासवर्ड",
+      confirmPassword: "पासवर्ड की पुष्टि करें",
+      createBtn: "खाता बनाएं",
+      creating: "खाता बनाया जा रहा है...",
+      haveAccount: "पहले से खाता है?",
+      signIn: "साइन इन करें",
+      leftTitle: "आज ही PoultryCare में शामिल हों",
+      leftSubtitle: "हमारे उन्नत उपकरणों और अंतर्दृष्टि के साथ अपने पोल्ट्री फार्म को कुशलता से प्रबंधित करना शुरू करें।",
+      enterFlockSize: "मुर्गी की संख्या दर्ज करें"
+    },
+    en: {
+      title: "Create Account",
+      subtitle: "Sign up for your PoultryCare account",
+      signUp: "Sign Up",
+      createAccount: "Create your account to get started",
+      firstName: "First Name",
+      lastName: "Last Name",
+      email: "Email",
+      phone: "Phone Number",
+      role: "Role",
+      farmer: "Farmer",
+      dealer: "Dealer",
+      flockSize: "Flock Size (Number of Birds)",
+      password: "Password",
+      confirmPassword: "Confirm Password",
+      createBtn: "Create Account",
+      creating: "Creating account...",
+      haveAccount: "Already have an account?",
+      signIn: "Sign in",
+      leftTitle: "Join PoultryCare Today",
+      leftSubtitle: "Start managing your poultry farm efficiently with our advanced tools and insights.",
+      enterFlockSize: "Enter number of birds"
+    }
+  };
+
+  const t = content[language as keyof typeof content];
+
   return (
     <div className="min-h-screen flex">
       {/* Left side - Image/Illustration */}
       <div className="hidden lg:flex flex-1 bg-gradient-to-br from-primary/10 to-accent/10 items-center justify-center p-8">
         <div className="text-center space-y-6 max-w-md">
           <div className="w-64 h-64 mx-auto bg-gradient-to-br from-accent to-primary rounded-full flex items-center justify-center">
-            <span className="text-6xl">🥚</span>
+            <Bird className="w-20 h-20 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-foreground">
-            Join PoultryCare Today
+            {t.leftTitle}
           </h2>
           <p className="text-muted-foreground text-lg">
-            Start managing your poultry farm efficiently with our advanced tools and insights.
+            {t.leftSubtitle}
           </p>
         </div>
       </div>
@@ -53,11 +105,11 @@ export default function Register() {
         <div className="w-full max-w-md space-y-6">
           <div className="text-center space-y-2">
             <div className="mx-auto w-16 h-16 bg-gradient-to-br from-primary to-accent rounded-xl flex items-center justify-center mb-4">
-              <span className="text-2xl font-bold text-primary-foreground">PC</span>
+              <Bird className="w-8 h-8 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold text-foreground">Create Account</h1>
+            <h1 className="text-3xl font-bold text-foreground">{t.title}</h1>
             <p className="text-muted-foreground">
-              Sign up for your PoultryCare account
+              {t.subtitle}
             </p>
           </div>
 
@@ -75,44 +127,44 @@ export default function Register() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Sign Up</CardTitle>
+              <CardTitle>{t.signUp}</CardTitle>
               <CardDescription>
-                Create your account to get started
+                {t.createAccount}
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="firstName">First Name</Label>
+                    <Label htmlFor="firstName">{t.firstName}</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="firstName"
-                        placeholder="First name"
+                        placeholder={t.firstName}
                         className="pl-10"
                         required
                       />
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="lastName">Last Name</Label>
+                    <Label htmlFor="lastName">{t.lastName}</Label>
                     <Input
                       id="lastName"
-                      placeholder="Last name"
+                      placeholder={t.lastName}
                       required
                     />
                   </div>
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t.email}</Label>
                   <div className="relative">
                     <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="email"
                       type="email"
-                      placeholder="Enter your email"
+                      placeholder={t.email}
                       className="pl-10"
                       required
                     />
@@ -120,13 +172,13 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="phone">Phone Number</Label>
+                  <Label htmlFor="phone">{t.phone}</Label>
                   <div className="relative">
                     <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="phone"
                       type="tel"
-                      placeholder="Enter phone number"
+                      placeholder={t.phone}
                       className="pl-10"
                       required
                     />
@@ -134,26 +186,44 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Select>
+                  <Label htmlFor="role">{t.role}</Label>
+                  <Select onValueChange={setSelectedRole}>
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your role" />
+                      <SelectValue placeholder={`${t.role} चुनें / Select ${t.role}`} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="farmer">Farmer</SelectItem>
-                      <SelectItem value="dealer">Dealer</SelectItem>
+                      <SelectItem value="farmer">{t.farmer}</SelectItem>
+                      <SelectItem value="dealer">{t.dealer}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
 
+                {/* Show flock size field only for farmers */}
+                {selectedRole === "farmer" && (
+                  <div className="space-y-2">
+                    <Label htmlFor="flockSize">{t.flockSize}</Label>
+                    <div className="relative">
+                      <Bird className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="flockSize"
+                        type="number"
+                        placeholder={t.enterFlockSize}
+                        className="pl-10"
+                        min="1"
+                        required
+                      />
+                    </div>
+                  </div>
+                )}
+
                 <div className="space-y-2">
-                  <Label htmlFor="password">Password</Label>
+                  <Label htmlFor="password">{t.password}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="password"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Create password"
+                      placeholder={t.password}
                       className="pl-10 pr-10"
                       required
                     />
@@ -174,13 +244,13 @@ export default function Register() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="confirmPassword">Confirm Password</Label>
+                  <Label htmlFor="confirmPassword">{t.confirmPassword}</Label>
                   <div className="relative">
                     <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                     <Input
                       id="confirmPassword"
                       type={showConfirmPassword ? "text" : "password"}
-                      placeholder="Confirm password"
+                      placeholder={t.confirmPassword}
                       className="pl-10 pr-10"
                       required
                     />
@@ -201,13 +271,13 @@ export default function Register() {
                 </div>
 
                 <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading ? "Creating account..." : "Create Account"}
+                  {isLoading ? t.creating : t.createBtn}
                 </Button>
 
                 <div className="text-center text-sm">
-                  <span className="text-muted-foreground">Already have an account? </span>
+                  <span className="text-muted-foreground">{t.haveAccount} </span>
                   <Link to="/login" className="text-primary hover:underline">
-                    Sign in
+                    {t.signIn}
                   </Link>
                 </div>
               </form>

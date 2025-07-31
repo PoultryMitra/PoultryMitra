@@ -22,6 +22,7 @@ import {
   type Transaction,
   type VaccineReminder,
 } from "@/services/farmerService";
+import { getFarmerDealers, type FarmerDealerData } from "@/services/connectionService";
 import * as dealerService from "@/services/dealerService";
 import type { RateUpdate } from "@/services/dealerService";
 
@@ -51,7 +52,7 @@ export default function FarmerDashboard() {
   
   // Dealer Rates State
   const [dealerRates, setDealerRates] = useState<RateUpdate[]>([]);
-  const dealerId = "demo-dealer-123"; // This should come from farmer's connected dealer
+  const [connectedDealers, setConnectedDealers] = useState<FarmerDealerData[]>([]);
 
   // Calculate totals from Firebase data
   const { totalIncome, totalExpenses, netProfit } = calculateTotals(transactions);
@@ -112,15 +113,26 @@ export default function FarmerDashboard() {
       return () => console.log('Cleanup called');
     };
 
-    const unsubscribeRates = localGetDealerRates(dealerId, (data) => {
-      console.log('Received dealer rates (local):', data.length);
-      setDealerRates(data);
+    // Subscribe to connected dealers
+    const unsubscribeDealers = getFarmerDealers(currentUser.uid, (dealers) => {
+      console.log('Received connected dealers:', dealers.length);
+      setConnectedDealers(dealers);
+      
+      // Load rates from all connected dealers
+      if (dealers.length > 0) {
+        // For now, just use the first dealer's rates
+        const firstDealer = dealers[0];
+        localGetDealerRates(firstDealer.dealerId, (data) => {
+          console.log('Received dealer rates (local):', data.length);
+          setDealerRates(data);
+        });
+      }
     });
 
     return () => {
       unsubscribeTransactions();
       unsubscribeVaccines();
-      unsubscribeRates();
+      unsubscribeDealers();
     };
   }, [currentUser?.uid]);
 
@@ -488,9 +500,42 @@ export default function FarmerDashboard() {
             ))}
             {dealerRates.length === 0 && (
               <div className="text-center text-gray-500 py-4">
-                <div className="text-gray-400 mb-2">📊</div>
+                <div className="text-gray-400 mb-2">No Data</div>
                 <div>No dealer rates available.</div>
                 <div className="text-sm">Connect with a dealer to see current market rates.</div>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Connected Dealers */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Connected Dealers</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {connectedDealers.map((dealer) => (
+              <div key={dealer.id} className="flex justify-between items-center p-3 bg-green-50 rounded-lg border border-green-200">
+                <div>
+                  <div className="font-medium text-green-900">{dealer.dealerName}</div>
+                  <div className="text-sm text-green-600">{dealer.dealerEmail}</div>
+                  <div className="text-xs text-gray-500">
+                    Connected: {dealer.connectedDate.toDate().toLocaleDateString()}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="w-2 h-2 bg-green-500 rounded-full mb-1"></div>
+                  <div className="text-xs text-green-600">Active</div>
+                </div>
+              </div>
+            ))}
+            {connectedDealers.length === 0 && (
+              <div className="text-center text-gray-500 py-4">
+                <div className="text-gray-400 mb-2">No Connections</div>
+                <div>No dealers connected.</div>
+                <div className="text-sm">Ask your dealer for an invitation link to get connected.</div>
               </div>
             )}
           </div>

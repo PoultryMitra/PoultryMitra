@@ -112,13 +112,73 @@ function DealerDashboard() {
           {
             id: '1',
             dealerId: dealerId,
+            productName: 'Pre-Starter Feed',
+            category: 'feed',
+            currentStock: 150,
+            minStockLevel: 50,
+            unit: '50kg bag',
+            pricePerUnit: 1200,
+            supplier: 'Godrej Agrovet',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '2',
+            dealerId: dealerId,
+            productName: 'Starter Feed',
+            category: 'feed',
+            currentStock: 80,
+            minStockLevel: 30,
+            unit: '50kg bag',
+            pricePerUnit: 1150,
+            supplier: 'Venky\'s India',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '3',
+            dealerId: dealerId,
+            productName: 'Finisher Feed',
+            category: 'feed',
+            currentStock: 25,
+            minStockLevel: 40,
+            unit: '50kg bag',
+            pricePerUnit: 1100,
+            supplier: 'Suguna Foods',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '4',
+            dealerId: dealerId,
             productName: 'Day Old Chicks',
             category: 'chicks',
-            currentStock: 100,
-            minStockLevel: 50,
+            currentStock: 200,
+            minStockLevel: 100,
             unit: 'piece',
-            pricePerUnit: 25,
+            pricePerUnit: 35,
             supplier: 'Local Hatchery',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '5',
+            dealerId: dealerId,
+            productName: 'Multivitamin Supplements',
+            category: 'medicine',
+            currentStock: 50,
+            minStockLevel: 20,
+            unit: 'bottle',
+            pricePerUnit: 180,
+            supplier: 'Vetoquinol India',
+            lastUpdated: { toDate: () => new Date() } as any
+          },
+          {
+            id: '6',
+            dealerId: dealerId,
+            productName: 'Feeders & Waterers',
+            category: 'miscellaneous',
+            currentStock: 30,
+            minStockLevel: 15,
+            unit: 'set',
+            pricePerUnit: 450,
+            supplier: 'Poultry Equipment Co.',
             lastUpdated: { toDate: () => new Date() } as any
           }
         ];
@@ -163,6 +223,7 @@ function DealerDashboard() {
     
     return {
       totalFarmers: farmers.length,
+      activeFarmers: farmers.length, // Added activeFarmers property
       totalOrders: orders.length,
       totalRevenue: totalRevenue,
       avgFCR: avgFCR,

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -176,6 +177,30 @@ const FCRCalculator: React.FC = () => {
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
             Calculate Feed Conversion Ratio and analyze your poultry farm profitability with our comprehensive calculator designed by industry experts.
           </p>
+          
+          {/* Premium Features Banner */}
+          <div className="max-w-2xl mx-auto mb-8">
+            <Card className="bg-gradient-to-r from-blue-50 to-green-50 border-2 border-green-200">
+              <CardContent className="pt-6">
+                <div className="text-center">
+                  <h3 className="text-lg font-semibold text-green-700 mb-2">
+                    Want Advanced Features?
+                  </h3>
+                  <p className="text-gray-600 mb-4">
+                    Get access to <strong>Batch Management</strong>, <strong>Batch Tracking</strong>, and <strong>Farm History</strong> by creating your free account!
+                  </p>
+                  <div className="flex gap-3 justify-center">
+                    <Button asChild className="bg-green-600 hover:bg-green-700">
+                      <a href="/register">Sign Up Free</a>
+                    </Button>
+                    <Button asChild variant="outline" className="border-green-600 text-green-600 hover:bg-green-50">
+                      <a href="/farmer-login">Login</a>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       </section>
 

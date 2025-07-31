@@ -199,11 +199,11 @@ export default function MapComponent({
 
         {/* Integration Instructions */}
         <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <h4 className="font-medium text-blue-800 text-sm mb-2">🗺️ Mappls Integration {mapplsApiKey ? 'Active' : 'Pending'}</h4>
+          <h4 className="font-medium text-blue-800 text-sm mb-2">Mappls Integration {mapplsApiKey ? 'Active' : 'Pending'}</h4>
           {mapplsApiKey ? (
             <div>
               <p className="text-xs text-green-700 mb-2">
-                ✅ Mappls API key detected! Map SDK is ready for full integration.
+                Mappls API key detected! Map SDK is ready for full integration.
               </p>
               <p className="text-xs text-blue-700">
                 Current status: Loading Mappls Map SDK...
@@ -215,7 +215,7 @@ export default function MapComponent({
                 To enable full Mappls map functionality:
               </p>
               <ul className="text-xs text-blue-600 mt-2 space-y-1">
-                <li>• ✅ Mappls API key added to environment variables</li>
+                <li>• Mappls API key added to environment variables</li>
                 <li>• Install @mappls/mappls-web-maps SDK</li>
                 <li>• Initialize interactive map with markers</li>
                 <li>• Enable location services for better experience</li>

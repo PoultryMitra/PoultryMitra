@@ -2,12 +2,9 @@ import React, { useState, useEffect } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import * as dealerService from "@/services/dealerService";
+import { validateInvitationCode, connectFarmerToDealer } from "@/services/connectionService";
 import { CheckCircle, AlertCircle, UserPlus } from "lucide-react";
 
 export default function FarmerConnect() {
@@ -19,7 +16,7 @@ export default function FarmerConnect() {
   const [inviteCode, setInviteCode] = useState(searchParams.get('invite') || '');
   const [isValidating, setIsValidating] = useState(false);
   const [isValid, setIsValid] = useState<boolean | null>(null);
-  const [dealerId, setDealerId] = useState<string>('');
+  const [dealerData, setDealerData] = useState<any>(null);
   const [isConnecting, setIsConnecting] = useState(false);
 
   // Validate invitation code on component mount
@@ -31,29 +28,18 @@ export default function FarmerConnect() {
 
   // Auto-connect if user is already logged in and invitation is valid
   useEffect(() => {
-    if (currentUser && isValid && dealerId && !isConnecting) {
+    if (currentUser && isValid && dealerData && !isConnecting) {
       handleAutoConnect();
     }
-  }, [currentUser, isValid, dealerId]);
+  }, [currentUser, isValid, dealerData]);
 
   const validateInvitation = async () => {
     setIsValidating(true);
     try {
-      // Local workaround for module resolution issue
-      const localValidateInvitationCode = async (inviteCode: string): Promise<{valid: boolean, dealerId?: string}> => {
-        console.log('Using local invitation code validation');
-        // Extract dealer ID from the invite code format: dealer-{dealerId}-{timestamp}
-        const match = inviteCode.match(/^dealer-([^-]+)-\d+$/);
-        if (match) {
-          return { valid: true, dealerId: match[1] };
-        }
-        return { valid: false };
-      };
-      
-      const result = await localValidateInvitationCode(inviteCode);
+      const result = await validateInvitationCode(inviteCode);
       setIsValid(result.valid);
-      if (result.valid && result.dealerId) {
-        setDealerId(result.dealerId);
+      if (result.valid && result.data) {
+        setDealerData(result.data);
       }
     } catch (error) {
       setIsValid(false);
@@ -68,28 +54,19 @@ export default function FarmerConnect() {
   };
 
   const handleAutoConnect = async () => {
-    if (!currentUser || !dealerId) return;
+    if (!currentUser || !dealerData) return;
     
     setIsConnecting(true);
     try {
-      // Local workaround for module resolution issue
-      const localAddFarmerToNetwork = async (dealerId: string, farmerData: any): Promise<void> => {
-        console.log('Using local farmer network addition', { dealerId, farmerData });
-        // Simulate successful network addition
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        return Promise.resolve();
-      };
-      
-      await localAddFarmerToNetwork(dealerId, {
-        farmerId: currentUser.uid,
-        farmerName: currentUser.displayName || currentUser.email?.split('@')[0] || 'Farmer',
-        farmerEmail: currentUser.email || '',
-        chicksReceived: 0,
-        feedConsumption: 0,
-        mortalityRate: 0,
-        fcr: 0,
-        accountBalance: 0
-      });
+      await connectFarmerToDealer(
+        currentUser.uid,
+        currentUser.displayName || currentUser.email?.split('@')[0] || 'Farmer',
+        currentUser.email || '',
+        dealerData.dealerId,
+        dealerData.dealerName,
+        dealerData.dealerEmail,
+        inviteCode
+      );
       
       toast({
         title: "Success!",

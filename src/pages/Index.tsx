@@ -1,8 +1,139 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle } from "lucide-react";
 
 const Index = () => {
+  const [language, setLanguage] = useState("hi");
+  
+  const content = {
+    hi: {
+      header: {
+        title: "पोल्ट्री मित्र",
+        about: "हमारे बारे में",
+        services: "सेवाएं",
+        contact: "संपर्क",
+        login: "लॉग इन",
+        register: "रजिस्टर करें"
+      },
+      hero: {
+        title: "भारत का सबसे बेहतरीन पोल्ट्री फार्म मैनेजमेंट सिस्टम",
+        subtitle: "अपने मुर्गी पालन व्यवसाय को डिजिटल बनाएं। FCR कैलकुलेशन से लेकर खर्च ट्रैकिंग तक - सब कुछ एक ही जगह!",
+        freeFCR: "मुफ्त FCR कैलकुलेटर",
+        startFree: "मुफ्त शुरू करें",
+        watchDemo: "डेमो देखें"
+      },
+      features: {
+        title: "क्यों चुनें पोल्ट्री मित्र?",
+        subtitle: "आधुनिक किसानों के लिए बनाया गया, परंपरागत मूल्यों के साथ",
+        fcr: {
+          title: "स्मार्ट FCR कैलकुलेटर",
+          desc: "अपने फार्म की फीड कन्वर्जन रेट को सटीक रूप से कैलकुलेट करें"
+        },
+        expense: {
+          title: "खर्च ट्रैकिंग",
+          desc: "दाना, दवाई, मजदूरी - हर खर्च का हिसाब रखें"
+        },
+        market: {
+          title: "बाजार भाव",
+          desc: "लाइव मार्केट रेट्स और ट्रेंड्स देखें"
+        },
+        reports: {
+          title: "डिटेल्ड रिपोर्ट्स",
+          desc: "अपने बिजनेस की पूरी जानकारी ग्राफ और चार्ट में देखें"
+        }
+      },
+      stats: {
+        farmers: "खुश किसान",
+        success: "सफलता दर",
+        support: "24/7 सपोर्ट",
+        growth: "औसत ग्रोथ"
+      },
+      testimonials: {
+        title: "किसान क्या कहते हैं",
+        t1: {
+          text: "पोल्ट्री मित्र से मेरा मुनाफा 30% बढ़ गया है। FCR कैलकुलेटर बहुत काम का है।",
+          name: "राजेश कुमार",
+          location: "हरियाणा"
+        },
+        t2: {
+          text: "खर्च का हिसाब रखना अब बहुत आसान हो गया। बहुत बढ़िया ऐप है।",
+          name: "सुनीता देवी",
+          location: "पंजाब"
+        }
+      },
+      cta: {
+        title: "आज ही शुरू करें अपना डिजिटल पोल्ट्री जर्नी",
+        subtitle: "हजारों किसानों का भरोसा। आपका भी इंतजार है।",
+        button: "मुफ्त रजिस्टर करें"
+      }
+    },
+    en: {
+      header: {
+        title: "Poultry Mitra",
+        about: "About",
+        services: "Services",
+        contact: "Contact",
+        login: "Login",
+        register: "Register"
+      },
+      hero: {
+        title: "India's Best Poultry Farm Management System",
+        subtitle: "Digitize your poultry business. From FCR calculation to expense tracking - everything in one place!",
+        freeFCR: "Free FCR Calculator",
+        startFree: "Start Free",
+        watchDemo: "Watch Demo"
+      },
+      features: {
+        title: "Why Choose Poultry Mitra?",
+        subtitle: "Built for modern farmers with traditional values",
+        fcr: {
+          title: "Smart FCR Calculator",
+          desc: "Calculate your farm's Feed Conversion Rate accurately"
+        },
+        expense: {
+          title: "Expense Tracking",
+          desc: "Track feed, medicine, labor - every expense"
+        },
+        market: {
+          title: "Market Rates",
+          desc: "View live market rates and trends"
+        },
+        reports: {
+          title: "Detailed Reports",
+          desc: "See complete business insights in graphs and charts"
+        }
+      },
+      stats: {
+        farmers: "Happy Farmers",
+        success: "Success Rate",
+        support: "24/7 Support",
+        growth: "Average Growth"
+      },
+      testimonials: {
+        title: "What Farmers Say",
+        t1: {
+          text: "Poultry Mitra increased my profit by 30%. The FCR calculator is very useful.",
+          name: "Rajesh Kumar",
+          location: "Haryana"
+        },
+        t2: {
+          text: "Expense tracking has become very easy. Excellent app.",
+          name: "Sunita Devi",
+          location: "Punjab"
+        }
+      },
+      cta: {
+        title: "Start Your Digital Poultry Journey Today",
+        subtitle: "Trusted by thousands of farmers. Your turn awaits.",
+        button: "Register Free"
+      }
+    }
+  };
+
+  const t = content[language as keyof typeof content];
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -14,19 +145,28 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-green-600">Poultry Mitra</h1>
+              <h1 className="text-2xl font-bold text-green-600">{t('header.title')}</h1>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-500 hover:text-gray-900">About</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900">Services</Link>
-              <Link to="/contact" className="text-gray-500 hover:text-gray-900">Contact</Link>
+              <Link to="/about" className="text-gray-500 hover:text-gray-900">{t('nav.about')}</Link>
+              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t('nav.services')}</Link>
+              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{t('nav.contact')}</Link>
             </nav>
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-4">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLanguage}
+                className="flex items-center gap-2"
+              >
+                <Globe size={16} />
+                {language === 'hi' ? 'EN' : 'हिं'}
+              </Button>
               <Link to="/login">
-                <Button variant="outline">Login</Button>
+                <Button variant="outline">{t('nav.login')}</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">Register</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{t('nav.register')}</Button>
               </Link>
             </div>
           </div>
@@ -37,21 +177,27 @@ const Index = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Welcome to <span className="text-green-600">Poultry Mitra</span>
+            {t('hero.title')}
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Your comprehensive platform for poultry farm management. Track expenses, monitor health, 
-            calculate FCR, and manage your poultry business efficiently.
+            {t('hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/farmer-login">
               <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                Farmer Login
+                {t('hero.farmerLogin')}
               </Button>
             </Link>
             <Link to="/dealer-login">
               <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
-                Dealer Login
+                {t('hero.dealerLogin')}
+              </Button>
+            </Link>
+          </div>
+          <div className="mt-6">
+            <Link to="/fcr-calculator">
+              <Button variant="outline" size="lg" className="text-green-600 border-green-600 hover:bg-green-50">
+                {t('hero.fcr')} - {t('hero.fcrFree')}
               </Button>
             </Link>
           </div>
@@ -62,42 +208,22 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">Our Services</h2>
-            <p className="text-lg text-gray-600">Everything you need to manage your poultry business</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('features.title')}</h2>
+            <p className="text-lg text-gray-600">{t('services.subtitle')}</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>Farm Management</CardTitle>
-                <CardDescription>Complete farm operation management</CardDescription>
+                <CardTitle>{t('features.fcr.title')}</CardTitle>
+                <CardDescription>{t('features.fcr.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Track daily operations, manage crops, and monitor farm health with our comprehensive tools.</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Financial Tracking</CardTitle>
-                <CardDescription>Expense and income management</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Monitor your expenses, track income, and get detailed financial reports for better decision making.</p>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>FCR Calculator</CardTitle>
-                <CardDescription>Feed Conversion Ratio tracking</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p>Calculate and monitor Feed Conversion Ratio to optimize feed efficiency and reduce costs.</p>
+                <p>{t('features.fcr.desc')}</p>
                 <div className="mt-4">
                   <Link to="/fcr-calculator">
                     <Button className="bg-green-600 hover:bg-green-700 text-white">
-                      Try Calculator
+                      {t('features.fcr.tryButton')}
                     </Button>
                   </Link>
                 </div>
@@ -106,31 +232,51 @@ const Index = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>Health Management</CardTitle>
-                <CardDescription>Vaccine and health tracking</CardDescription>
+                <CardTitle>{t('features.expense.title')}</CardTitle>
+                <CardDescription>{t('features.expense.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Keep track of vaccination schedules, health records, and get timely reminders.</p>
+                <p>{t('features.expense.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Market Rates</CardTitle>
-                <CardDescription>Real-time market information</CardDescription>
+                <CardTitle>{t('features.health.title')}</CardTitle>
+                <CardDescription>{t('features.health.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Stay updated with current broiler and egg rates in your region for better pricing decisions.</p>
+                <p>{t('features.health.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>Customer Management</CardTitle>
-                <CardDescription>Dealer and customer relations</CardDescription>
+                <CardTitle>{t('features.feed.title')}</CardTitle>
+                <CardDescription>{t('features.feed.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>Manage customer relationships, track orders, and maintain communication with dealers.</p>
+                <p>{t('features.feed.desc')}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('features.rates.title')}</CardTitle>
+                <CardDescription>{t('features.rates.shortDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>{t('features.rates.desc')}</p>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>{t('features.batch.title')}</CardTitle>
+                <CardDescription>{t('features.batch.shortDesc')}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p>{t('features.batch.desc')}</p>
               </CardContent>
             </Card>
           </div>
@@ -142,30 +288,30 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
-              <h3 className="text-2xl font-bold mb-4">Poultry Mitra</h3>
+              <h3 className="text-2xl font-bold mb-4">{t('header.title')}</h3>
               <p className="text-gray-300 mb-4">
-                Empowering poultry farmers with technology to improve productivity and profitability.
+                {t('footer.description')}
               </p>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">Quick Links</h4>
+              <h4 className="text-lg font-semibold mb-4">{t('footer.quickLinks')}</h4>
               <ul className="space-y-2">
-                <li><Link to="/about" onClick={scrollToTop} className="text-gray-300 hover:text-white">About Us</Link></li>
-                <li><Link to="/services" onClick={scrollToTop} className="text-gray-300 hover:text-white">Services</Link></li>
-                <li><Link to="/contact" onClick={scrollToTop} className="text-gray-300 hover:text-white">Contact</Link></li>
+                <li><Link to="/about" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.about')}</Link></li>
+                <li><Link to="/services" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.services')}</Link></li>
+                <li><Link to="/contact" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.contact')}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">Support</h4>
+              <h4 className="text-lg font-semibold mb-4">{t('footer.support')}</h4>
               <ul className="space-y-2">
-                <li><Link to="/help" onClick={scrollToTop} className="text-gray-300 hover:text-white">Help Center</Link></li>
-                <li><Link to="/privacy" onClick={scrollToTop} className="text-gray-300 hover:text-white">Privacy Policy</Link></li>
-                <li><Link to="/terms" onClick={scrollToTop} className="text-gray-300 hover:text-white">Terms of Service</Link></li>
+                <li><Link to="/help" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.help')}</Link></li>
+                <li><Link to="/privacy" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.privacy')}</Link></li>
+                <li><Link to="/terms" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.terms')}</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-gray-300">&copy; 2025 Poultry Mitra. All rights reserved.</p>
+            <p className="text-gray-300">{t('footer.copyright')}</p>
           </div>
         </div>
       </footer>
