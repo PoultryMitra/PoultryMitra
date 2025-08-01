@@ -42,7 +42,7 @@ const ProfileCompletion = () => {
       setLoading(true);
       
       const profileData = {
-        role: formData.role as 'farmer' | 'dealer',
+        role: formData.role as 'farmer' | 'dealer' | 'admin',
         phone: formData.phone,
         location: formData.location,
         ...(formData.role === 'farmer' && { 
@@ -62,6 +62,8 @@ const ProfileCompletion = () => {
         navigate('/farmer/dashboard', { replace: true });
       } else if (formData.role === 'dealer') {
         navigate('/dealer/dashboard', { replace: true });
+      } else if (formData.role === 'admin') {
+        navigate('/admin', { replace: true });
       }
     } catch (error: any) {
       setError(error.message);
@@ -99,6 +101,7 @@ const ProfileCompletion = () => {
                 <SelectContent>
                   <SelectItem value="farmer">Farmer</SelectItem>
                   <SelectItem value="dealer">Dealer</SelectItem>
+                  <SelectItem value="admin">Administrator</SelectItem>
                 </SelectContent>
               </Select>
             </div>

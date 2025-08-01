@@ -2,54 +2,49 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck, Wrench } from "lucide-react";
+import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck, Wrench, Clock } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, query, where } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { AdminService, type AdminStats, type SystemActivity } from "@/services/adminService";
 import { fixConnectionData, fixAllConnectionsWithPlaceholderData } from "@/services/connectionFixService";
 
 const AdminPanel = () => {
   const [isFixingConnections, setIsFixingConnections] = useState(false);
-  const [realStats, setRealStats] = useState({
+  const [realStats, setRealStats] = useState<AdminStats>({
     totalUsers: 0,
     activeFarmers: 0,
     totalDealers: 0,
-    problemConnections: 0
+    problemConnections: 0,
+    totalConnections: 0,
+    totalProducts: 0,
+    recentRegistrations: 0
   });
+  const [recentActivities, setRecentActivities] = useState<SystemActivity[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    loadRealStats();
+    loadDashboardData();
   }, []);
 
-  const loadRealStats = async () => {
+  const loadDashboardData = async () => {
     try {
-      // Load real user counts
-      const usersSnapshot = await getDocs(collection(db, 'users'));
-      const users = usersSnapshot.docs.map(doc => doc.data());
+      setLoading(true);
       
-      const totalUsers = users.length;
-      const activeFarmers = users.filter(user => user.role === 'farmer').length;
-      const totalDealers = users.filter(user => user.role === 'dealer').length;
-
-      // Check for problematic connections
-      const problemConnectionsQuery = query(
-        collection(db, 'farmerDealers'),
-        where('dealerEmail', '==', 'dealer@example.com')
-      );
-      const problemConnectionsSnapshot = await getDocs(problemConnectionsQuery);
-      const problemConnections = problemConnectionsSnapshot.size;
-
-      setRealStats({
-        totalUsers,
-        activeFarmers,
-        totalDealers,
-        problemConnections
-      });
-
+      // Load admin statistics
+      const stats = await AdminService.getAdminStats();
+      setRealStats(stats);
+      
+      // Load recent activities
+      const activities = await AdminService.getRecentActivities();
+      setRecentActivities(activities);
+      
     } catch (error) {
-      console.error('Error loading real stats:', error);
+      console.error('Error loading dashboard data:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -64,7 +59,7 @@ const AdminPanel = () => {
         description: "Connection data fixed successfully!",
       });
       // Reload stats
-      loadRealStats();
+      loadDashboardData();
     } catch (error) {
       console.error('Error fixing connection:', error);
       toast({
@@ -86,7 +81,7 @@ const AdminPanel = () => {
         description: "All placeholder connections fixed successfully!",
       });
       // Reload stats
-      loadRealStats();
+      loadDashboardData();
     } catch (error) {
       console.error('Error fixing connections:', error);
       toast({
@@ -104,6 +99,12 @@ const AdminPanel = () => {
     { title: "Active Farmers", value: loading ? "..." : realStats.activeFarmers.toString(), icon: UserCheck, color: "text-green-600" },
     { title: "Total Dealers", value: loading ? "..." : realStats.totalDealers.toString(), icon: DollarSign, color: "text-purple-600" },
     { title: "Problem Connections", value: loading ? "..." : realStats.problemConnections.toString(), icon: Wrench, color: "text-red-600" },
+  ];
+
+  const additionalStats = [
+    { title: "Total Connections", value: loading ? "..." : realStats.totalConnections.toString(), icon: Users, color: "text-blue-500" },
+    { title: "Total Products", value: loading ? "..." : realStats.totalProducts.toString(), icon: TrendingUp, color: "text-green-500" },
+    { title: "Recent Registrations", value: loading ? "..." : realStats.recentRegistrations.toString(), icon: UserCheck, color: "text-purple-500" },
   ];
 
   const quickActions = [
@@ -125,6 +126,21 @@ const AdminPanel = () => {
       {/* Stats Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {stats.map((stat, index) => (
+          <Card key={index}>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">{stat.title}</CardTitle>
+              <stat.icon className={`h-4 w-4 ${stat.color}`} />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{stat.value}</div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* Additional Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {additionalStats.map((stat, index) => (
           <Card key={index}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">{stat.title}</CardTitle>
@@ -188,29 +204,36 @@ const AdminPanel = () => {
           <CardDescription>Latest activities and changes in the system</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">New farmer registration</p>
-                <p className="text-sm text-gray-600">John Doe registered as a farmer</p>
-              </div>
-              <span className="text-sm text-gray-500">2 hours ago</span>
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+              <p>Loading recent activities...</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">Broiler rate updated</p>
-                <p className="text-sm text-gray-600">Rate changed to ₹120/kg</p>
-              </div>
-              <span className="text-sm text-gray-500">4 hours ago</span>
+          ) : recentActivities.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">
+              <Clock className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+              <p>No recent activities found</p>
             </div>
-            <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-              <div>
-                <p className="font-medium">System backup completed</p>
-                <p className="text-sm text-gray-600">Daily backup successfully created</p>
-              </div>
-              <span className="text-sm text-gray-500">6 hours ago</span>
+          ) : (
+            <div className="space-y-3">
+              {recentActivities.map((activity) => (
+                <div key={activity.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div>
+                    <p className="font-medium">{activity.title}</p>
+                    <p className="text-sm text-gray-600">{activity.description}</p>
+                  </div>
+                  <span className="text-sm text-gray-500">
+                    {activity.timestamp.toDate().toLocaleDateString('en-US', {
+                      month: 'short',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit'
+                    })}
+                  </span>
+                </div>
+              ))}
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>

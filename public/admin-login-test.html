@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Login Test</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            max-width: 600px; 
+            margin: 50px auto; 
+            padding: 20px; 
+            background: #f5f5f5;
+        }
+        .container { 
+            background: white; 
+            padding: 30px; 
+            border-radius: 10px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #333; text-align: center; }
+        .status { 
+            padding: 15px; 
+            margin: 15px 0; 
+            border-radius: 5px; 
+            font-weight: bold;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 12px 24px; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            font-size: 16px;
+            margin: 10px 5px;
+        }
+        button:hover { background: #0056b3; }
+        .details { 
+            background: #f8f9fa; 
+            padding: 15px; 
+            border-radius: 5px; 
+            margin: 15px 0;
+            border-left: 4px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔐 Admin Login Test</h1>
+        
+        <div id="status" class="status info">
+            Click "Test Admin Login" to verify the admin authentication flow.
+        </div>
+        
+        <div class="details">
+            <h3>Test Credentials:</h3>
+            <p><strong>Email:</strong> admin@poultrymitra.com</p>
+            <p><strong>Password:</strong> Admin@123</p>
+            <p><strong>Expected:</strong> Direct access to admin panel (no profile completion)</p>
+        </div>
+        
+        <button onclick="testAdminLogin()">Test Admin Login</button>
+        <button onclick="checkAdminProfile()">Check Admin Profile</button>
+        <button onclick="clearTest()">Clear Results</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { getAuth, signInWithEmailAndPassword, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-auth.js';
+        import { getFirestore, doc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyBmVKhJJnH_b3vVrL7YqTGFiOkVgwVrDhY",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            databaseURL: "https://soullink-96d4b-default-rtdb.firebaseio.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "869921350806",
+            appId: "1:869921350806:web:bcd4a0c2b2b79ffa4f7ba7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        window.testAdminLogin = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            statusDiv.className = 'status info';
+            statusDiv.textContent = '🔄 Testing admin login...';
+            
+            try {
+                // Sign in with admin credentials
+                const userCredential = await signInWithEmailAndPassword(auth, 'admin@poultrymitra.com', 'Admin@123');
+                const user = userCredential.user;
+                
+                statusDiv.className = 'status success';
+                statusDiv.textContent = '✅ Admin login successful!';
+                
+                // Check if user profile exists and is complete
+                const userDoc = await getDoc(doc(db, 'users', user.uid));
+                
+                let profileInfo = '';
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    profileInfo = `
+                        <div class="details">
+                            <h3>Admin Profile Data:</h3>
+                            <p><strong>UID:</strong> ${user.uid}</p>
+                            <p><strong>Email:</strong> ${user.email}</p>
+                            <p><strong>Role:</strong> ${userData.role || 'Not set'}</p>
+                            <p><strong>Profile Complete:</strong> ${userData.profileComplete || 'Not set'}</p>
+                            <p><strong>Display Name:</strong> ${userData.displayName || 'Not set'}</p>
+                            <p><strong>Phone:</strong> ${userData.phone || 'Not set'}</p>
+                            <p><strong>Location:</strong> ${userData.location || 'Not set'}</p>
+                        </div>
+                    `;
+                    
+                    if (userData.role === 'admin' && userData.profileComplete) {
+                        profileInfo += '<div class="status success">✅ Admin should bypass profile completion and go directly to admin panel!</div>';
+                    } else {
+                        profileInfo += '<div class="status error">❌ Admin profile is not properly configured!</div>';
+                    }
+                } else {
+                    profileInfo = '<div class="status error">❌ No user profile found in Firestore!</div>';
+                }
+                
+                resultsDiv.innerHTML = profileInfo;
+                
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Login failed: ${error.message}`;
+                resultsDiv.innerHTML = `<div class="details"><strong>Error Details:</strong><br>${error.code || 'Unknown error'}</div>`;
+            }
+        };
+
+        window.checkAdminProfile = async function() {
+            const statusDiv = document.getElementById('status');
+            const resultsDiv = document.getElementById('results');
+            
+            if (!auth.currentUser) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = '❌ No user logged in. Please test admin login first.';
+                return;
+            }
+            
+            try {
+                const userDoc = await getDoc(doc(db, 'users', auth.currentUser.uid));
+                
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    const profileInfo = `
+                        <div class="details">
+                            <h3>Current Admin Profile:</h3>
+                            <p><strong>UID:</strong> ${auth.currentUser.uid}</p>
+                            <p><strong>Email:</strong> ${auth.currentUser.email}</p>
+                            <p><strong>Role:</strong> ${userData.role || 'Not set'}</p>
+                            <p><strong>Profile Complete:</strong> ${userData.profileComplete || false}</p>
+                            <p><strong>Created At:</strong> ${userData.createdAt?.toDate?.() || 'Not set'}</p>
+                        </div>
+                    `;
+                    
+                    statusDiv.className = 'status success';
+                    statusDiv.textContent = '✅ Admin profile loaded successfully!';
+                    resultsDiv.innerHTML = profileInfo;
+                } else {
+                    statusDiv.className = 'status error';
+                    statusDiv.textContent = '❌ No admin profile found!';
+                }
+            } catch (error) {
+                statusDiv.className = 'status error';
+                statusDiv.textContent = `❌ Error checking profile: ${error.message}`;
+            }
+        };
+
+        window.clearTest = function() {
+            document.getElementById('status').className = 'status info';
+            document.getElementById('status').textContent = 'Click "Test Admin Login" to verify the admin authentication flow.';
+            document.getElementById('results').innerHTML = '';
+        };
+    </script>
+</body>
+</html>

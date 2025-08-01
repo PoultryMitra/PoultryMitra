@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 declare global {
   interface Window {
@@ -15,7 +17,9 @@ declare global {
 const FCRCalculator: React.FC = () => {
   const [results, setResults] = useState<string>("");
   const [warning, setWarning] = useState<string>("");
+  const [calculationData, setCalculationData] = useState<any>(null);
   const chartRef = useRef<HTMLCanvasElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Load Chart.js
@@ -65,6 +69,36 @@ const FCRCalculator: React.FC = () => {
     const profitPerBird = liveBirds > 0 ? netProfit / liveBirds : 0;
     const breakevenPrice = liveBirds > 0 ? totalCost / totalWeight : 0;
     const fcr = totalWeight > 0 ? ((preBags + starterBags + finisherBags) * 50) / totalWeight : 0;
+
+    // Store calculation data for PDF export
+    setCalculationData({
+      inputs: {
+        chicks,
+        chickRate,
+        mortality,
+        sellingPrice,
+        avgWeight,
+        preBags,
+        prePrice,
+        starterBags,
+        starterPrice,
+        finisherBags,
+        finisherPrice
+      },
+      outputs: {
+        totalBirds,
+        liveBirds,
+        totalWeight,
+        chickCost,
+        feedCost,
+        totalCost,
+        revenue,
+        netProfit,
+        profitPerBird,
+        breakevenPrice,
+        fcr
+      }
+    });
 
     setResults(`
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -136,8 +170,188 @@ const FCRCalculator: React.FC = () => {
     }
   };
 
-  const exportToPDF = () => {
-    alert("PDF export feature will be implemented soon. This will allow you to download a detailed report of your FCR calculations.");
+  const exportToPDF = async () => {
+    if (!calculationData) {
+      alert("Please calculate FCR first before exporting to PDF.");
+      return;
+    }
+
+    try {
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const { inputs, outputs } = calculationData;
+      
+      // Add header
+      pdf.setFontSize(20);
+      pdf.setTextColor(34, 139, 34); // Green color
+      pdf.text('Poultry FCR Calculator Report', 20, 25);
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Generated on: ${new Date().toLocaleDateString('en-IN')}`, 20, 35);
+      pdf.text(`Time: ${new Date().toLocaleTimeString('en-IN')}`, 20, 42);
+      
+      // Add a line separator
+      pdf.line(20, 48, 190, 48);
+      
+      let yPos = 58;
+      
+      // Batch Information Section
+      pdf.setFontSize(16);
+      pdf.setTextColor(34, 139, 34);
+      pdf.text('Batch Information', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`Number of Chicks: ${inputs.chicks.toFixed(0)}`, 20, yPos);
+      pdf.text(`Chick Rate: ₹${inputs.chickRate.toFixed(2)}/chick`, 100, yPos);
+      yPos += 7;
+      pdf.text(`Mortality: ${inputs.mortality.toFixed(0)} birds`, 20, yPos);
+      pdf.text(`Selling Price: ₹${inputs.sellingPrice.toFixed(2)}/kg`, 100, yPos);
+      yPos += 7;
+      pdf.text(`Average Weight: ${inputs.avgWeight.toFixed(2)} kg`, 20, yPos);
+      yPos += 15;
+      
+      // Feed Details Section
+      pdf.setFontSize(16);
+      pdf.setTextColor(34, 139, 34);
+      pdf.text('Feed Details', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      
+      if (inputs.preBags > 0) {
+        pdf.text(`Pre-Starter Feed: ${inputs.preBags.toFixed(1)} bags × ₹${inputs.prePrice.toFixed(2)} = ₹${(inputs.preBags * inputs.prePrice).toFixed(2)}`, 20, yPos);
+        yPos += 7;
+      }
+      
+      if (inputs.starterBags > 0) {
+        pdf.text(`Starter Feed: ${inputs.starterBags.toFixed(1)} bags × ₹${inputs.starterPrice.toFixed(2)} = ₹${(inputs.starterBags * inputs.starterPrice).toFixed(2)}`, 20, yPos);
+        yPos += 7;
+      }
+      
+      if (inputs.finisherBags > 0) {
+        pdf.text(`Finisher Feed: ${inputs.finisherBags.toFixed(1)} bags × ₹${inputs.finisherPrice.toFixed(2)} = ₹${(inputs.finisherBags * inputs.finisherPrice).toFixed(2)}`, 20, yPos);
+        yPos += 7;
+      }
+      
+      const totalFeedBags = inputs.preBags + inputs.starterBags + inputs.finisherBags;
+      pdf.text(`Total Feed: ${totalFeedBags.toFixed(1)} bags (${(totalFeedBags * 50).toFixed(1)} kg)`, 20, yPos);
+      yPos += 15;
+      
+      // Results Section
+      pdf.setFontSize(16);
+      pdf.setTextColor(34, 139, 34);
+      pdf.text('Calculation Results', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      
+      // Performance Metrics
+      pdf.text(`Live Birds: ${outputs.liveBirds.toFixed(0)}`, 20, yPos);
+      pdf.text(`Total Weight: ${outputs.totalWeight.toFixed(2)} kg`, 100, yPos);
+      yPos += 8;
+      
+      pdf.setFontSize(14);
+      pdf.setTextColor(34, 139, 34);
+      pdf.text(`FCR: ${outputs.fcr.toFixed(2)}`, 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(12);
+      pdf.setTextColor(0, 0, 0);
+      
+      // Cost Breakdown
+      pdf.text('Cost Breakdown:', 20, yPos);
+      yPos += 8;
+      pdf.text(`• Chick Cost: ₹${outputs.chickCost.toFixed(2)}`, 25, yPos);
+      yPos += 6;
+      pdf.text(`• Feed Cost: ₹${outputs.feedCost.toFixed(2)}`, 25, yPos);
+      yPos += 6;
+      pdf.text(`• Total Cost: ₹${outputs.totalCost.toFixed(2)}`, 25, yPos);
+      yPos += 10;
+      
+      // Revenue & Profit
+      pdf.text('Revenue & Profit:', 20, yPos);
+      yPos += 8;
+      pdf.text(`• Revenue: ₹${outputs.revenue.toFixed(2)}`, 25, yPos);
+      yPos += 6;
+      
+      pdf.setTextColor(outputs.netProfit >= 0 ? 34 : 220, outputs.netProfit >= 0 ? 139 : 20, outputs.netProfit >= 0 ? 34 : 20);
+      pdf.text(`• Net Profit: ₹${outputs.netProfit.toFixed(2)}`, 25, yPos);
+      yPos += 6;
+      
+      pdf.setTextColor(0, 0, 0);
+      pdf.text(`• Profit per Bird: ₹${outputs.profitPerBird.toFixed(2)}`, 25, yPos);
+      yPos += 6;
+      pdf.text(`• Breakeven Price: ₹${outputs.breakevenPrice.toFixed(2)}/kg`, 25, yPos);
+      yPos += 15;
+      
+      // FCR Analysis
+      pdf.setFontSize(16);
+      pdf.setTextColor(34, 139, 34);
+      pdf.text('FCR Analysis & Recommendations', 20, yPos);
+      yPos += 10;
+      
+      pdf.setFontSize(10);
+      pdf.setTextColor(0, 0, 0);
+      
+      let fcrGrade = '';
+      let recommendation = '';
+      
+      if (outputs.fcr < 1.6) {
+        fcrGrade = 'Excellent';
+        recommendation = 'Outstanding performance! Continue current practices.';
+      } else if (outputs.fcr <= 1.8) {
+        fcrGrade = 'Good';
+        recommendation = 'Good performance. Minor optimizations can improve efficiency.';
+      } else if (outputs.fcr <= 2.0) {
+        fcrGrade = 'Average';
+        recommendation = 'Room for improvement. Focus on feed quality and management.';
+      } else {
+        fcrGrade = 'Needs Improvement';
+        recommendation = 'Immediate attention required. Review feed strategy and bird health.';
+      }
+      
+      pdf.text(`FCR Grade: ${fcrGrade}`, 20, yPos);
+      yPos += 8;
+      pdf.text('Recommendation:', 20, yPos);
+      yPos += 6;
+      
+      // Split long recommendation text
+      const splitText = pdf.splitTextToSize(recommendation, 150);
+      pdf.text(splitText, 25, yPos);
+      yPos += splitText.length * 5 + 10;
+      
+      // Best Practices
+      pdf.text('Best Practices for FCR Optimization:', 20, yPos);
+      yPos += 6;
+      pdf.text('• Maintain feed quality and proper storage', 25, yPos);
+      yPos += 5;
+      pdf.text('• Ensure consistent water supply and quality', 25, yPos);
+      yPos += 5;
+      pdf.text('• Monitor temperature and ventilation', 25, yPos);
+      yPos += 5;
+      pdf.text('• Regular health checks and vaccination schedule', 25, yPos);
+      yPos += 5;
+      pdf.text('• Proper waste management and biosecurity', 25, yPos);
+      yPos += 10;
+      
+      // Footer
+      pdf.setFontSize(8);
+      pdf.setTextColor(128, 128, 128);
+      pdf.text('Generated by Poultry Mitra - Professional Poultry Management Platform', 20, 280);
+      pdf.text('Visit: https://poultry-mitra-frontend.onrender.com', 20, 285);
+      
+      // Save the PDF
+      const fileName = `FCR_Report_${new Date().toISOString().split('T')[0]}_${Date.now()}.pdf`;
+      pdf.save(fileName);
+      
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      alert('Error generating PDF. Please try again.');
+    }
   };
 
   return (
@@ -344,7 +558,7 @@ const FCRCalculator: React.FC = () => {
 
           {/* Results */}
           {results && (
-            <Card className="mb-8">
+            <Card className="mb-8" ref={resultsRef}>
               <CardHeader>
                 <CardTitle className="text-purple-600 flex items-center gap-2">
                   Calculation Results
@@ -364,7 +578,7 @@ const FCRCalculator: React.FC = () => {
                     variant="outline"
                     className="border-green-600 text-green-600 hover:bg-green-50"
                   >
-                    Export to PDF
+                    📄 Export Detailed PDF Report
                   </Button>
                 </div>
               </CardContent>
