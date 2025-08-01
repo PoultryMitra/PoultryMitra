@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Update Dealer Contacts</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🔧 Dealer Contact Update Tool</h1>
+    
+    <div class="test-section">
+        <h2>Update Your Farmer-Dealer Connections</h2>
+        <p><strong>Instructions:</strong></p>
+        <ol>
+            <li>Make sure you're logged in as the dealer</li>
+            <li>Ensure your dealer profile has phone number filled</li>
+            <li>Click the button below to update existing connections</li>
+        </ol>
+        
+        <button onclick="updateDealerContacts()">Update Dealer Contact Info in Connections</button>
+        <button onclick="testDealerProfile()">Test Current Dealer Profile</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { getAuth, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+        import { 
+            getFirestore, 
+            collection,
+            getDocs,
+            getDoc,
+            doc, 
+            updateDoc,
+            query,
+            where
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCz3tLr-A6R0JRY1Ey2mUMhpGcF4RmnGRs",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "301226070664",
+            appId: "1:301226070664:web:cc6e3b87d3d19b1dc26669",
+            measurementId: "G-JC8YRWLQHK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        let currentUser = null;
+
+        onAuthStateChanged(auth, (user) => {
+            currentUser = user;
+            log(user ? `Logged in as: ${user.email}` : 'Not logged in', user ? 'success' : 'warning');
+        });
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Test current dealer profile
+        window.testDealerProfile = async function() {
+            clearResults();
+            log('<h3>🔍 Testing Current Dealer Profile</h3>');
+            
+            if (!currentUser) {
+                log('❌ Please log in first', 'error');
+                return;
+            }
+            
+            try {
+                const dealerId = currentUser.uid;
+                log(`Testing dealer ID: ${dealerId}`);
+                
+                // Check dealers collection
+                const dealerDoc = await getDoc(doc(db, 'dealers', dealerId));
+                if (dealerDoc.exists()) {
+                    const dealerData = dealerDoc.data();
+                    log('✅ Found in dealers collection:', 'success');
+                    log(`<pre>${JSON.stringify({
+                        businessName: dealerData.businessName,
+                        ownerName: dealerData.ownerName,
+                        phone: dealerData.phone,
+                        email: dealerData.email,
+                        address: dealerData.address
+                    }, null, 2)}</pre>`);
+                } else {
+                    log('⚠️ Not found in dealers collection', 'warning');
+                }
+                
+                // Check users collection
+                const userDoc = await getDoc(doc(db, 'users', dealerId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    log('✅ Found in users collection:', 'success');
+                    log(`<pre>${JSON.stringify({
+                        displayName: userData.displayName,
+                        businessName: userData.businessName,
+                        phone: userData.phone,
+                        email: userData.email,
+                        role: userData.role
+                    }, null, 2)}</pre>`);
+                } else {
+                    log('❌ Not found in users collection', 'error');
+                }
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Update dealer contacts in farmer connections
+        window.updateDealerContacts = async function() {
+            clearResults();
+            log('<h3>🔄 Updating Dealer Contact Information</h3>');
+            
+            if (!currentUser) {
+                log('❌ Please log in first', 'error');
+                return;
+            }
+            
+            try {
+                const dealerId = currentUser.uid;
+                log(`Updating contacts for dealer: ${dealerId}`);
+                
+                // First get dealer profile info
+                let dealerPhone = '';
+                let dealerAddress = '';
+                let dealerCompany = '';
+                
+                const dealerDoc = await getDoc(doc(db, 'dealers', dealerId));
+                if (dealerDoc.exists()) {
+                    const dealerData = dealerDoc.data();
+                    dealerPhone = dealerData.phone || '';
+                    dealerAddress = dealerData.address || '';
+                    dealerCompany = dealerData.businessName || '';
+                    log(`📞 Dealer profile found: ${dealerPhone || 'no phone'}, ${dealerCompany || 'no company'}`, 'success');
+                } else {
+                    // Fallback to users collection
+                    const userDoc = await getDoc(doc(db, 'users', dealerId));
+                    if (userDoc.exists()) {
+                        const userData = userDoc.data();
+                        dealerPhone = userData.phone || '';
+                        dealerAddress = userData.address || '';
+                        dealerCompany = userData.businessName || userData.displayName || '';
+                        log(`📞 User profile found: ${dealerPhone || 'no phone'}, ${dealerCompany || 'no company'}`, 'success');
+                    } else {
+                        log('❌ No dealer profile found', 'error');
+                        return;
+                    }
+                }
+                
+                if (!dealerPhone && !dealerCompany) {
+                    log('⚠️ No contact information to update. Please complete your dealer profile first.', 'warning');
+                    return;
+                }
+                
+                // Find all farmerDealers records for this dealer
+                const farmerDealersQuery = query(
+                    collection(db, 'farmerDealers'),
+                    where('dealerId', '==', dealerId)
+                );
+                
+                const farmerDealersSnapshot = await getDocs(farmerDealersQuery);
+                
+                if (farmerDealersSnapshot.empty) {
+                    log('⚠️ No farmer connections found for this dealer', 'warning');
+                    return;
+                }
+                
+                log(`Found ${farmerDealersSnapshot.size} connections to update`);
+                
+                let updatedCount = 0;
+                let skippedCount = 0;
+                
+                for (const farmerDealerDoc of farmerDealersSnapshot.docs) {
+                    const farmerDealerData = farmerDealerDoc.data();
+                    
+                    // Check if already has contact info
+                    if (farmerDealerData.dealerPhone && farmerDealerData.dealerCompany) {
+                        log(`  ⏭️ Connection ${farmerDealerDoc.id} already has contact info`, 'warning');
+                        skippedCount++;
+                        continue;
+                    }
+                    
+                    // Update with contact info
+                    const updates = {};
+                    if (dealerPhone && !farmerDealerData.dealerPhone) {
+                        updates.dealerPhone = dealerPhone;
+                    }
+                    if (dealerAddress && !farmerDealerData.dealerAddress) {
+                        updates.dealerAddress = dealerAddress;
+                    }
+                    if (dealerCompany && !farmerDealerData.dealerCompany) {
+                        updates.dealerCompany = dealerCompany;
+                    }
+                    
+                    if (Object.keys(updates).length > 0) {
+                        await updateDoc(farmerDealerDoc.ref, updates);
+                        log(`  ✅ Updated connection ${farmerDealerDoc.id} with: ${Object.keys(updates).join(', ')}`, 'success');
+                        updatedCount++;
+                    } else {
+                        log(`  ⏭️ No updates needed for connection ${farmerDealerDoc.id}`, 'warning');
+                        skippedCount++;
+                    }
+                }
+                
+                log(`<h4>📊 Update Summary:</h4>`);
+                log(`✅ Updated: ${updatedCount} connections`, 'success');
+                log(`⏭️ Skipped: ${skippedCount} connections`, 'warning');
+                log(`📝 Total: ${farmerDealersSnapshot.size} connections`);
+                
+            } catch (error) {
+                log(`❌ Error: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+    </script>
+</body>
+</html>

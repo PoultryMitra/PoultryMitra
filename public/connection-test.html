@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connection Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        pre { background: #f5f5f5; padding: 10px; border-radius: 3px; overflow-x: auto; }
+    </style>
+</head>
+<body>
+    <h1>🧪 Connection Test for Your Setup</h1>
+    
+    <div class="test-section">
+        <h2>Test with Your Invitation Code</h2>
+        <p><strong>Dealer ID:</strong> LCgRwFjsWbcIyEuIoUabj63OjwH3</p>
+        <p><strong>Farmer ID:</strong> MsoZtLFGmnhp7RLO6AdwVvNbW3q1</p>
+        <p><strong>Invitation Code:</strong> LCgRwFjsWbcIyEuIoUabj63OjwH3_1754019313790_r6rdzb54o</p>
+        
+        <button onclick="testInvitationCode()">Test Invitation Code Validation</button>
+        <button onclick="testDealerLookup()">Test Dealer Information Lookup</button>
+        <button onclick="simulateConnection()">Simulate Full Connection</button>
+        
+        <div id="results"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
+        import { 
+            getFirestore, 
+            doc, 
+            getDoc, 
+            collection, 
+            query, 
+            where, 
+            getDocs 
+        } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyCz3tLr-A6R0JRY1Ey2mUMhpGcF4RmnGRs",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "301226070664",
+            appId: "1:301226070664:web:cc6e3b87d3d19b1dc26669",
+            measurementId: "G-JC8YRWLQHK"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        const dealerId = 'LCgRwFjsWbcIyEuIoUabj63OjwH3';
+        const farmerId = 'MsoZtLFGmnhp7RLO6AdwVvNbW3q1';
+        const inviteCode = 'LCgRwFjsWbcIyEuIoUabj63OjwH3_1754019313790_r6rdzb54o';
+
+        function log(message, type = 'info') {
+            const results = document.getElementById('results');
+            const div = document.createElement('div');
+            div.className = type;
+            div.innerHTML = message;
+            results.appendChild(div);
+        }
+
+        function clearResults() {
+            document.getElementById('results').innerHTML = '';
+        }
+
+        // Test invitation code validation (mimicking our service)
+        window.testInvitationCode = async function() {
+            clearResults();
+            log('<h3>🔍 Testing Invitation Code Validation</h3>');
+            
+            try {
+                log(`Testing code: ${inviteCode}`);
+                
+                // First try active invitations
+                let q = query(
+                    collection(db, 'dealerInvitations'),
+                    where('inviteCode', '==', inviteCode),
+                    where('isActive', '==', true)
+                );
+                
+                let snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    log('⚠️ No active invitation found, checking inactive invitations...', 'warning');
+                    
+                    // Try all invitations (including inactive ones)
+                    q = query(
+                        collection(db, 'dealerInvitations'),
+                        where('inviteCode', '==', inviteCode)
+                    );
+                    
+                    snapshot = await getDocs(q);
+                    
+                    if (snapshot.empty) {
+                        log('❌ No invitation found for this code at all', 'error');
+                        return;
+                    } else {
+                        log('✅ Found inactive invitation (this is your case)', 'success');
+                    }
+                }
+                
+                const invitation = snapshot.docs[0];
+                const data = invitation.data();
+                
+                log(`✅ Found invitation data:`, 'success');
+                log(`<pre>${JSON.stringify(data, null, 2)}</pre>`);
+                
+                // Check if expired
+                const now = new Date();
+                const expiresAt = data.expiresAt.toDate();
+                
+                if (now > expiresAt) {
+                    log(`❌ Invitation expired: ${expiresAt}`, 'error');
+                    return;
+                }
+                
+                // Test our dealer name resolution logic
+                log('<h4>🔍 Testing Dealer Name Resolution:</h4>');
+                let dealerName = data.dealerName || data.displayName || 'Unknown Dealer';
+                let dealerEmail = data.dealerEmail || data.email;
+                
+                log(`Initial from invitation: ${dealerName}`);
+                
+                try {
+                    // Try to get updated dealer profile
+                    const dealerProfileDoc = await getDoc(doc(db, 'dealers', data.dealerId));
+                    if (dealerProfileDoc.exists()) {
+                        const dealerProfile = dealerProfileDoc.data();
+                        dealerName = dealerProfile.businessName || dealerProfile.ownerName || dealerName;
+                        dealerEmail = dealerProfile.email || dealerEmail;
+                        log(`✅ Updated from dealers collection: ${dealerName}`, 'success');
+                    } else {
+                        // Fallback to users collection
+                        const userDoc = await getDoc(doc(db, 'users', data.dealerId));
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            dealerName = userData.displayName || userData.businessName || userData.email?.split('@')[0] || dealerName;
+                            dealerEmail = userData.email || dealerEmail;
+                            log(`✅ Updated from users collection: ${dealerName}`, 'success');
+                        } else {
+                            log(`⚠️ Could not find dealer profile`, 'warning');
+                        }
+                    }
+                } catch (error) {
+                    log(`⚠️ Could not fetch updated dealer profile: ${error.message}`, 'warning');
+                }
+                
+                log(`<strong>Final Result:</strong>`);
+                log(`Dealer Name: ${dealerName}`);
+                log(`Dealer Email: ${dealerEmail}`);
+                
+                if (dealerName === 'Unknown Dealer') {
+                    log('❌ Problem identified: Dealer name is still "Unknown Dealer"', 'error');
+                } else {
+                    log('✅ Dealer name resolved successfully', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ Error testing invitation: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Test dealer information lookup
+        window.testDealerLookup = async function() {
+            clearResults();
+            log('<h3>👤 Testing Dealer Information Lookup</h3>');
+            
+            try {
+                log(`Looking up dealer ID: ${dealerId}`);
+                
+                // Check users collection
+                const userDoc = await getDoc(doc(db, 'users', dealerId));
+                if (userDoc.exists()) {
+                    const userData = userDoc.data();
+                    log('✅ Found dealer in users collection:', 'success');
+                    log(`<pre>${JSON.stringify(userData, null, 2)}</pre>`);
+                } else {
+                    log('❌ Dealer not found in users collection', 'error');
+                }
+                
+                // Check dealers collection
+                const dealerDoc = await getDoc(doc(db, 'dealers', dealerId));
+                if (dealerDoc.exists()) {
+                    const dealerData = dealerDoc.data();
+                    log('✅ Found dealer in dealers collection:', 'success');
+                    log(`<pre>${JSON.stringify(dealerData, null, 2)}</pre>`);
+                } else {
+                    log('⚠️ Dealer not found in dealers collection', 'warning');
+                }
+                
+            } catch (error) {
+                log(`❌ Error looking up dealer: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Simulate the full connection process
+        window.simulateConnection = async function() {
+            clearResults();
+            log('<h3>🔗 Simulating Full Connection Process</h3>');
+            
+            try {
+                // Step 1: Validate invitation code
+                log('Step 1: Validating invitation code...');
+                const result = await validateInvitationCode(inviteCode);
+                
+                if (!result.valid) {
+                    log('❌ Invitation validation failed', 'error');
+                    return;
+                }
+                
+                log('✅ Invitation validation passed', 'success');
+                log(`Dealer Name: ${result.data.dealerName}`);
+                log(`Dealer Email: ${result.data.dealerEmail}`);
+                
+                if (result.data.dealerName === 'Unknown Dealer') {
+                    log('❌ Issue detected: Dealer name is "Unknown Dealer"', 'error');
+                    log('This is the root cause of the problem you\'re experiencing.', 'error');
+                } else {
+                    log('✅ Dealer name looks good!', 'success');
+                }
+                
+            } catch (error) {
+                log(`❌ Error in simulation: ${error.message}`, 'error');
+                console.error(error);
+            }
+        };
+
+        // Our validation function (copy from your service)
+        async function validateInvitationCode(inviteCode) {
+            try {
+                console.log(`Validating invitation code: ${inviteCode}`);
+                
+                const q = query(
+                    collection(db, 'dealerInvitations'),
+                    where('inviteCode', '==', inviteCode),
+                    where('isActive', '==', true)
+                );
+                
+                const snapshot = await getDocs(q);
+                
+                if (snapshot.empty) {
+                    console.log(`No active invitation found for code: ${inviteCode}`);
+                    return { valid: false };
+                }
+                
+                const invitation = snapshot.docs[0];
+                const data = invitation.data();
+                console.log(`Found invitation data:`, data);
+                
+                // Check if expired
+                const now = new Date();
+                const expiresAt = data.expiresAt.toDate();
+                
+                if (now > expiresAt) {
+                    console.log(`Invitation expired: ${inviteCode}`);
+                    return { valid: false };
+                }
+                
+                console.log(`Invitation valid: ${inviteCode} for dealer ${data.dealerId}`);
+                
+                // Get current dealer profile to ensure we have the latest information
+                let dealerName = data.dealerName || data.displayName || 'Unknown Dealer';
+                let dealerEmail = data.dealerEmail || data.email;
+                
+                try {
+                    // Try to get updated dealer profile
+                    const dealerProfileDoc = await getDoc(doc(db, 'dealers', data.dealerId));
+                    if (dealerProfileDoc.exists()) {
+                        const dealerProfile = dealerProfileDoc.data();
+                        dealerName = dealerProfile.businessName || dealerProfile.ownerName || dealerName;
+                        dealerEmail = dealerProfile.email || dealerEmail;
+                    } else {
+                        // Fallback to users collection
+                        const userDoc = await getDoc(doc(db, 'users', data.dealerId));
+                        if (userDoc.exists()) {
+                            const userData = userDoc.data();
+                            dealerName = userData.displayName || userData.businessName || userData.email?.split('@')[0] || dealerName;
+                            dealerEmail = userData.email || dealerEmail;
+                        }
+                    }
+                } catch (error) {
+                    console.warn('Could not fetch updated dealer profile, using invitation data:', error);
+                }
+                
+                return { 
+                    valid: true, 
+                    data: {
+                        dealerId: data.dealerId,
+                        dealerName,
+                        dealerEmail,
+                        invitationId: invitation.id
+                    }
+                };
+            } catch (error) {
+                console.error('Error validating invitation code:', error);
+                return { valid: false };
+            }
+        }
+
+        // Make functions globally available
+        window.validateInvitationCode = validateInvitationCode;
+        
+        // Auto-run the invitation test on page load
+        setTimeout(() => {
+            testInvitationCode();
+        }, 1000);
+
+    </script>
+</body>
+</html>

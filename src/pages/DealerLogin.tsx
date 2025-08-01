@@ -43,10 +43,10 @@ const DealerLogin = () => {
       setError('');
       setLoading(true);
       console.log('DealerLogin: Starting Google login...');
-      // Use redirect mode to avoid CORS issues
-      await loginWithGoogle(true); // true = use redirect instead of popup
-      console.log('DealerLogin: Google login redirect initiated...');
-      // Note: After redirect, user will be brought back and ProfileGuard will handle navigation
+      // Use popup mode (default behavior)
+      await loginWithGoogle(); // popup mode for better UX
+      console.log('DealerLogin: Google login successful...');
+      // After successful popup login, user will be handled by AuthContext
     } catch (error: any) {
       console.error('Google login error in DealerLogin:', error);
       setError(error.message);

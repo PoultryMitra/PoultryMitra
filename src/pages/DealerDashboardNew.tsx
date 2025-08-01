@@ -71,9 +71,16 @@ function DealerDashboard() {
     
     setIsGeneratingCode(true);
     try {
+      // Use dealer profile info if available, otherwise fallback to user info
+      const dealerName = dealerProfile?.businessName || 
+        dealerProfile?.ownerName || 
+        currentUser.displayName || 
+        currentUser.email?.split('@')[0] || 
+        'Dealer';
+      
       const inviteCode = await createInvitationCode(
         currentUser.uid,
-        currentUser.displayName || 'Dealer',
+        dealerName,
         currentUser.email || ''
       );
       

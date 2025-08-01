@@ -141,18 +141,37 @@ export default function FarmerConnect() {
       });
 
       setIsValid(result.valid);
-      if (result.valid && result.data) {
+      
+      // Show dealer data even for expired/used invitations for display purposes
+      if (result.data) {
         setDealerData(result.data);
-        console.log('✅ Dealer validation successful:', {
+        console.log('✅ Dealer data found:', {
           dealerName: result.data.dealerName,
           dealerId: result.data.dealerId,
-          dealerEmail: result.data.dealerEmail
+          dealerEmail: result.data.dealerEmail,
+          isExpiredOrUsed: result.data.isExpiredOrUsed
         });
         
-        toast({
-          title: "Success!",
-          description: "Dealer found! Ready to connect.",
-        });
+        if (result.valid) {
+          toast({
+            title: "Success!",
+            description: "Dealer found! Ready to connect.",
+          });
+        } else if (result.data.isExpiredOrUsed) {
+          toast({
+            title: "Code Already Used",
+            description: `This invitation code has already been used${result.data.usedAt ? ' on ' + new Date(result.data.usedAt.toDate()).toLocaleDateString() : ''}.`,
+            variant: "destructive",
+          });
+          setError(`This invitation code has already been used. The dealer "${result.data.dealerName}" is shown for reference.`);
+        } else {
+          toast({
+            title: "Code Expired",
+            description: "This invitation code has expired. Please request a new one from your dealer.",
+            variant: "destructive",
+          });
+          setError(`This invitation code has expired. The dealer "${result.data.dealerName}" is shown for reference.`);
+        }
 
         // Clear pending code from localStorage since we found the dealer
         localStorage.removeItem('pendingDealerCode');
@@ -189,6 +208,8 @@ export default function FarmerConnect() {
       hasCurrentUser: !!currentUser,
       hasDealerData: !!dealerData,
       dealerCode,
+      isValid,
+      isExpiredOrUsed: dealerData?.isExpiredOrUsed,
       timestamp: new Date().toISOString()
     });
 
@@ -218,6 +239,17 @@ export default function FarmerConnect() {
         
         // Redirect to farmer dashboard
         navigate('/farmer', { replace: true });
+        return;
+      }
+      
+      // If invitation is expired/used, don't create new connection
+      if (dealerData.isExpiredOrUsed) {
+        console.log('⚠️ Cannot connect: Invitation is expired or already used');
+        toast({
+          title: "Cannot Connect",
+          description: "This invitation code has expired or been used. Please request a new code from your dealer.",
+          variant: "destructive",
+        });
         return;
       }
       

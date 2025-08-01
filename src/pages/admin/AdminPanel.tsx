@@ -1,18 +1,113 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck } from "lucide-react";
+import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck, Wrench } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { collection, getDocs, query, where } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+import { fixConnectionData, fixAllConnectionsWithPlaceholderData } from "@/services/connectionFixService";
 
 const AdminPanel = () => {
+  const [isFixingConnections, setIsFixingConnections] = useState(false);
+  const [realStats, setRealStats] = useState({
+    totalUsers: 0,
+    activeFarmers: 0,
+    totalDealers: 0,
+    problemConnections: 0
+  });
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    loadRealStats();
+  }, []);
+
+  const loadRealStats = async () => {
+    try {
+      // Load real user counts
+      const usersSnapshot = await getDocs(collection(db, 'users'));
+      const users = usersSnapshot.docs.map(doc => doc.data());
+      
+      const totalUsers = users.length;
+      const activeFarmers = users.filter(user => user.role === 'farmer').length;
+      const totalDealers = users.filter(user => user.role === 'dealer').length;
+
+      // Check for problematic connections
+      const problemConnectionsQuery = query(
+        collection(db, 'farmerDealers'),
+        where('dealerEmail', '==', 'dealer@example.com')
+      );
+      const problemConnectionsSnapshot = await getDocs(problemConnectionsQuery);
+      const problemConnections = problemConnectionsSnapshot.size;
+
+      setRealStats({
+        totalUsers,
+        activeFarmers,
+        totalDealers,
+        problemConnections
+      });
+
+    } catch (error) {
+      console.error('Error loading real stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFixSpecificConnection = async () => {
+    setIsFixingConnections(true);
+    try {
+      await fixConnectionData('gLx4IutFQalTLwEPng3F');
+      toast({
+        title: "Success",
+        description: "Connection data fixed successfully!",
+      });
+      // Reload stats
+      loadRealStats();
+    } catch (error) {
+      console.error('Error fixing connection:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fix connection data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFixingConnections(false);
+    }
+  };
+
+  const handleFixAllConnections = async () => {
+    setIsFixingConnections(true);
+    try {
+      await fixAllConnectionsWithPlaceholderData();
+      toast({
+        title: "Success",
+        description: "All placeholder connections fixed successfully!",
+      });
+      // Reload stats
+      loadRealStats();
+    } catch (error) {
+      console.error('Error fixing connections:', error);
+      toast({
+        title: "Error",
+        description: "Failed to fix placeholder connections.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsFixingConnections(false);
+    }
+  };
+
   const stats = [
-    { title: "Total Users", value: "1,234", icon: Users, color: "text-blue-600" },
-    { title: "Active Farmers", value: "892", icon: UserCheck, color: "text-green-600" },
-    { title: "Total Dealers", value: "156", icon: DollarSign, color: "text-purple-600" },
-    { title: "System Health", value: "98.5%", icon: BarChart3, color: "text-orange-600" },
+    { title: "Total Users", value: loading ? "..." : realStats.totalUsers.toString(), icon: Users, color: "text-blue-600" },
+    { title: "Active Farmers", value: loading ? "..." : realStats.activeFarmers.toString(), icon: UserCheck, color: "text-green-600" },
+    { title: "Total Dealers", value: loading ? "..." : realStats.totalDealers.toString(), icon: DollarSign, color: "text-purple-600" },
+    { title: "Problem Connections", value: loading ? "..." : realStats.problemConnections.toString(), icon: Wrench, color: "text-red-600" },
   ];
 
   const quickActions = [
+    { title: "Connection Fix", description: "Fix farmer-dealer connections with placeholder data", action: "connection-fix", icon: Wrench, color: "bg-red-500" },
     { title: "User Management", description: "Manage user accounts, roles, and permissions", link: "/admin/users", icon: Users, color: "bg-blue-500" },
     { title: "System Settings", description: "Configure application settings and preferences", link: "/admin/settings", icon: Settings, color: "bg-gray-500" },
     { title: "Rate Management", description: "Update broiler and egg rates for the market", link: "/admin/rates", icon: TrendingUp, color: "bg-green-500" },
@@ -58,9 +153,28 @@ const AdminPanel = () => {
                 <CardDescription>{action.description}</CardDescription>
               </CardHeader>
               <CardContent>
-                <Link to={action.link}>
-                  <Button className="w-full">Access {action.title}</Button>
-                </Link>
+                {action.action === "connection-fix" ? (
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={handleFixSpecificConnection}
+                      disabled={isFixingConnections}
+                      className="w-full bg-blue-500 hover:bg-blue-600"
+                    >
+                      {isFixingConnections ? "Fixing..." : "Fix Current Connection"}
+                    </Button>
+                    <Button 
+                      onClick={handleFixAllConnections}
+                      disabled={isFixingConnections}
+                      className="w-full bg-green-500 hover:bg-green-600"
+                    >
+                      {isFixingConnections ? "Fixing..." : "Fix All Problems"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Link to={action.link}>
+                    <Button className="w-full">Access {action.title}</Button>
+                  </Link>
+                )}
               </CardContent>
             </Card>
           ))}

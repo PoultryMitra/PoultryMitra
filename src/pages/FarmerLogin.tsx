@@ -63,7 +63,7 @@ const FarmerLogin = () => {
       setError('');
       setLoading(true);
       console.log('FarmerLogin: Starting Google login...');
-      await loginWithGoogle(); // Use default redirect mode to avoid CORS issues
+      await loginWithGoogle(); // Use popup mode for better UX
       console.log('FarmerLogin: Google login successful, redirecting...');
       handlePostLoginNavigation();
     } catch (error: any) {

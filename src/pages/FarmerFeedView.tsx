@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useAuth } from '@/contexts/AuthContext';
 import { 
   Phone, 
   MessageCircle,
@@ -28,24 +29,30 @@ interface Product {
 }
 
 export default function FarmerFeedView() {
+  const { currentUser, userProfile, loading: authLoading } = useAuth();
   const [connectedDealers, setConnectedDealers] = useState<FarmerDealerData[]>([]);
   const [dealerProducts, setDealerProducts] = useState<DealerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const userId = localStorage.getItem('userId');
-    if (!userId) {
+    // Wait for auth to load
+    if (authLoading) {
+      return;
+    }
+
+    // Check if user is authenticated
+    if (!currentUser?.uid) {
       setError('User not authenticated');
       setLoading(false);
       return;
     }
 
-    console.log('🔍 FarmerFeedView: Loading data for user:', userId);
+    console.log('🔍 FarmerFeedView: Loading data for user:', currentUser.uid);
 
     // Subscribe to connected dealers
     const unsubscribeDealers = subscribeToConnectedDealers(
-      userId,
+      currentUser.uid,
       (dealers) => {
         console.log('✅ Connected dealers loaded:', dealers);
         setConnectedDealers(dealers);
@@ -58,7 +65,7 @@ export default function FarmerFeedView() {
 
     // Subscribe to dealer products
     const unsubscribeProducts = subscribeToConnectedDealerProducts(
-      userId,
+      currentUser.uid,
       (products) => {
         console.log('✅ Dealer products loaded:', products);
         setDealerProducts(products);
@@ -75,7 +82,7 @@ export default function FarmerFeedView() {
       unsubscribeDealers();
       unsubscribeProducts();
     };
-  }, []);
+  }, [currentUser?.uid, authLoading]);
 
   const handleCallDealer = (phoneNumber: string) => {
     if (phoneNumber) {
@@ -90,12 +97,12 @@ export default function FarmerFeedView() {
     }
   };
 
-  if (loading) {
+  if (authLoading || loading) {
     return (
       <div className="p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>Loading feed prices...</p>
+          <p>{authLoading ? 'Authenticating...' : 'Loading feed prices...'}</p>
         </div>
       </div>
     );
@@ -182,22 +189,24 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-blue-600" />
                 <div>
-                  <h2 className="text-xl">{dealer.dealerName || 'Dealer'}</h2>
+                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || 'Dealer'}</h2>
                   <p className="text-sm text-gray-600">Dealer</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => handleCallDealer('+91 98765 43210')}
+                  onClick={() => handleCallDealer(dealer.dealerPhone || '')}
                   className="gap-2 bg-green-600 hover:bg-green-700"
+                  disabled={!dealer.dealerPhone}
                 >
                   <Phone className="h-4 w-4" />
                   Call Now
                 </Button>
                 <Button 
-                  onClick={() => handleWhatsAppDealer('+91 98765 43210', dealer.dealerName || 'Dealer')}
+                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
                   variant="outline"
                   className="gap-2"
+                  disabled={!dealer.dealerPhone}
                 >
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp
@@ -211,7 +220,9 @@ export default function FarmerFeedView() {
                 <Phone className="h-4 w-4 text-gray-500" />
                 <div>
                   <p className="text-sm font-medium">Call for orders</p>
-                  <p className="text-sm text-gray-600">+91 98765 43210</p>
+                  <p className="text-sm text-gray-600">
+                    {dealer.dealerPhone || 'Phone not available'}
+                  </p>
                 </div>
               </div>
               
@@ -219,7 +230,9 @@ export default function FarmerFeedView() {
                 <MessageCircle className="h-4 w-4 text-gray-500" />
                 <div>
                   <p className="text-sm font-medium">WhatsApp orders</p>
-                  <p className="text-sm text-gray-600">+91 98765 43210</p>
+                  <p className="text-sm text-gray-600">
+                    {dealer.dealerPhone || 'Phone not available'}
+                  </p>
                 </div>
               </div>
               
@@ -275,16 +288,18 @@ export default function FarmerFeedView() {
                           <div className="flex gap-2 mt-3">
                             <Button 
                               size="sm" 
-                              onClick={() => handleCallDealer('+91 98765 43210')}
+                              onClick={() => handleCallDealer(dealer.dealerPhone || '')}
                               className="flex-1 bg-green-600 hover:bg-green-700"
+                              disabled={!dealer.dealerPhone}
                             >
                               Call to Order
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleWhatsAppDealer('+91 98765 43210', dealer.dealerName || 'Dealer')}
+                              onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
                               className="flex-1"
+                              disabled={!dealer.dealerPhone}
                             >
                               WhatsApp Quote
                             </Button>
@@ -308,22 +323,24 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-gray-400" />
                 <div>
-                  <h2 className="text-xl">{dealer.dealerName || 'Dealer'}</h2>
+                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || 'Dealer'}</h2>
                   <p className="text-sm text-gray-600">Dealer</p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Button 
-                  onClick={() => handleCallDealer('+91 98765 43210')}
+                  onClick={() => handleCallDealer(dealer.dealerPhone || '')}
                   className="gap-2 bg-green-600 hover:bg-green-700"
+                  disabled={!dealer.dealerPhone}
                 >
                   <Phone className="h-4 w-4" />
                   Call Now
                 </Button>
                 <Button 
-                  onClick={() => handleWhatsAppDealer('+91 98765 43210', dealer.dealerName || 'Dealer')}
+                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
                   variant="outline"
                   className="gap-2"
+                  disabled={!dealer.dealerPhone}
                 >
                   <MessageCircle className="h-4 w-4" />
                   WhatsApp

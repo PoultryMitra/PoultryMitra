@@ -3,7 +3,8 @@ import {
   doc, 
   addDoc, 
   updateDoc, 
-  getDocs, 
+  getDocs,
+  getDoc,
   query, 
   where, 
   orderBy, 
@@ -117,132 +118,160 @@ export const validateInvitationCode = async (inviteCode: string): Promise<{valid
   try {
     console.log(`Validating invitation code: ${inviteCode}`);
     
-    const q = query(
+    // First try active invitations
+    let q = query(
       collection(db, 'dealerInvitations'),
       where('inviteCode', '==', inviteCode),
       where('isActive', '==', true)
     );
     
-    const snapshot = await getDocs(q);
+    let snapshot = await getDocs(q);
+    let invitationData = null;
+    let isExpiredOrUsed = false;
     
     if (snapshot.empty) {
-      console.log(`No active invitation found for code: ${inviteCode}`);
+      console.log(`No active invitation found for code: ${inviteCode}, checking inactive invitations...`);
       
-      // As a fallback for demo codes, check if this is a dealer ID
-      // This helps connect farmers directly with dealers during demos
-      if (inviteCode.startsWith('demo-') || inviteCode.length > 10) {
-        try {
-          // Try to get dealer profile directly using the code as ID
-          const dealerProfilesQuery = query(
-            collection(db, 'dealerProfiles'),
-            where('dealerId', '==', inviteCode)
-          );
-          
-          const dealerProfileSnapshot = await getDocs(dealerProfilesQuery);
-          
-          if (!dealerProfileSnapshot.empty) {
-            const dealerData = dealerProfileSnapshot.docs[0].data();
-            console.log(`Found dealer directly via ID lookup: ${inviteCode}`);
+      // Try all invitations (including inactive ones) to provide better feedback
+      q = query(
+        collection(db, 'dealerInvitations'),
+        where('inviteCode', '==', inviteCode)
+      );
+      
+      snapshot = await getDocs(q);
+      
+      if (snapshot.empty) {
+        console.log(`No invitation found at all for code: ${inviteCode}`);
+        
+        // As a fallback for demo codes, check if this is a dealer ID
+        // This helps connect farmers directly with dealers during demos
+        if (inviteCode.startsWith('demo-') || inviteCode.length > 10) {
+          try {
+            // Extract potential dealer ID (take the part before any underscore if present)
+            const potentialDealerId = inviteCode.includes('_') ? inviteCode.split('_')[0] : inviteCode;
+            console.log(`Extracted potential dealer ID: ${potentialDealerId} from code: ${inviteCode}`);
             
-            return { 
-              valid: true, 
-              data: {
-                dealerId: inviteCode,
-                dealerName: dealerData.businessName || dealerData.displayName || dealerData.email?.split('@')[0] || 'Unknown Dealer',
-                dealerEmail: dealerData.email,
-                invitationId: 'direct-connect'
+            // Try to get dealer profile directly using the extracted ID
+            const dealerProfilesQuery = query(
+              collection(db, 'dealerProfiles'),
+              where('dealerId', '==', potentialDealerId)
+            );
+            
+            const dealerProfileSnapshot = await getDocs(dealerProfilesQuery);
+            
+            if (!dealerProfileSnapshot.empty) {
+              const dealerData = dealerProfileSnapshot.docs[0].data();
+              console.log(`Found dealer via dealerProfiles lookup: ${potentialDealerId}`);
+              
+              return { 
+                valid: true, 
+                data: {
+                  dealerId: potentialDealerId,
+                  dealerName: dealerData.businessName || dealerData.displayName || dealerData.email?.split('@')[0] || 'Dealer',
+                  dealerEmail: dealerData.email,
+                  invitationId: 'direct-connect'
+                }
+              };
+            }
+            
+            // Try users collection with extracted ID
+            const dealerUserQuery = query(
+              collection(db, 'users'),
+              where('uid', '==', potentialDealerId)
+            );
+            
+            const dealerUserSnapshot = await getDocs(dealerUserQuery);
+            
+            if (!dealerUserSnapshot.empty) {
+              const dealerUserData = dealerUserSnapshot.docs[0].data();
+              if (dealerUserData.role === 'dealer') {
+                console.log(`Found dealer in users collection: ${potentialDealerId}`);
+                
+                return { 
+                  valid: true, 
+                  data: {
+                    dealerId: potentialDealerId,
+                    dealerName: dealerUserData.displayName || dealerUserData.businessName || dealerUserData.email?.split('@')[0] || 'Dealer',
+                    dealerEmail: dealerUserData.email,
+                    invitationId: 'user-direct-connect'
+                  }
+                };
               }
-            };
+            }
+          } catch (err) {
+            console.error('Error in dealer ID extraction and lookup:', err);
           }
-        } catch (err) {
-          console.error('Error in direct dealer lookup:', err);
         }
+
+        return { valid: false };
+      } else {
+        // Found inactive invitation
+        isExpiredOrUsed = true;
+        invitationData = snapshot.docs[0].data();
+        console.log(`Found inactive invitation for code: ${inviteCode}`);
       }
-      
-      // Additional fallback: Check users collection for dealer by ID
-      try {
-        console.log(`Trying to find dealer in users collection with ID: ${inviteCode}`);
-        const dealerUserQuery = query(
-          collection(db, 'users'),
-          where('uid', '==', inviteCode)
-        );
-        
-        const userSnapshot = await getDocs(dealerUserQuery);
-        
-        if (!userSnapshot.empty) {
-          const userData = userSnapshot.docs[0].data();
-          if (userData.role === 'dealer') {
-            console.log(`Found dealer in users collection: ${inviteCode}`);
-            
-            return { 
-              valid: true, 
-              data: {
-                dealerId: inviteCode,
-                dealerName: userData.displayName || userData.businessName || userData.email?.split('@')[0] || 'Unknown Dealer',
-                dealerEmail: userData.email,
-                invitationId: 'user-direct-connect'
-              }
-            };
-          }
-        }
-        
-        // Also try searching by email if the code looks like an email
-        if (inviteCode.includes('@')) {
-          const dealerEmailQuery = query(
-            collection(db, 'users'),
-            where('email', '==', inviteCode),
-            where('role', '==', 'dealer')
-          );
-          
-          const emailSnapshot = await getDocs(dealerEmailQuery);
-          
-          if (!emailSnapshot.empty) {
-            const userData = emailSnapshot.docs[0].data();
-            console.log(`Found dealer by email: ${inviteCode}`);
-            
-            return { 
-              valid: true, 
-              data: {
-                dealerId: emailSnapshot.docs[0].id,
-                dealerName: userData.displayName || userData.businessName || 'Dealer',
-                dealerEmail: userData.email,
-                invitationId: 'email-direct-connect'
-              }
-            };
-          }
-        }
-      } catch (err) {
-        console.error('Error in users collection lookup:', err);
-      }
-      
-      return { valid: false };
+    } else {
+      invitationData = snapshot.docs[0].data();
     }
     
     const invitation = snapshot.docs[0];
-    const data = invitation.data();
+    const data = invitationData;
     console.log(`Found invitation data:`, data);
     
-    // Check if expired
-    const now = new Date();
-    const expiresAt = data.expiresAt.toDate();
-    
-    if (now > expiresAt) {
-      console.log(`Invitation expired: ${inviteCode}`);
-      // Mark as inactive
-      await updateDoc(doc(db, 'dealerInvitations', invitation.id), {
-        isActive: false
-      });
-      return { valid: false };
+    // Check if expired (for active invitations)
+    if (!isExpiredOrUsed) {
+      const now = new Date();
+      const expiresAt = data.expiresAt.toDate();
+      
+      if (now > expiresAt) {
+        console.log(`Invitation expired: ${inviteCode}`);
+        // Mark as inactive
+        await updateDoc(doc(db, 'dealerInvitations', invitation.id), {
+          isActive: false
+        });
+        isExpiredOrUsed = true;
+      }
     }
     
-    console.log(`Invitation valid: ${inviteCode} for dealer ${data.dealerId}`);
+    console.log(`Invitation processing: ${inviteCode} for dealer ${data.dealerId}, expired/used: ${isExpiredOrUsed}`);
+    
+    // Get current dealer profile to ensure we have the latest information
+    let dealerName = data.dealerName || data.displayName || 'Unknown Dealer';
+    let dealerEmail = data.dealerEmail || data.email;
+    
+    try {
+      // Try to get updated dealer profile from dealers collection
+      const dealerProfileDoc = await getDoc(doc(db, 'dealers', data.dealerId));
+      if (dealerProfileDoc.exists()) {
+        const dealerProfile = dealerProfileDoc.data();
+        dealerName = dealerProfile.businessName || dealerProfile.ownerName || dealerName;
+        dealerEmail = dealerProfile.email || dealerEmail;
+        console.log(`Updated dealer name from dealers collection: ${dealerName}`);
+      } else {
+        // Fallback to users collection
+        const userDoc = await getDoc(doc(db, 'users', data.dealerId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          dealerName = userData.displayName || userData.businessName || userData.email?.split('@')[0] || dealerName;
+          dealerEmail = userData.email || dealerEmail;
+          console.log(`Updated dealer name from users collection: ${dealerName}`);
+        }
+      }
+    } catch (error) {
+      console.warn('Could not fetch updated dealer profile, using invitation data:', error);
+    }
+    
+    // Return result with dealer info even if invitation is expired/used for display purposes
     return { 
-      valid: true, 
+      valid: !isExpiredOrUsed, // Only valid if not expired or used
       data: {
         dealerId: data.dealerId,
-        dealerName: data.dealerName || data.displayName || data.email?.split('@')[0] || 'Unknown Dealer',
-        dealerEmail: data.dealerEmail || data.email,
-        invitationId: invitation.id
+        dealerName,
+        dealerEmail,
+        invitationId: invitation.id,
+        isExpiredOrUsed,
+        usedBy: data.usedBy,
+        usedAt: data.usedAt
       }
     };
   } catch (error) {
@@ -281,6 +310,35 @@ export const connectFarmerToDealer = async (
     if (!dealerEmail || !dealerName) {
       console.error('❌ Missing dealer information:', { dealerEmail, dealerName });
       throw new Error('Incomplete dealer information. Please try again.');
+    }
+
+    // Fetch full dealer profile to get complete contact information
+    let dealerPhone = '';
+    let dealerAddress = '';
+    let dealerCompany = '';
+    
+    try {
+      // Try to get updated dealer profile
+      const dealerProfileDoc = await getDoc(doc(db, 'dealers', dealerId));
+      if (dealerProfileDoc.exists()) {
+        const dealerProfile = dealerProfileDoc.data();
+        dealerPhone = dealerProfile.phone || '';
+        dealerAddress = dealerProfile.address || '';
+        dealerCompany = dealerProfile.businessName || '';
+        console.log('📞 Fetched dealer contact info:', { dealerPhone, dealerAddress, dealerCompany });
+      } else {
+        // Fallback to users collection
+        const userDoc = await getDoc(doc(db, 'users', dealerId));
+        if (userDoc.exists()) {
+          const userData = userDoc.data();
+          dealerPhone = userData.phone || '';
+          dealerAddress = userData.address || '';
+          dealerCompany = userData.businessName || userData.displayName || '';
+          console.log('📞 Fetched dealer info from users:', { dealerPhone, dealerAddress, dealerCompany });
+        }
+      }
+    } catch (error) {
+      console.warn('Could not fetch dealer profile for contact info:', error);
     }
 
     const batch = writeBatch(db);
@@ -328,6 +386,9 @@ export const connectFarmerToDealer = async (
       dealerId,
       dealerName,
       dealerEmail,
+      dealerPhone,
+      dealerAddress,
+      dealerCompany,
       connectedDate: Timestamp.now(),
       lastInteraction: Timestamp.now()
     };

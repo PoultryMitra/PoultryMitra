@@ -2,6 +2,7 @@ import {
   collection, 
   addDoc, 
   getDocs, 
+  getDoc,
   query, 
   where, 
   orderBy, 
@@ -9,7 +10,8 @@ import {
   Timestamp,
   serverTimestamp,
   updateDoc,
-  doc 
+  doc,
+  writeBatch
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -65,20 +67,6 @@ export interface RateUpdate {
   newRate: number;
   unit: string;
   updatedAt: Timestamp;
-}
-
-export interface DealerProfile {
-  id: string;
-  dealerId: string;
-  businessName: string;
-  ownerName: string;
-  phone: string;
-  whatsapp: string;
-  email: string;
-  address: string;
-  gstNumber?: string;
-  licenseNumber?: string;
-  lastUpdated: Timestamp;
 }
 
 // Farmer Management Functions
@@ -293,225 +281,6 @@ export const getDealerRateUpdates = (
   return unsubscribe;
 };
 
-// Dealer Profile Management
-export const getDealerProfile = async (dealerId: string): Promise<DealerProfile | null> => {
-  try {
-    const q = query(
-      collection(db, 'dealerProfiles'),
-      where('dealerId', '==', dealerId)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      return null;
-    }
-    
-    const doc = snapshot.docs[0];
-    return { id: doc.id, ...doc.data() } as DealerProfile;
-  } catch (error) {
-    console.error('Error getting dealer profile:', error);
-    throw error;
-  }
-};
-
-export const createOrUpdateDealerProfile = async (
-  dealerId: string,
-  profileData: Omit<DealerProfile, 'id' | 'dealerId' | 'lastUpdated'>
-): Promise<void> => {
-  try {
-    const q = query(
-      collection(db, 'dealerProfiles'),
-      where('dealerId', '==', dealerId)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      // Create new profile
-      const profilesRef = collection(db, 'dealerProfiles');
-      await addDoc(profilesRef, {
-        ...profileData,
-        dealerId,
-        lastUpdated: Timestamp.now()
-      });
-    } else {
-      // Update existing profile
-      const profileDoc = snapshot.docs[0];
-      const profileRef = doc(db, 'dealerProfiles', profileDoc.id);
-      await updateDoc(profileRef, {
-        ...profileData,
-        lastUpdated: Timestamp.now()
-      });
-    }
-  } catch (error) {
-    console.error('Error creating/updating dealer profile:', error);
-    throw error;
-  }
-};
-
-// Invitation Functions
-export const createInvitationCode = async (dealerId: string): Promise<string> => {
-  const inviteCode = `${dealerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-  
-  try {
-    // Store invitation code in Firestore for validation
-    await addDoc(collection(db, 'dealerInvitations'), {
-      inviteCode,
-      dealerId,
-      createdAt: serverTimestamp(),
-      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      isActive: true
-    });
-    
-    return inviteCode;
-  } catch (error) {
-    console.error('Error creating invitation code:', error);
-    throw error;
-  }
-};
-
-export const validateInvitationCode = async (inviteCode: string): Promise<{valid: boolean, dealerId?: string}> => {
-  try {
-    const q = query(
-      collection(db, 'dealerInvitations'),
-      where('inviteCode', '==', inviteCode),
-      where('isActive', '==', true)
-    );
-    
-    const snapshot = await getDocs(q);
-    
-    if (snapshot.empty) {
-      return { valid: false };
-    }
-    
-    const invitation = snapshot.docs[0].data();
-    const now = new Date();
-    const expiresAt = invitation.expiresAt.toDate();
-    
-    if (now > expiresAt) {
-      return { valid: false };
-    }
-    
-    return { valid: true, dealerId: invitation.dealerId };
-  } catch (error) {
-    console.error('Error validating invitation code:', error);
-    return { valid: false };
-  }
-};
-
-// Demo Data Functions
-export const loadDemoData = async (dealerId: string): Promise<void> => {
-  try {
-    // Add demo farmers
-    const demoFarmers = [
-      {
-        farmerId: 'F001',
-        farmerName: 'John Smith',
-        farmerEmail: 'john@farm.com',
-        chicksReceived: 1000,
-        feedConsumption: 1200,
-        mortalityRate: 2.5,
-        fcr: 1.8,
-        accountBalance: 15000
-      },
-      {
-        farmerId: 'F002',
-        farmerName: 'Mary Johnson',
-        farmerEmail: 'mary@farm.com',
-        chicksReceived: 1500,
-        feedConsumption: 1800,
-        mortalityRate: 1.8,
-        fcr: 1.6,
-        accountBalance: 22000
-      },
-      {
-        farmerId: 'F003',
-        farmerName: 'David Wilson',
-        farmerEmail: 'david@farm.com',
-        chicksReceived: 800,
-        feedConsumption: 950,
-        mortalityRate: 3.2,
-        fcr: 2.1,
-        accountBalance: 8500
-      }
-    ];
-
-    for (const farmer of demoFarmers) {
-      await addFarmerData(dealerId, farmer);
-    }
-
-    // Add demo products
-    const demoProducts = [
-      {
-        productName: 'Starter Feed',
-        category: 'Feed',
-        currentStock: 500,
-        minStockLevel: 100,
-        unit: 'bags',
-        pricePerUnit: 45,
-        supplier: 'FeedCorp Ltd'
-      },
-      {
-        productName: 'Grower Feed',
-        category: 'Feed',
-        currentStock: 300,
-        minStockLevel: 80,
-        unit: 'bags',
-        pricePerUnit: 42,
-        supplier: 'FeedCorp Ltd'
-      },
-      {
-        productName: 'Day-old Chicks',
-        category: 'Chicks',
-        currentStock: 2000,
-        minStockLevel: 500,
-        unit: 'pieces',
-        pricePerUnit: 2.5,
-        supplier: 'Hatchery Inc'
-      },
-      {
-        productName: 'Newcastle Vaccine',
-        category: 'Vaccines',
-        currentStock: 50,
-        minStockLevel: 20,
-        unit: 'vials',
-        pricePerUnit: 15,
-        supplier: 'VetSupply Co'
-      }
-    ];
-
-    for (const product of demoProducts) {
-      await addProduct(dealerId, product);
-    }
-
-    // Add demo rate updates
-    const demoRates = [
-      {
-        productName: 'Starter Feed',
-        category: 'Feed',
-        newRate: 45,
-        unit: 'per bag'
-      },
-      {
-        productName: 'Day-old Chicks',
-        category: 'Chicks',
-        newRate: 2.5,
-        unit: 'per piece'
-      }
-    ];
-
-    for (const rate of demoRates) {
-      await addRateUpdate(dealerId, rate);
-    }
-
-    console.log('Demo data loaded successfully');
-  } catch (error) {
-    console.error('Error loading demo data:', error);
-    throw error;
-  }
-};
-
 // Transaction Functions
 export const processTransaction = async (
   dealerId: string,
@@ -561,6 +330,280 @@ export const processTransaction = async (
   }
 };
 
+// Demo Data Functions
+export const loadDemoData = async (dealerId: string): Promise<void> => {
+  try {
+    // Create unique IDs for demo farmers based on dealer ID
+    const uniqueId1 = `demo-${dealerId.substring(0, 4)}-001`;
+    const uniqueId2 = `demo-${dealerId.substring(0, 4)}-002`;
+    const uniqueId3 = `demo-${dealerId.substring(0, 4)}-003`;
+    
+    // Add demo farmers with connections
+    const demoFarmers = [
+      {
+        farmerId: uniqueId1,
+        farmerName: 'John Smith',
+        farmerEmail: 'john@farm.com',
+        chicksReceived: 1000,
+        feedConsumption: 1200,
+        mortalityRate: 2.5,
+        fcr: 1.8,
+        accountBalance: 15000,
+        connectionDate: new Date(),
+        status: 'active'
+      },
+      {
+        farmerId: uniqueId2,
+        farmerName: 'Mary Johnson',
+        farmerEmail: 'mary@farm.com',
+        chicksReceived: 1500,
+        feedConsumption: 1800,
+        mortalityRate: 1.8,
+        fcr: 1.6,
+        accountBalance: 22000,
+        connectionDate: new Date(),
+        status: 'active'
+      },
+      {
+        farmerId: uniqueId3,
+        farmerName: 'David Wilson',
+        farmerEmail: 'david@farm.com',
+        chicksReceived: 800,
+        feedConsumption: 950,
+        mortalityRate: 3.2,
+        fcr: 2.1,
+        accountBalance: 8500,
+        connectionDate: new Date(),
+        status: 'active'
+      }
+    ];
+
+    // Create connections and add farmer data in batches
+    const batch = writeBatch(db);
+    
+    for (const farmer of demoFarmers) {
+      // Create entry in dealerFarmers collection
+      const dealerFarmerRef = doc(collection(db, 'dealerFarmers'));
+      batch.set(dealerFarmerRef, {
+        ...farmer,
+        dealerId,
+        lastUpdated: Timestamp.now()
+      });
+      
+      // Create a connection record
+      const connectionRef = doc(collection(db, 'connections'));
+      batch.set(connectionRef, {
+        farmerId: farmer.farmerId,
+        dealerId: dealerId,
+        farmerName: farmer.farmerName,
+        farmerEmail: farmer.farmerEmail,
+        dealerName: "Demo Dealer", // This will be replaced with actual dealer name in real connections
+        dealerEmail: "demo@dealer.com", // This will be replaced with actual dealer email in real connections
+        connectionDate: Timestamp.now(),
+        status: 'active',
+        inviteCode: `DEMO-${Math.random().toString(36).substring(2, 7).toUpperCase()}`
+      });
+    }
+    
+    // Commit all the batch writes
+    await batch.commit();
+
+    // Add demo products
+    const demoProducts = [
+      {
+        productName: 'Starter Feed',
+        category: 'Feed',
+        currentStock: 500,
+        minStockLevel: 100,
+        unit: 'bags',
+        pricePerUnit: 45,
+        supplier: 'FeedCorp Ltd'
+      },
+      {
+        productName: 'Grower Feed',
+        category: 'Feed',
+        currentStock: 300,
+        minStockLevel: 80,
+        unit: 'bags',
+        pricePerUnit: 42,
+        supplier: 'FeedCorp Ltd'
+      },
+      {
+        productName: 'Layer Feed',
+        category: 'Feed',
+        currentStock: 200,
+        minStockLevel: 60,
+        unit: 'bags',
+        pricePerUnit: 40,
+        supplier: 'FeedCorp Ltd'
+      },
+      {
+        productName: 'Day-old Chicks',
+        category: 'Chicks',
+        currentStock: 2000,
+        minStockLevel: 500,
+        unit: 'pieces',
+        pricePerUnit: 2.5,
+        supplier: 'Hatchery Inc'
+      },
+      {
+        productName: 'Newcastle Vaccine',
+        category: 'Vaccines',
+        currentStock: 50,
+        minStockLevel: 20,
+        unit: 'vials',
+        pricePerUnit: 15,
+        supplier: 'VetSupply Co'
+      }
+    ];
+
+    for (const product of demoProducts) {
+      await addProduct(dealerId, product);
+    }
+
+    // Add demo rate updates
+    const demoRates = [
+      {
+        productName: 'Starter Feed',
+        category: 'Feed',
+        newRate: 45,
+        unit: 'per bag'
+      },
+      {
+        productName: 'Day-old Chicks',
+        category: 'Chicks',
+        newRate: 2.5,
+        unit: 'per piece'
+      },
+      {
+        productName: 'Newcastle Vaccine',
+        category: 'Vaccines',
+        newRate: 15,
+        unit: 'per vial'
+      }
+    ];
+
+    for (const rate of demoRates) {
+      await addRateUpdate(dealerId, rate);
+    }
+
+    console.log('Demo data loaded successfully');
+  } catch (error) {
+    console.error('Error loading demo data:', error);
+    throw error;
+  }
+};
+
+// Farmer Invitation Functions
+export const sendFarmerInvitation = async (
+  dealerId: string,
+  farmerData: {
+    farmerName: string;
+    farmerEmail: string;
+  }
+): Promise<void> => {
+  try {
+    // Here you would typically send an email invitation
+    // For now, we'll just log it
+    console.log(`Invitation sent to ${farmerData.farmerEmail}`);
+  } catch (error) {
+    console.error('Error sending farmer invitation:', error);
+    throw error;
+  }
+};
+
+export const addFarmerToNetwork = async (
+  dealerId: string,
+  farmerData: Omit<FarmerData, 'id' | 'dealerId' | 'lastUpdated'>
+): Promise<void> => {
+  try {
+    const farmersRef = collection(db, 'dealerFarmers');
+    
+    await addDoc(farmersRef, {
+      ...farmerData,
+      dealerId,
+      lastUpdated: Timestamp.now()
+    });
+  } catch (error) {
+    console.error('Error adding farmer to network:', error);
+    throw error;
+  }
+};
+
+// Get dealer rates for farmers
+export const getDealerRates = (
+  dealerId: string,
+  callback: (rates: RateUpdate[]) => void
+): (() => void) => {
+  const q = query(
+    collection(db, 'dealerRateUpdates'),
+    where('dealerId', '==', dealerId),
+    orderBy('updatedAt', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const rates: RateUpdate[] = [];
+    snapshot.forEach((doc) => {
+      rates.push({ id: doc.id, ...doc.data() } as RateUpdate);
+    });
+    callback(rates);
+  });
+
+  return unsubscribe;
+};
+
+// Export Functions
+export const exportReportData = (
+  farmers: FarmerData[],
+  orders: Order[],
+  products: Product[],
+  timeFilter: string
+) => {
+  const reportData = {
+    generatedAt: new Date().toISOString(),
+    timeFilter: `${timeFilter} days`,
+    summary: {
+      totalFarmers: farmers.length,
+      totalOrders: orders.length,
+      totalRevenue: orders.reduce((sum, o) => sum + (o.status === 'delivered' ? o.totalAmount : 0), 0),
+      avgFCR: farmers.length > 0 ? farmers.reduce((sum, f) => sum + f.fcr, 0) / farmers.length : 0,
+    },
+    farmers: farmers.map(f => ({
+      name: f.farmerName,
+      email: f.farmerEmail,
+      id: f.farmerId,
+      chicks: f.chicksReceived,
+      feed: f.feedConsumption,
+      mortality: f.mortalityRate,
+      fcr: f.fcr,
+      balance: f.accountBalance,
+      lastUpdate: f.lastUpdated.toDate().toISOString(),
+    })),
+    orders: orders.map(o => ({
+      farmer: o.farmerName,
+      type: o.orderType,
+      quantity: o.quantity,
+      amount: o.totalAmount,
+      status: o.status,
+      date: o.orderDate.toDate().toISOString(),
+    })),
+  };
+
+  // Create downloadable content
+  const jsonContent = JSON.stringify(reportData, null, 2);
+  const blob = new Blob([jsonContent], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  
+  // Create download link
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `dealer-report-${new Date().toISOString().split('T')[0]}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+};
+
 // Analytics Functions
 export const calculateDealerStats = (farmers: FarmerData[], orders: Order[], products: Product[]) => {
   const totalFarmers = farmers.length;
@@ -589,4 +632,297 @@ export const calculateDealerStats = (farmers: FarmerData[], orders: Order[], pro
     lowStockProducts,
     avgFCR: parseFloat(avgFCR.toFixed(2))
   };
+};
+
+// Invitation Link Functions
+export const generateInvitationLink = (dealerId: string): string => {
+  const inviteCode = `${dealerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  return `${window.location.origin}/farmer-connect?invite=${inviteCode}`;
+};
+
+export const createInvitationCode = async (dealerId: string): Promise<string> => {
+  const inviteCode = `${dealerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  
+  // Store invitation code in Firestore for validation
+  await addDoc(collection(db, 'dealerInvitations'), {
+    inviteCode,
+    dealerId,
+    createdAt: serverTimestamp(),
+    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    isActive: true
+  });
+  
+  return inviteCode;
+};
+
+export const validateInvitationCode = async (inviteCode: string): Promise<{valid: boolean, dealerId?: string}> => {
+  const q = query(
+    collection(db, 'dealerInvitations'),
+    where('inviteCode', '==', inviteCode),
+    where('isActive', '==', true)
+  );
+  
+  const snapshot = await getDocs(q);
+  
+  if (snapshot.empty) {
+    return { valid: false };
+  }
+  
+  const invitation = snapshot.docs[0].data();
+  const now = new Date();
+  const expiresAt = invitation.expiresAt.toDate();
+  
+  if (now > expiresAt) {
+    return { valid: false };
+  }
+  
+  return { valid: true, dealerId: invitation.dealerId };
+};
+
+// Dealer Profile Management
+export interface DealerProfile {
+  id: string;
+  dealerId: string;
+  businessName: string;
+  ownerName: string;
+  phone: string;
+  whatsapp: string;
+  email: string;
+  address: string;
+  gstNumber?: string;
+  licenseNumber?: string;
+  lastUpdated: Timestamp;
+}
+
+export const getDealerProfile = async (dealerId: string): Promise<DealerProfile | null> => {
+  try {
+    // First, try to get from dealerProfiles collection
+    const dealerProfileQuery = query(
+      collection(db, 'dealerProfiles'),
+      where('dealerId', '==', dealerId)
+    );
+    
+    const dealerProfileSnapshot = await getDocs(dealerProfileQuery);
+    
+    if (!dealerProfileSnapshot.empty) {
+      const doc = dealerProfileSnapshot.docs[0];
+      return { id: doc.id, ...doc.data() } as DealerProfile;
+    }
+    
+    // If not found in dealerProfiles, check users collection
+    const userDoc = await getDoc(doc(db, 'users', dealerId));
+    
+    if (userDoc.exists()) {
+      const userData = userDoc.data();
+      
+      // Check if this user is a dealer
+      if (userData.role === 'dealer') {
+        // Convert user data to DealerProfile format
+        const dealerProfile: DealerProfile = {
+          id: userDoc.id,
+          dealerId: dealerId,
+          businessName: userData.businessName || '',
+          ownerName: userData.displayName || '',
+          phone: userData.phone || '',
+          whatsapp: userData.phone || '', // Use phone as whatsapp if not separate
+          email: userData.email || '',
+          address: userData.location || '',
+          gstNumber: userData.gstNumber || '',
+          licenseNumber: userData.licenseNumber || '',
+          lastUpdated: userData.lastActive || userData.createdAt
+        };
+        
+        return dealerProfile;
+      }
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting dealer profile:', error);
+    throw error;
+  }
+};
+
+export const createOrUpdateDealerProfile = async (
+  dealerId: string,
+  profileData: Omit<DealerProfile, 'id' | 'dealerId' | 'lastUpdated'>
+): Promise<void> => {
+  try {
+    // Update the user profile in users collection
+    const userRef = doc(db, 'users', dealerId);
+    await updateDoc(userRef, {
+      businessName: profileData.businessName,
+      displayName: profileData.ownerName,
+      phone: profileData.phone,
+      email: profileData.email,
+      location: profileData.address,
+      lastActive: Timestamp.now()
+    });
+
+    // Also maintain a record in dealerProfiles collection
+    const q = query(
+      collection(db, 'dealerProfiles'),
+      where('dealerId', '==', dealerId)
+    );
+    
+    const snapshot = await getDocs(q);
+    
+    if (snapshot.empty) {
+      // Create new profile
+      const profilesRef = collection(db, 'dealerProfiles');
+      await addDoc(profilesRef, {
+        ...profileData,
+        dealerId,
+        lastUpdated: Timestamp.now()
+      });
+    } else {
+      // Update existing profile
+      const profileDoc = snapshot.docs[0];
+      const profileRef = doc(db, 'dealerProfiles', profileDoc.id);
+      await updateDoc(profileRef, {
+        ...profileData,
+        lastUpdated: Timestamp.now()
+      });
+    }
+  } catch (error) {
+    console.error('Error creating/updating dealer profile:', error);
+    throw error;
+  }
+};
+
+// Functions for farmers to get products from connected dealers
+export const getConnectedDealerProducts = async (farmerId: string): Promise<Product[]> => {
+  try {
+    // First get all connected dealers for this farmer
+    const dealersQuery = query(
+      collection(db, 'farmerDealers'),
+      where('farmerId', '==', farmerId)
+    );
+    
+    const dealersSnapshot = await getDocs(dealersQuery);
+    const dealerIds: string[] = [];
+    
+    dealersSnapshot.forEach((doc) => {
+      dealerIds.push(doc.data().dealerId);
+    });
+    
+    if (dealerIds.length === 0) {
+      return [];
+    }
+    
+    // Get products from all connected dealers
+    const allProducts: Product[] = [];
+    
+    for (const dealerId of dealerIds) {
+      const productsQuery = query(
+        collection(db, 'dealerProducts'),
+        where('dealerId', '==', dealerId),
+        orderBy('lastUpdated', 'desc')
+      );
+      
+      const productsSnapshot = await getDocs(productsQuery);
+      productsSnapshot.forEach((doc) => {
+        allProducts.push({ id: doc.id, ...doc.data() } as Product);
+      });
+    }
+    
+    return allProducts;
+  } catch (error) {
+    console.error('Error getting connected dealer products:', error);
+    throw error;
+  }
+};
+
+export const subscribeToConnectedDealerProducts = (
+  farmerId: string,
+  callback: (products: Product[]) => void,
+  errorCallback?: (error: Error) => void
+): (() => void) => {
+  let dealerUnsubscribes: (() => void)[] = [];
+  
+  // First subscribe to the farmer's dealer connections
+  const dealersQuery = query(
+    collection(db, 'farmerDealers'),
+    where('farmerId', '==', farmerId)
+  );
+  
+  const dealersUnsubscribe = onSnapshot(dealersQuery, 
+    (dealersSnapshot) => {
+      // Clean up previous product subscriptions
+      dealerUnsubscribes.forEach(unsub => unsub());
+      dealerUnsubscribes = [];
+      
+      const allProducts: Product[] = [];
+      let completedQueries = 0;
+      const totalDealers = dealersSnapshot.docs.length;
+      
+      if (totalDealers === 0) {
+        callback([]);
+        return;
+      }
+      
+      // Subscribe to products from each connected dealer
+      dealersSnapshot.forEach((dealerDoc) => {
+        const dealerId = dealerDoc.data().dealerId;
+        
+        const productsQuery = query(
+          collection(db, 'dealerProducts'),
+          where('dealerId', '==', dealerId),
+          orderBy('lastUpdated', 'desc')
+        );
+        
+        const productUnsub = onSnapshot(productsQuery, (productsSnapshot) => {
+          // Remove products from this dealer and add new ones
+          const otherDealerProducts = allProducts.filter(p => p.dealerId !== dealerId);
+          const thisDealerProducts: Product[] = [];
+          
+          productsSnapshot.forEach((doc) => {
+            thisDealerProducts.push({ id: doc.id, ...doc.data() } as Product);
+          });
+          
+          const updatedProducts = [...otherDealerProducts, ...thisDealerProducts];
+          callback(updatedProducts);
+        });
+        
+        dealerUnsubscribes.push(productUnsub);
+      });
+    },
+    (error) => {
+      console.error('Error subscribing to dealer products:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  );
+  
+  return () => {
+    dealersUnsubscribe();
+    dealerUnsubscribes.forEach(unsub => unsub());
+  };
+};
+
+// Function for farmers to get their connected dealers
+export const subscribeToConnectedDealers = (
+  farmerId: string,
+  callback: (dealers: any[]) => void,
+  errorCallback?: (error: Error) => void
+): (() => void) => {
+  const dealersQuery = query(
+    collection(db, 'farmerDealers'),
+    where('farmerId', '==', farmerId)
+  );
+  
+  const unsubscribe = onSnapshot(dealersQuery, 
+    (snapshot) => {
+      const dealers: any[] = [];
+      snapshot.forEach((doc) => {
+        dealers.push({ id: doc.id, ...doc.data() });
+      });
+      callback(dealers);
+    },
+    (error) => {
+      console.error('Error subscribing to connected dealers:', error);
+      if (errorCallback) errorCallback(error);
+    }
+  );
+  
+  return unsubscribe;
 };

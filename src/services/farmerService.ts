@@ -266,6 +266,9 @@ export interface FarmerDealerData {
   dealerId: string;
   dealerName: string;
   dealerEmail: string;
+  dealerPhone?: string;
+  dealerAddress?: string;
+  dealerCompany?: string;
   connectedAt: Date;
 }
 
@@ -291,11 +294,52 @@ export const subscribeToConnectedDealers = (
   );
   
   const unsubscribe = onSnapshot(dealersQuery, 
-    (snapshot) => {
+    async (snapshot) => {
       const dealers: FarmerDealerData[] = [];
-      snapshot.forEach((doc) => {
-        dealers.push({ id: doc.id, ...doc.data() } as any);
-      });
+      
+      // Fetch fresh dealer profile data for each connection
+      for (const doc of snapshot.docs) {
+        const connectionData = doc.data();
+        const dealerId = connectionData.dealerId;
+        
+        try {
+          // Try to get fresh dealer profile from users collection
+          const userDoc = await getDocs(query(
+            collection(db, 'users'),
+            where('uid', '==', dealerId)
+          ));
+          
+          let dealerData = connectionData; // Fallback to stored data
+          
+          if (!userDoc.empty) {
+            const freshDealerData = userDoc.docs[0].data();
+            // Merge fresh data with connection data
+            dealerData = {
+              ...connectionData,
+              dealerName: freshDealerData.displayName || connectionData.dealerName,
+              dealerEmail: freshDealerData.email || connectionData.dealerEmail,
+              dealerPhone: freshDealerData.phone || connectionData.dealerPhone,
+              dealerCompany: freshDealerData.businessName || connectionData.dealerCompany,
+              dealerAddress: freshDealerData.address || connectionData.dealerAddress
+            };
+          }
+          
+          dealers.push({ 
+            id: doc.id, 
+            ...dealerData,
+            connectedAt: connectionData.connectedDate?.toDate() || new Date()
+          } as any);
+        } catch (error) {
+          console.warn(`Failed to fetch fresh data for dealer ${dealerId}:`, error);
+          // Use stored data as fallback
+          dealers.push({ 
+            id: doc.id, 
+            ...connectionData,
+            connectedAt: connectionData.connectedDate?.toDate() || new Date()
+          } as any);
+        }
+      }
+      
       callback(dealers);
     },
     (error) => {

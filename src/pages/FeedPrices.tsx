@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { getDealerProfile, type DealerProfile } from "@/services/dealerService";
 import { 
   Phone, 
   Mail, 
@@ -82,16 +83,64 @@ function FeedPrices() {
   });
 
   const [dealerContact, setDealerContact] = useState<DealerContact>({
-    name: currentUser?.displayName || 'Dealer Name',
-    phone: '+91 98765 43210',
-    email: currentUser?.email || 'dealer@example.com',
-    address: 'Shop Address, City, State - 123456',
-    businessName: 'Poultry Feed & Supplies'
+    name: 'Loading...',
+    phone: 'Loading...',
+    email: 'Loading...',
+    address: 'Loading...',
+    businessName: 'Loading...'
   });
+  
+  const [dealerProfile, setDealerProfile] = useState<DealerProfile | null>(null);
+  const [loadingProfile, setLoadingProfile] = useState(true);
+
+  // Load dealer profile from Firebase
+  const loadDealerProfile = async () => {
+    if (!currentUser?.uid) return;
+    
+    setLoadingProfile(true);
+    try {
+      console.log('Loading dealer profile for:', currentUser.uid);
+      const profile = await getDealerProfile(currentUser.uid);
+      
+      if (profile) {
+        console.log('Dealer profile loaded:', profile);
+        setDealerProfile(profile);
+        setDealerContact({
+          name: profile.ownerName || currentUser.displayName || 'Dealer Name',
+          phone: profile.phone || 'Phone not set',
+          email: profile.email || currentUser.email || 'Email not set',
+          address: profile.address || 'Address not set',
+          businessName: profile.businessName || 'Business name not set'
+        });
+      } else {
+        console.log('No dealer profile found, using default values');
+        // Fallback to user info if no dealer profile exists
+        setDealerContact({
+          name: currentUser.displayName || 'Dealer Name',
+          phone: 'Phone not set - Please update profile',
+          email: currentUser.email || 'Email not set',
+          address: 'Address not set - Please update profile',
+          businessName: 'Business name not set - Please update profile'
+        });
+      }
+    } catch (error) {
+      console.error('Error loading dealer profile:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load dealer profile information.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoadingProfile(false);
+    }
+  };
 
   // Initialize with sample data
   useEffect(() => {
     if (!currentUser?.uid) return;
+
+    // Load dealer profile first
+    loadDealerProfile();
 
     // Sample categories
     const sampleCategories: Category[] = [
@@ -357,6 +406,9 @@ function FeedPrices() {
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <Building2 className="h-5 w-5" />
             Dealer Contact Information
+            {loadingProfile && (
+              <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
+            )}
           </CardTitle>
           <p className="text-sm text-blue-700">
             Farmers will see this information to contact you directly
@@ -366,36 +418,65 @@ function FeedPrices() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
               <Building2 className="h-5 w-5 text-blue-600" />
-              <div>
-                <p className="font-medium">{dealerContact.businessName}</p>
-                <p className="text-sm text-gray-600">{dealerContact.name}</p>
+              <div className="flex-1">
+                <p className={`font-medium ${loadingProfile ? 'animate-pulse bg-gray-200 h-4 rounded' : ''}`}>
+                  {loadingProfile ? '' : dealerContact.businessName}
+                </p>
+                <p className={`text-sm text-gray-600 ${loadingProfile ? 'animate-pulse bg-gray-200 h-3 rounded mt-1' : ''}`}>
+                  {loadingProfile ? '' : dealerContact.name}
+                </p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
               <Phone className="h-5 w-5 text-green-600" />
-              <div>
-                <p className="font-medium">{dealerContact.phone}</p>
+              <div className="flex-1">
+                <p className={`font-medium ${loadingProfile ? 'animate-pulse bg-gray-200 h-4 rounded' : ''}`}>
+                  {loadingProfile ? '' : dealerContact.phone}
+                </p>
                 <p className="text-sm text-gray-600">Call for orders</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
               <Mail className="h-5 w-5 text-purple-600" />
-              <div>
-                <p className="font-medium">{dealerContact.email}</p>
+              <div className="flex-1">
+                <p className={`font-medium text-sm ${loadingProfile ? 'animate-pulse bg-gray-200 h-4 rounded' : ''}`}>
+                  {loadingProfile ? '' : dealerContact.email}
+                </p>
                 <p className="text-sm text-gray-600">Email inquiries</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
               <MapPin className="h-5 w-5 text-red-600" />
-              <div>
-                <p className="font-medium">Visit Store</p>
-                <p className="text-sm text-gray-600">{dealerContact.address}</p>
+              <div className="flex-1">
+                <p className="font-medium text-sm">Visit Store</p>
+                <p className={`text-xs text-gray-600 ${loadingProfile ? 'animate-pulse bg-gray-200 h-3 rounded' : ''}`}>
+                  {loadingProfile ? '' : dealerContact.address}
+                </p>
               </div>
             </div>
           </div>
+          
+          {!loadingProfile && dealerProfile && (
+            <div className="mt-4 p-3 bg-white rounded-lg border">
+              <p className="text-sm text-gray-600">
+                <strong>Last Updated:</strong> {dealerProfile.lastUpdated ? 
+                  new Date(dealerProfile.lastUpdated.toDate()).toLocaleString() : 
+                  'Never'
+                }
+              </p>
+            </div>
+          )}
+          
+          {!loadingProfile && !dealerProfile && (
+            <div className="mt-4 p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> Complete your dealer profile to show accurate contact information to farmers.
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 
