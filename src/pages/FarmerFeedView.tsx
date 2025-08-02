@@ -9,7 +9,8 @@ import {
   MessageCircle,
   Building2, 
   Mail,
-  AlertCircle
+  AlertCircle,
+  Package
 } from 'lucide-react';
 import { 
   subscribeToConnectedDealers, 
@@ -136,18 +137,12 @@ export default function FarmerFeedView() {
     );
   }
 
-  // Group products by dealer
-  const groupedProducts = dealerProducts.reduce((acc, product) => {
-    const dealer = connectedDealers.find(d => d.dealerId === product.dealerId);
-    if (!dealer) return acc;
-    
-    if (!acc[product.dealerId]) {
-      acc[product.dealerId] = {
-        dealer,
-        products: []
-      };
-    }
-    acc[product.dealerId].products.push(product);
+  // Group products by dealer, ensuring ALL connected dealers are shown
+  const groupedProducts = connectedDealers.reduce((acc, dealer) => {
+    acc[dealer.dealerId] = {
+      dealer,
+      products: dealerProducts.filter(product => product.dealerId === dealer.dealerId)
+    };
     return acc;
   }, {} as Record<string, { dealer: FarmerDealerData; products: DealerProduct[] }>);
 
@@ -251,8 +246,31 @@ export default function FarmerFeedView() {
               <h3 className="text-lg font-semibold">Available Feed Types & Prices</h3>
               
               {products.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">
-                  <p>No products available from this dealer</p>
+                <div className="text-center py-8">
+                  <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <p className="text-gray-600 mb-4">No products available from this dealer yet</p>
+                  <p className="text-sm text-gray-500 mb-4">
+                    Contact them directly to inquire about feed availability
+                  </p>
+                  <div className="flex gap-2 justify-center">
+                    <Button 
+                      onClick={() => handleCallDealer(dealer.dealerPhone || '')}
+                      className="gap-2 bg-blue-600 hover:bg-blue-700"
+                      disabled={!dealer.dealerPhone}
+                    >
+                      <Phone className="h-4 w-4" />
+                      Call Now
+                    </Button>
+                    <Button 
+                      onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
+                      variant="outline"
+                      className="gap-2"
+                      disabled={!dealer.dealerPhone}
+                    >
+                      <MessageCircle className="h-4 w-4" />
+                      WhatsApp
+                    </Button>
+                  </div>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

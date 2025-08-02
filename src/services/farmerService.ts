@@ -358,6 +358,17 @@ export const subscribeToConnectedDealerProducts = (
   errorCallback?: (error: Error) => void
 ): (() => void) => {
   let dealerUnsubscribes: (() => void)[] = [];
+  let allProducts: DealerProduct[] = [];
+  
+  // Helper function to update products for a specific dealer
+  const updateDealerProducts = (dealerId: string, newProducts: DealerProduct[]) => {
+    // Remove existing products from this dealer
+    allProducts = allProducts.filter(p => p.dealerId !== dealerId);
+    // Add new products from this dealer
+    allProducts = [...allProducts, ...newProducts];
+    // Call the callback with updated products
+    callback([...allProducts]); // Send a copy to avoid reference issues
+  };
   
   // First subscribe to the farmer's dealer connections
   const dealersQuery = query(
@@ -370,8 +381,7 @@ export const subscribeToConnectedDealerProducts = (
       // Clean up previous product subscriptions
       dealerUnsubscribes.forEach(unsub => unsub());
       dealerUnsubscribes = [];
-      
-      const allProducts: DealerProduct[] = [];
+      allProducts = []; // Reset products when dealers change
       
       if (dealersSnapshot.docs.length === 0) {
         callback([]);
@@ -388,16 +398,13 @@ export const subscribeToConnectedDealerProducts = (
         );
         
         const productUnsub = onSnapshot(productsQuery, (productsSnapshot) => {
-          // Remove products from this dealer and add new ones
-          const otherDealerProducts = allProducts.filter(p => p.dealerId !== dealerId);
           const thisDealerProducts: DealerProduct[] = [];
           
           productsSnapshot.forEach((doc) => {
             thisDealerProducts.push({ id: doc.id, ...doc.data() } as DealerProduct);
           });
           
-          const updatedProducts = [...otherDealerProducts, ...thisDealerProducts];
-          callback(updatedProducts);
+          updateDealerProducts(dealerId, thisDealerProducts);
         });
         
         dealerUnsubscribes.push(productUnsub);

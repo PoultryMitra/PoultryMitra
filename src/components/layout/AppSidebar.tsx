@@ -11,10 +11,13 @@ import {
   Package,
   Shield,
   Syringe,
+  X,
 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface AppSidebarProps {
   userType?: "farmer" | "dealer" | "admin";
+  onClose?: () => void;
 }
 
 const navigationGroups = {
@@ -34,7 +37,7 @@ const navigationGroups = {
   },
 };
 
-export function AppSidebar({ userType = "farmer" }: AppSidebarProps) {
+export function AppSidebar({ userType = "farmer", onClose }: AppSidebarProps) {
   const location = useLocation();
   const currentPath = location.pathname;
   const groups = navigationGroups[userType as keyof typeof navigationGroups];
@@ -43,8 +46,18 @@ export function AppSidebar({ userType = "farmer" }: AppSidebarProps) {
 
   return (
     <div className="w-64 bg-white border-r border-gray-200 h-screen overflow-y-auto">
-      <div className="p-6">
+      <div className="p-6 flex items-center justify-between">
         <h1 className="text-xl font-bold text-gray-900">Poultry Mitra</h1>
+        {onClose && (
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onClose}
+            className="lg:hidden"
+          >
+            <X className="h-5 w-5" />
+          </Button>
+        )}
       </div>
 
       <nav className="px-4 space-y-8">
@@ -58,14 +71,15 @@ export function AppSidebar({ userType = "farmer" }: AppSidebarProps) {
                 <li key={item.title}>
                   <NavLink
                     to={item.url}
-                    className={`flex items-center px-3 py-2 text-sm font-medium rounded-md transition-colors ${
+                    className={`flex items-center px-3 py-3 text-sm font-medium rounded-md transition-colors min-h-[44px] ${
                       isActive(item.url)
                         ? "bg-green-100 text-green-700"
                         : "text-gray-700 hover:bg-gray-100"
                     }`}
+                    onClick={onClose} // Close sidebar on mobile when navigation item is clicked
                   >
-                    <item.icon className="mr-3 h-4 w-4" />
-                    {item.title}
+                    <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+                    <span className="truncate">{item.title}</span>
                   </NavLink>
                 </li>
               ))}

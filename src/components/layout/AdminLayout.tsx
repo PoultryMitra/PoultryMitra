@@ -25,7 +25,7 @@ export function AdminLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <TopBar title={title} />
-      <main className="p-6">
+      <main className="p-4 lg:p-6">
         <Outlet />
       </main>
     </div>

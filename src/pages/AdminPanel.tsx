@@ -1,5 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState, useEffect } from "react";
 import { fixConnectionData, fixAllConnectionsWithPlaceholderData } from "@/services/connectionFixService";
 import { useToast } from "@/hooks/use-toast";
@@ -194,40 +195,40 @@ export default function AdminPanel() {
           <CardTitle className="text-xl font-semibold">Connection Issues</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Connection ID</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Farmer</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Dealer Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Dealer Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {connections.map((connection) => (
-                  <tr key={connection.id} className="border-b border-gray-100">
-                    <td className="py-3 px-4 text-gray-900 text-sm font-mono">{connection.connectionId}</td>
-                    <td className="py-3 px-4 text-gray-900">{connection.farmerName} ({connection.farmerEmail})</td>
-                    <td className="py-3 px-4 text-gray-900">{connection.dealerName}</td>
-                    <td className="py-3 px-4 text-gray-600">{connection.dealerEmail}</td>
-                    <td className="py-3 px-4">
-                      {connection.dealerEmail === 'dealer@example.com' || connection.dealerName === 'Dealer' ? (
-                        <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">
-                          Placeholder Data
-                        </span>
-                      ) : (
-                        <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
-                          Valid
-                        </span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            columns={[
+              { key: 'connectionId', label: 'Connection ID', className: 'font-mono text-sm' },
+              { 
+                key: 'farmerInfo', 
+                label: 'Farmer',
+                render: (_, row) => (
+                  <div>
+                    <div className="font-medium">{row.farmerName}</div>
+                    <div className="text-sm text-gray-500">{row.farmerEmail}</div>
+                  </div>
+                )
+              },
+              { key: 'dealerName', label: 'Dealer Name' },
+              { key: 'dealerEmail', label: 'Dealer Email', className: 'text-gray-600' },
+              { 
+                key: 'status', 
+                label: 'Status',
+                render: (_, row) => (
+                  row.dealerEmail === 'dealer@example.com' || row.dealerName === 'Dealer' ? (
+                    <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-sm">
+                      Placeholder Data
+                    </span>
+                  ) : (
+                    <span className="bg-green-100 text-green-800 px-2 py-1 rounded text-sm">
+                      Valid
+                    </span>
+                  )
+                )
+              }
+            ]}
+            data={connections}
+            emptyMessage="No connection issues found"
+          />
         </CardContent>
       </Card>
 
@@ -237,35 +238,35 @@ export default function AdminPanel() {
           <CardTitle className="text-xl font-semibold">User Accounts</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="border-b border-gray-200">
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Name</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Email</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Role</th>
-                  <th className="text-left py-3 px-4 font-medium text-gray-700">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((user) => (
-                  <tr key={user.id} className="border-b border-gray-100">
-                    <td className="py-3 px-4 text-gray-900">{user.displayName || 'N/A'}</td>
-                    <td className="py-3 px-4 text-gray-600">{user.email}</td>
-                    <td className="py-3 px-4 text-gray-900 capitalize">{user.role}</td>
-                    <td className="py-3 px-4">
-                      <Button
-                        onClick={() => handleDeleteUser(user.id, user.email)}
-                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-sm rounded"
-                      >
-                        Delete
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <ResponsiveTable
+            columns={[
+              { 
+                key: 'displayName', 
+                label: 'Name',
+                render: (value) => value || 'N/A'
+              },
+              { key: 'email', label: 'Email', className: 'text-gray-600' },
+              { 
+                key: 'role', 
+                label: 'Role',
+                className: 'capitalize'
+              },
+              { 
+                key: 'actions', 
+                label: 'Actions',
+                render: (_, row) => (
+                  <Button
+                    onClick={() => handleDeleteUser(row.id, row.email)}
+                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-sm rounded"
+                  >
+                    Delete
+                  </Button>
+                )
+              }
+            ]}
+            data={users}
+            emptyMessage="No users found"
+          />
         </CardContent>
       </Card>
     </div>
