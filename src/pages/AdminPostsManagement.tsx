@@ -205,6 +205,45 @@ const AdminPostsManagement: React.FC = () => {
     }
   };
 
+  // Extract YouTube video ID from URL
+  const extractYouTubeVideoId = (url: string): string | null => {
+    if (!url) return null;
+    
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/)([^&\n?#]+)/,
+      /youtube\.com\/watch\?.*v=([^&\n?#]+)/
+    ];
+    
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    
+    return null;
+  };
+
+  // Render YouTube embed preview
+  const renderYouTubePreview = (url: string) => {
+    const videoId = extractYouTubeVideoId(url);
+    if (!videoId) return null;
+
+    return (
+      <div className="mt-3">
+        <p className="text-sm font-medium text-gray-700 mb-2">Video Preview:</p>
+        <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden">
+          <iframe
+            src={`https://www.youtube.com/embed/${videoId}`}
+            title="YouTube video preview"
+            className="absolute inset-0 w-full h-full"
+            frameBorder="0"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+            allowFullScreen
+          />
+        </div>
+      </div>
+    );
+  };
+
   // Filter posts by type
   const filteredPosts = adminPosts.filter(post => {
     if (activeTab === 'all') return true;
@@ -339,6 +378,22 @@ const AdminPostsManagement: React.FC = () => {
                         </div>
                         
                         <p className="text-gray-600 mb-3 line-clamp-2">{post.content}</p>
+                        
+                        {/* YouTube Video Embed */}
+                        {post.youtubeVideoId && (
+                          <div className="mb-3">
+                            <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden max-w-md">
+                              <iframe
+                                src={`https://www.youtube.com/embed/${post.youtubeVideoId}`}
+                                title="YouTube video preview"
+                                className="absolute inset-0 w-full h-full"
+                                frameBorder="0"
+                                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                                allowFullScreen
+                              />
+                            </div>
+                          </div>
+                        )}
                         
                         <div className="flex items-center gap-4 text-sm text-gray-500">
                           <span className="flex items-center gap-1">
@@ -477,6 +532,9 @@ const AdminPostsManagement: React.FC = () => {
               <p className="text-xs text-gray-500 mt-1">
                 Paste a YouTube URL to embed the video in your post
               </p>
+              
+              {/* YouTube Video Preview */}
+              {postForm.youtubeUrl && renderYouTubePreview(postForm.youtubeUrl)}
             </div>
             
             <div>

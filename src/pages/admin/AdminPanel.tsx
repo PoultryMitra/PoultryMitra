@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck, Wrench, Clock } from "lucide-react";
+import { Users, Settings, TrendingUp, BarChart3, DollarSign, UserCheck, Wrench, Clock, FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminService, type AdminStats, type SystemActivity } from "@/services/adminService";
 import { fixConnectionData, fixAllConnectionsWithPlaceholderData } from "@/services/connectionFixService";
@@ -108,6 +108,7 @@ const AdminPanel = () => {
   ];
 
   const quickActions = [
+    { title: "Posts & Guides", description: "Manage educational content and tutorials with YouTube videos", link: "/admin/posts", icon: FileText, color: "bg-blue-600" },
     { title: "Connection Fix", description: "Fix farmer-dealer connections with placeholder data", action: "connection-fix", icon: Wrench, color: "bg-red-500" },
     { title: "User Management", description: "Manage user accounts, roles, and permissions", link: "/admin/users", icon: Users, color: "bg-blue-500" },
     { title: "System Settings", description: "Configure application settings and preferences", link: "/admin/settings", icon: Settings, color: "bg-gray-500" },
@@ -156,7 +157,7 @@ const AdminPanel = () => {
       {/* Quick Actions */}
       <div className="bg-white p-6 rounded-lg shadow">
         <h2 className="text-xl font-bold text-gray-900 mb-4">Quick Actions</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {quickActions.map((action, index) => (
             <Card key={index} className="hover:shadow-lg transition-shadow">
               <CardHeader>

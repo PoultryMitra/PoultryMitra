@@ -117,10 +117,10 @@ export const subscribeToAdminPosts = (
   callback: (posts: AdminPost[]) => void,
   type?: 'announcement' | 'guide' | 'tip' | 'tutorial'
 ): (() => void) => {
+  // Temporarily use simpler queries until indexes are built
   let q = query(
     collection(db, 'adminPosts'),
     where('isPublished', '==', true),
-    orderBy('isPinned', 'desc'),
     orderBy('createdAt', 'desc')
   );
 
@@ -129,7 +129,6 @@ export const subscribeToAdminPosts = (
       collection(db, 'adminPosts'),
       where('isPublished', '==', true),
       where('type', '==', type),
-      orderBy('isPinned', 'desc'),
       orderBy('createdAt', 'desc')
     );
   }
@@ -139,7 +138,46 @@ export const subscribeToAdminPosts = (
     snapshot.forEach((doc) => {
       posts.push({ id: doc.id, ...doc.data() } as AdminPost);
     });
+    
+    // Sort in memory to handle pinned posts first
+    posts.sort((a, b) => {
+      // Pinned posts first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // Then by creation date (newest first)
+      return b.createdAt.toMillis() - a.createdAt.toMillis();
+    });
+    
+    console.log('📊 Loaded published posts:', posts.length, type ? `(${type})` : '(all)');
     callback(posts);
+  }, (error) => {
+    console.error('❌ Error in published posts subscription:', error);
+    // Fallback: get all posts and filter in memory
+    const fallbackQ = collection(db, 'adminPosts');
+    const fallbackUnsubscribe = onSnapshot(fallbackQ, (snapshot) => {
+      const allPosts: AdminPost[] = [];
+      snapshot.forEach((doc) => {
+        allPosts.push({ id: doc.id, ...doc.data() } as AdminPost);
+      });
+      
+      // Filter and sort in memory
+      let posts = allPosts.filter(post => post.isPublished);
+      if (type) {
+        posts = posts.filter(post => post.type === type);
+      }
+      
+      posts.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return b.createdAt.toMillis() - a.createdAt.toMillis();
+      });
+      
+      console.log('📊 Loaded published posts (fallback):', posts.length);
+      callback(posts);
+    });
+    
+    return fallbackUnsubscribe;
   });
 
   return unsubscribe;
@@ -149,9 +187,9 @@ export const subscribeToAdminPosts = (
 export const subscribeToAllAdminPosts = (
   callback: (posts: AdminPost[]) => void
 ): (() => void) => {
+  // Temporarily use a simpler query until indexes are built
   const q = query(
     collection(db, 'adminPosts'),
-    orderBy('isPinned', 'desc'),
     orderBy('createdAt', 'desc')
   );
 
@@ -160,7 +198,41 @@ export const subscribeToAllAdminPosts = (
     snapshot.forEach((doc) => {
       posts.push({ id: doc.id, ...doc.data() } as AdminPost);
     });
+    
+    // Sort in memory to handle pinned posts first
+    posts.sort((a, b) => {
+      // Pinned posts first
+      if (a.isPinned && !b.isPinned) return -1;
+      if (!a.isPinned && b.isPinned) return 1;
+      
+      // Then by creation date (newest first)
+      return b.createdAt.toMillis() - a.createdAt.toMillis();
+    });
+    
+    console.log('📊 Loaded admin posts:', posts.length);
     callback(posts);
+  }, (error) => {
+    console.error('❌ Error in admin posts subscription:', error);
+    // Fallback to simple query without any ordering
+    const fallbackQ = collection(db, 'adminPosts');
+    const fallbackUnsubscribe = onSnapshot(fallbackQ, (snapshot) => {
+      const posts: AdminPost[] = [];
+      snapshot.forEach((doc) => {
+        posts.push({ id: doc.id, ...doc.data() } as AdminPost);
+      });
+      
+      // Sort in memory
+      posts.sort((a, b) => {
+        if (a.isPinned && !b.isPinned) return -1;
+        if (!a.isPinned && b.isPinned) return 1;
+        return b.createdAt.toMillis() - a.createdAt.toMillis();
+      });
+      
+      console.log('📊 Loaded admin posts (fallback):', posts.length);
+      callback(posts);
+    });
+    
+    return fallbackUnsubscribe;
   });
 
   return unsubscribe;

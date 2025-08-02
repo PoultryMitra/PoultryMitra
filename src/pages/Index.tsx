@@ -1,11 +1,38 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle } from "lucide-react";
+import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, Youtube, ArrowRight } from "lucide-react";
+import * as adminContentService from "@/services/adminContentService";
 
 const Index = () => {
   const [language, setLanguage] = useState("hi");
+  const [latestPosts, setLatestPosts] = useState<adminContentService.AdminPost[]>([]);
+  const [loading, setLoading] = useState(true);
+  
+  // Load latest posts
+  useEffect(() => {
+    let unsubscribe: (() => void) | undefined;
+    
+    try {
+      unsubscribe = adminContentService.subscribeToAdminPosts((posts) => {
+        // Get only the latest 3 posts for the home page
+        console.log('📊 Home page loaded posts:', posts.length);
+        setLatestPosts(posts.slice(0, 3));
+        setLoading(false);
+      });
+    } catch (error) {
+      console.error('❌ Error loading posts on home page:', error);
+      setLoading(false);
+      setLatestPosts([]);
+    }
+
+    return () => {
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
+  }, []);
   
   const toggleLanguage = () => {
     setLanguage(language === "hi" ? "en" : "hi");
@@ -13,6 +40,22 @@ const Index = () => {
 
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // Render YouTube embed for posts
+  const renderYouTubeEmbed = (videoId: string) => {
+    return (
+      <div className="relative aspect-video bg-gray-100 rounded-lg overflow-hidden mb-4">
+        <iframe
+          src={`https://www.youtube.com/embed/${videoId}`}
+          title="YouTube video"
+          className="absolute inset-0 w-full h-full"
+          frameBorder="0"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
   };
   
   const content = {
@@ -70,6 +113,13 @@ const Index = () => {
           name: "सुनीता देवी",
           location: "पंजाब"
         }
+      },
+      guides: {
+        title: "नवीनतम गाइड्स और टिप्स",
+        subtitle: "विशेषज्ञों द्वारा तैयार पोल्ट्री फार्मिंग गाइड्स और वीडियो ट्यूटोरियल्स",
+        viewAll: "सभी गाइड्स देखें",
+        noGuides: "जल्द ही नई गाइड्स आ रही हैं...",
+        watchVideo: "वीडियो देखें"
       },
       cta: {
         title: "आज ही शुरू करें अपना डिजिटल पोल्ट्री जर्नी",
@@ -131,6 +181,13 @@ const Index = () => {
           name: "Sunita Devi",
           location: "Punjab"
         }
+      },
+      guides: {
+        title: "Latest Guides & Tips",
+        subtitle: "Expert-curated poultry farming guides and video tutorials",
+        viewAll: "View All Guides",
+        noGuides: "New guides coming soon...",
+        watchVideo: "Watch Video"
       },
       cta: {
         title: "Start Your Digital Poultry Journey Today",
@@ -296,6 +353,87 @@ const Index = () => {
               </CardContent>
             </Card>
           </div>
+        </div>
+      </section>
+
+      {/* Latest Guides & Tips Section */}
+      <section className="py-16 bg-white">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-12">
+            <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+              {t('guides.title')}
+            </h2>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              {t('guides.subtitle')}
+            </p>
+          </div>
+          
+          {loading ? (
+            <div className="text-center py-12">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-green-600 mx-auto"></div>
+              <p className="text-gray-600 mt-4">गाइड्स लोड हो रही हैं...</p>
+            </div>
+          ) : latestPosts.length === 0 ? (
+            <div className="text-center py-12">
+              <Youtube className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <p className="text-gray-600 text-lg">{t('guides.noGuides')}</p>
+            </div>
+          ) : (
+            <>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 mb-12">
+                {latestPosts.map((post) => (
+                  <Card key={post.id} className="hover:shadow-lg transition-shadow">
+                    <CardContent className="p-6">
+                      {/* YouTube Video Embed */}
+                      {post.youtubeVideoId && renderYouTubeEmbed(post.youtubeVideoId)}
+                      
+                      <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            post.type === 'guide' ? 'bg-green-100 text-green-800' :
+                            post.type === 'tip' ? 'bg-yellow-100 text-yellow-800' :
+                            post.type === 'tutorial' ? 'bg-purple-100 text-purple-800' :
+                            'bg-blue-100 text-blue-800'
+                          }`}>
+                            {post.type === 'guide' ? 'गाइड' :
+                             post.type === 'tip' ? 'टिप' :
+                             post.type === 'tutorial' ? 'ट्यूटोरियल' : 'घोषणा'}
+                          </span>
+                          {post.youtubeVideoId && (
+                            <span className="flex items-center gap-1 text-red-600 text-xs">
+                              <Youtube className="w-3 h-3" />
+                              वीडियो
+                            </span>
+                          )}
+                        </div>
+                        
+                        <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
+                          {post.title}
+                        </h3>
+                        
+                        <p className="text-gray-600 text-sm line-clamp-3">
+                          {post.content}
+                        </p>
+                        
+                        <div className="text-xs text-gray-500">
+                          {post.createdAt.toDate().toLocaleDateString('hi-IN')}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+              
+              <div className="text-center">
+                <Link to="/posts">
+                  <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg inline-flex items-center gap-2">
+                    {t('guides.viewAll')}
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </Link>
+              </div>
+            </>
+          )}
         </div>
       </section>
 

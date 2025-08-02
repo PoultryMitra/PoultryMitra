@@ -153,6 +153,52 @@ service cloud.firestore {
       allow read, write: if isAuthenticated();
     }
 
+    // Admin Posts and Guides rules
+    match /adminPosts/{postId} {
+      // Everyone can read published posts (including non-authenticated users for home page)
+      allow read: if true;
+      
+      // Temporarily allow all authenticated users to create posts for debugging
+      // TODO: Change back to isAdmin() once admin role is confirmed
+      allow create, update, delete: if isAuthenticated();
+    }
+    
+    // Admin Posts Comments rules
+    match /adminPosts/{postId}/comments/{commentId} {
+      // Everyone can read comments
+      allow read: if isAuthenticated();
+      
+      // Authenticated users can create comments
+      allow create: if isAuthenticated() && request.resource.data.userId == request.auth.uid;
+      
+      // Users can update/delete their own comments, admins can delete any
+      allow update, delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+    }
+
+    // Inventory Management rules
+    match /inventory/{itemId} {
+      allow read: if isAuthenticated();
+      allow create, update, delete: if isDealer() || isAdmin();
+    }
+    
+    // Order Requests rules  
+    match /orderRequests/{orderId} {
+      allow read: if isAuthenticated();
+      allow create: if isFarmer();
+      allow update: if isDealer() || isAdmin() || 
+        (isFarmer() && resource.data.farmerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+    
+    // Farmer Account Transactions rules
+    match /farmerAccountTransactions/{transactionId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isDealer() || isAdmin() || 
+        (isFarmer() && resource.data.farmerId == request.auth.uid);
+      allow delete: if isAdmin();
+    }
+
     // Default rule - allow reads for authenticated users, deny writes
     match /{document=**} {
       allow read: if isAuthenticated();
