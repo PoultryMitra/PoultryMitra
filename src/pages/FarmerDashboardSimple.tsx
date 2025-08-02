@@ -3,9 +3,20 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFarmerDealers, type FarmerDealerData } from "@/services/connectionService";
+import { 
+  orderService, 
+  type OrderRequest, 
+  type FarmerAccountTransaction,
+  type FarmerAccountBalance
+} from "@/services/orderService";
 import { fetchWeatherData, fetchWeatherByCoordinates } from "@/lib/weather";
 import { getCurrentLocation } from "@/lib/location";
 import { doc, getDoc } from 'firebase/firestore';
@@ -30,7 +41,14 @@ import {
   Calendar,
   CreditCard,
   ArrowUpCircle,
-  ArrowDownCircle
+  ArrowDownCircle,
+  Plus,
+  ShoppingCart,
+  History,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle
 } from "lucide-react";
 
 export default function FarmerDashboard() {
@@ -60,6 +78,23 @@ export default function FarmerDashboard() {
   // Connected dealers state
   const [connectedDealers, setConnectedDealers] = useState<FarmerDealerData[]>([]);
   const [loading, setLoading] = useState(true);
+  
+  // Order Request State
+  const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
+  const [showOrderModal, setShowOrderModal] = useState(false);
+  const [selectedDealer, setSelectedDealer] = useState<FarmerDealerData | null>(null);
+  const [orderForm, setOrderForm] = useState({
+    orderType: 'Feed' as 'Feed' | 'Medicine' | 'Chicks',
+    quantity: '',
+    unit: 'bags',
+    notes: ''
+  });
+  
+  // Account Management State
+  const [farmerTransactions, setFarmerTransactions] = useState<FarmerAccountTransaction[]>([]);
+  const [farmerBalances, setFarmerBalances] = useState<FarmerAccountBalance[]>([]);
+  const [selectedDealerForAccount, setSelectedDealerForAccount] = useState<string>('');
+  const [activeTab, setActiveTab] = useState('overview');
   const [farmerData, setFarmerData] = useState(null);
 
   // Weather state with real API integration
@@ -239,6 +274,32 @@ export default function FarmerDashboard() {
     return unsubscribe;
   }, [currentUser?.uid]);
 
+  // Subscribe to order requests and transactions
+  useEffect(() => {
+    if (!currentUser?.uid) return;
+
+    const unsubscribeOrders = orderService.subscribeFarmerOrderRequests(
+      currentUser.uid,
+      (orders) => {
+        setOrderRequests(orders);
+      }
+    );
+
+    const unsubscribeTransactions = orderService.subscribeFarmerTransactions(
+      currentUser.uid,
+      (transactions) => {
+        setFarmerTransactions(transactions);
+        const balances = orderService.calculateFarmerBalances(transactions);
+        setFarmerBalances(balances);
+      }
+    );
+
+    return () => {
+      unsubscribeOrders();
+      unsubscribeTransactions();
+    };
+  }, [currentUser?.uid]);
+
   // Batch Management Functions
   const addNewBatch = () => {
     const newBatch = {
@@ -265,6 +326,74 @@ export default function FarmerDashboard() {
       case 'rainy': return <CloudRain className="h-8 w-8 text-blue-500" />;
       case 'unknown':
       default: return <Cloud className="h-8 w-8 text-gray-400" />;
+    }
+  };
+
+  // Order Request Handlers
+  const handleOrderRequest = (dealer: FarmerDealerData, orderType: 'Feed' | 'Medicine' | 'Chicks') => {
+    setSelectedDealer(dealer);
+    setOrderForm({
+      ...orderForm,
+      orderType,
+      unit: orderType === 'Feed' ? 'bags' : orderType === 'Chicks' ? 'pieces' : 'bottles'
+    });
+    setShowOrderModal(true);
+  };
+
+  const submitOrderRequest = async () => {
+    if (!currentUser?.uid || !selectedDealer || !orderForm.quantity) return;
+
+    try {
+      await orderService.submitOrderRequest(
+        currentUser.uid,
+        currentUser.displayName || 'Farmer',
+        selectedDealer.dealerId,
+        selectedDealer.dealerName,
+        {
+          orderType: orderForm.orderType,
+          quantity: parseInt(orderForm.quantity),
+          unit: orderForm.unit,
+          notes: orderForm.notes
+        }
+      );
+
+      // Reset form
+      setOrderForm({
+        orderType: 'Feed',
+        quantity: '',
+        unit: 'bags',
+        notes: ''
+      });
+      setSelectedDealer(null);
+      setShowOrderModal(false);
+
+      toast({
+        title: "Order Request Sent",
+        description: `Your ${orderForm.orderType.toLowerCase()} request has been sent to ${selectedDealer.dealerName}`,
+      });
+
+    } catch (error) {
+      console.error('Error submitting order request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send order request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getStatusBadge = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return <Badge variant="outline" className="text-yellow-600"><Clock className="w-3 h-3 mr-1" />Pending</Badge>;
+      case 'approved':
+        return <Badge variant="outline" className="text-green-600"><CheckCircle className="w-3 h-3 mr-1" />Approved</Badge>;
+      case 'rejected':
+        return <Badge variant="outline" className="text-red-600"><XCircle className="w-3 h-3 mr-1" />Rejected</Badge>;
+      case 'completed':
+        return <Badge variant="outline" className="text-blue-600"><CheckCircle className="w-3 h-3 mr-1" />Completed</Badge>;
+      default:
+        return <Badge variant="outline"><AlertCircle className="w-3 h-3 mr-1" />{status}</Badge>;
     }
   };
 
@@ -295,8 +424,17 @@ export default function FarmerDashboard() {
         </p>
       </div>
 
-      {/* Key Metrics */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+      {/* Main Content Tabs */}
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="overview">Overview</TabsTrigger>
+          <TabsTrigger value="orders">My Orders</TabsTrigger>
+          <TabsTrigger value="account">My Account</TabsTrigger>
+        </TabsList>
+        
+        <TabsContent value="overview" className="space-y-6">
+          {/* Key Metrics */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Connected Dealers</CardTitle>
@@ -886,6 +1024,259 @@ export default function FarmerDashboard() {
           )}
         </CardContent>
       </Card>
+        </TabsContent>
+        
+        <TabsContent value="orders" className="space-y-6">
+          {/* Order Requests Section */}
+          <div className="grid gap-4 md:grid-cols-3">
+            {connectedDealers.map((dealer) => (
+              <Card key={dealer.dealerId}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{dealer.dealerName}</CardTitle>
+                  <p className="text-sm text-muted-foreground">{dealer.phone}</p>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  <Button 
+                    onClick={() => handleOrderRequest(dealer, 'Feed')}
+                    className="w-full bg-green-600 hover:bg-green-700"
+                  >
+                    <Wheat className="w-4 h-4 mr-2" />
+                    Request Feed
+                  </Button>
+                  <Button 
+                    onClick={() => handleOrderRequest(dealer, 'Medicine')}
+                    className="w-full bg-blue-600 hover:bg-blue-700"
+                  >
+                    <Pill className="w-4 h-4 mr-2" />
+                    Request Medicine
+                  </Button>
+                  <Button 
+                    onClick={() => handleOrderRequest(dealer, 'Chicks')}
+                    className="w-full bg-yellow-600 hover:bg-yellow-700"
+                  >
+                    <Bird className="w-4 h-4 mr-2" />
+                    Request Chicks
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Recent Order Requests */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Recent Order Requests</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Track your recent orders and their status
+              </p>
+            </CardHeader>
+            <CardContent>
+              {orderRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No orders yet</h3>
+                  <p className="text-gray-600">Start by requesting feed, medicine, or chicks from your dealers.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {orderRequests.map((order) => (
+                    <div key={order.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <h4 className="font-medium">{order.orderType}</h4>
+                          {getStatusBadge(order.status)}
+                        </div>
+                        <p className="text-sm text-muted-foreground">
+                          {order.quantity} {order.unit} from {order.dealerName}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Requested on {order.requestDate.toDate().toLocaleDateString()}
+                        </p>
+                        {order.dealerNotes && (
+                          <p className="text-xs text-blue-600 mt-1">
+                            Dealer notes: {order.dealerNotes}
+                          </p>
+                        )}
+                      </div>
+                      {order.estimatedCost && (
+                        <div className="text-right">
+                          <p className="text-sm font-medium">₹{order.estimatedCost}</p>
+                          <p className="text-xs text-muted-foreground">Estimated</p>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="account" className="space-y-6">
+          {/* Account Balance Cards */}
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {farmerBalances.map((balance) => (
+              <Card key={balance.dealerId}>
+                <CardHeader>
+                  <CardTitle className="text-lg">{balance.dealerName}</CardTitle>
+                  <p className="text-sm text-muted-foreground">Account Balance</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">You owe:</span>
+                      <span className="text-sm font-medium text-red-600">₹{balance.creditBalance}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-muted-foreground">They owe:</span>
+                      <span className="text-sm font-medium text-green-600">₹{balance.debitBalance}</span>
+                    </div>
+                    <hr />
+                    <div className="flex justify-between">
+                      <span className="font-medium">Net Balance:</span>
+                      <span className={`font-medium ${balance.netBalance > 0 ? 'text-red-600' : balance.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
+                        {balance.netBalance > 0 && '+'}₹{balance.netBalance}
+                      </span>
+                    </div>
+                  </div>
+                  <Button 
+                    variant="outline" 
+                    className="w-full mt-4"
+                    onClick={() => setSelectedDealerForAccount(balance.dealerId)}
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    View History
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Transaction History */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Transaction History</CardTitle>
+                  <p className="text-sm text-muted-foreground">
+                    Your transaction history with dealers
+                  </p>
+                </div>
+                <Select value={selectedDealerForAccount} onValueChange={setSelectedDealerForAccount}>
+                  <SelectTrigger className="w-48">
+                    <SelectValue placeholder="All dealers" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">All dealers</SelectItem>
+                    {connectedDealers.map((dealer) => (
+                      <SelectItem key={dealer.dealerId} value={dealer.dealerId}>
+                        {dealer.dealerName}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {farmerTransactions.length === 0 ? (
+                <div className="text-center py-8">
+                  <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions yet</h3>
+                  <p className="text-gray-600">Your transaction history will appear here.</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {farmerTransactions
+                    .filter(t => !selectedDealerForAccount || t.dealerId === selectedDealerForAccount)
+                    .map((transaction) => (
+                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        {transaction.transactionType === 'credit' ? (
+                          <ArrowUpCircle className="w-5 h-5 text-red-500" />
+                        ) : (
+                          <ArrowDownCircle className="w-5 h-5 text-green-500" />
+                        )}
+                        <div>
+                          <p className="font-medium">{transaction.description}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {transaction.dealerName} • {transaction.date.toDate().toLocaleDateString()}
+                          </p>
+                          <Badge variant="outline" className="text-xs">
+                            {transaction.category}
+                          </Badge>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <p className={`font-medium ${transaction.transactionType === 'credit' ? 'text-red-600' : 'text-green-600'}`}>
+                          {transaction.transactionType === 'credit' ? '+' : '-'}₹{transaction.amount}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+      </Tabs>
+
+      {/* Order Request Modal */}
+      <Dialog open={showOrderModal} onOpenChange={setShowOrderModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Request {orderForm.orderType}</DialogTitle>
+            <DialogDescription>
+              Send a request to {selectedDealer?.dealerName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="quantity">Quantity</Label>
+              <Input
+                id="quantity"
+                type="number"
+                value={orderForm.quantity}
+                onChange={(e) => setOrderForm({...orderForm, quantity: e.target.value})}
+                placeholder={`Enter quantity in ${orderForm.unit}`}
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="unit">Unit</Label>
+              <Input
+                id="unit"
+                value={orderForm.unit}
+                onChange={(e) => setOrderForm({...orderForm, unit: e.target.value})}
+                placeholder="bags, pieces, bottles, etc."
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                value={orderForm.notes}
+                onChange={(e) => setOrderForm({...orderForm, notes: e.target.value})}
+                placeholder="Any special requirements or notes..."
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowOrderModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={submitOrderRequest}
+              disabled={!orderForm.quantity}
+            >
+              Send Request
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

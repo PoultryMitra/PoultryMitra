@@ -31,6 +31,11 @@ import {
   type InventoryItem
 } from '@/services/inventoryService';
 import { 
+  orderService,
+  type OrderRequest,
+  type FarmerAccountTransaction
+} from '@/services/orderService';
+import { 
   Users, 
   Package, 
   DollarSign, 
@@ -41,7 +46,10 @@ import {
   AlertCircle,
   Settings,
   Archive,
-  Minus
+  Minus,
+  ShoppingCart,
+  CheckCircle,
+  XCircle
 } from 'lucide-react';
 
 const DealerDashboard: React.FC = () => {
@@ -61,6 +69,16 @@ const DealerDashboard: React.FC = () => {
   const [showInventoryModal, setShowInventoryModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
+  
+  // Order requests state
+  const [dealerOrderRequests, setDealerOrderRequests] = useState<OrderRequest[]>([]);
+  const [showOrderResponseModal, setShowOrderResponseModal] = useState(false);
+  const [selectedOrderRequest, setSelectedOrderRequest] = useState<OrderRequest | null>(null);
+  const [orderResponseForm, setOrderResponseForm] = useState({
+    status: 'approved' as 'approved' | 'rejected',
+    dealerNotes: '',
+    estimatedCost: ''
+  });
   
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
@@ -156,12 +174,18 @@ const DealerDashboard: React.FC = () => {
       setInventoryItems(inventory);
     });
 
+    // Set up order requests listener
+    const unsubscribeOrders = orderService.subscribeDealerOrderRequests(dealerId, (orders) => {
+      setDealerOrderRequests(orders);
+    });
+
     setIsLoading(false);
 
     return () => {
       unsubscribeFarmers();
       unsubscribeProducts();
       unsubscribeInventory();
+      unsubscribeOrders();
     };
   }, [currentUser?.uid]);
 
@@ -534,6 +558,42 @@ const DealerDashboard: React.FC = () => {
     }
   };
 
+  // Order response handler
+  const handleOrderResponse = async () => {
+    if (!selectedOrderRequest) return;
+
+    try {
+      await orderService.updateOrderRequestStatus(
+        selectedOrderRequest.id,
+        orderResponseForm.status,
+        orderResponseForm.dealerNotes,
+        orderResponseForm.estimatedCost ? parseFloat(orderResponseForm.estimatedCost) : undefined
+      );
+
+      // Reset form
+      setOrderResponseForm({
+        status: 'approved',
+        dealerNotes: '',
+        estimatedCost: ''
+      });
+      setSelectedOrderRequest(null);
+      setShowOrderResponseModal(false);
+
+      toast({
+        title: "Success",
+        description: `Order request ${orderResponseForm.status} successfully!`,
+      });
+
+    } catch (error) {
+      console.error('Error responding to order request:', error);
+      toast({
+        title: "Error",
+        description: "Failed to respond to order request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -694,9 +754,10 @@ const DealerDashboard: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Products</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
+          <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="farmers">Farmers</TabsTrigger>
         </TabsList>
         
@@ -905,6 +966,116 @@ const DealerDashboard: React.FC = () => {
                         </div>
                       </CardContent>
                     </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="orders" className="space-y-6">
+          {/* Order Requests Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Farmer Order Requests ({dealerOrderRequests.filter(o => o.status === 'pending').length} pending)</CardTitle>
+                  <CardDescription>Manage incoming orders from your farmers</CardDescription>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {dealerOrderRequests.length === 0 ? (
+                <div className="text-center py-8">
+                  <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No order requests yet</h3>
+                  <p className="text-gray-600">Farmers will be able to request feed, medicine, and chicks from you.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {dealerOrderRequests.map((order) => (
+                    <div key={order.id} className="border rounded-lg p-4">
+                      <div className="flex items-start justify-between">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2 mb-2">
+                            <h4 className="font-medium">{order.farmerName}</h4>
+                            <Badge variant={order.status === 'pending' ? 'outline' : 'default'}>
+                              {order.status}
+                            </Badge>
+                          </div>
+                          
+                          <div className="grid grid-cols-2 gap-4 text-sm">
+                            <div>
+                              <span className="text-muted-foreground">Item:</span>
+                              <p className="font-medium">{order.orderType}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Quantity:</span>
+                              <p className="font-medium">{order.quantity} {order.unit}</p>
+                            </div>
+                            <div>
+                              <span className="text-muted-foreground">Requested:</span>
+                              <p>{order.requestDate.toDate().toLocaleDateString()}</p>
+                            </div>
+                            {order.estimatedCost && (
+                              <div>
+                                <span className="text-muted-foreground">Estimated Cost:</span>
+                                <p className="font-medium">₹{order.estimatedCost}</p>
+                              </div>
+                            )}
+                          </div>
+                          
+                          {order.notes && (
+                            <div className="mt-2 p-2 bg-gray-50 rounded text-sm">
+                              <span className="text-muted-foreground">Notes:</span> {order.notes}
+                            </div>
+                          )}
+                          
+                          {order.dealerNotes && (
+                            <div className="mt-2 p-2 bg-blue-50 rounded text-sm">
+                              <span className="text-muted-foreground">Your response:</span> {order.dealerNotes}
+                            </div>
+                          )}
+                        </div>
+                        
+                        {order.status === 'pending' && (
+                          <div className="flex gap-2 ml-4">
+                            <Button
+                              size="sm"
+                              onClick={() => {
+                                setSelectedOrderRequest(order);
+                                setOrderResponseForm({
+                                  status: 'approved',
+                                  dealerNotes: '',
+                                  estimatedCost: ''
+                                });
+                                setShowOrderResponseModal(true);
+                              }}
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <CheckCircle className="w-4 h-4 mr-1" />
+                              Approve
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => {
+                                setSelectedOrderRequest(order);
+                                setOrderResponseForm({
+                                  status: 'rejected',
+                                  dealerNotes: '',
+                                  estimatedCost: ''
+                                });
+                                setShowOrderResponseModal(true);
+                              }}
+                            >
+                              <XCircle className="w-4 h-4 mr-1" />
+                              Reject
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   ))}
                 </div>
               )}
@@ -1566,6 +1737,74 @@ const DealerDashboard: React.FC = () => {
               className={stockForm.type === 'remove' ? 'bg-red-600 hover:bg-red-700' : ''}
             >
               {isLoadingInventory ? 'Updating...' : (stockForm.type === 'add' ? 'Add Stock' : 'Remove Stock')}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Order Response Modal */}
+      <Dialog open={showOrderResponseModal} onOpenChange={setShowOrderResponseModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {orderResponseForm.status === 'approved' ? 'Approve Order' : 'Reject Order'}
+            </DialogTitle>
+            <DialogDescription>
+              Respond to order request from {selectedOrderRequest?.farmerName}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            {selectedOrderRequest && (
+              <div className="p-3 bg-gray-50 rounded-md">
+                <div className="text-sm">
+                  <p><strong>Item:</strong> {selectedOrderRequest.orderType}</p>
+                  <p><strong>Quantity:</strong> {selectedOrderRequest.quantity} {selectedOrderRequest.unit}</p>
+                  {selectedOrderRequest.notes && (
+                    <p><strong>Notes:</strong> {selectedOrderRequest.notes}</p>
+                  )}
+                </div>
+              </div>
+            )}
+            
+            {orderResponseForm.status === 'approved' && (
+              <div>
+                <Label htmlFor="estimated-cost">Estimated Cost (₹)</Label>
+                <Input
+                  id="estimated-cost"
+                  type="number"
+                  step="0.01"
+                  value={orderResponseForm.estimatedCost}
+                  onChange={(e) => setOrderResponseForm({...orderResponseForm, estimatedCost: e.target.value})}
+                  placeholder="Enter estimated cost"
+                />
+              </div>
+            )}
+            
+            <div>
+              <Label htmlFor="dealer-notes">Your Response/Notes</Label>
+              <Textarea
+                id="dealer-notes"
+                value={orderResponseForm.dealerNotes}
+                onChange={(e) => setOrderResponseForm({...orderResponseForm, dealerNotes: e.target.value})}
+                placeholder={orderResponseForm.status === 'approved' 
+                  ? "Order approved. We'll prepare it for you..." 
+                  : "Sorry, this item is currently unavailable..."
+                }
+                rows={3}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowOrderResponseModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleOrderResponse}
+              className={orderResponseForm.status === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
+            >
+              {orderResponseForm.status === 'approved' ? 'Approve Order' : 'Reject Order'}
             </Button>
           </div>
         </DialogContent>
