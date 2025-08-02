@@ -43,6 +43,7 @@ import Contact from "./pages/Contact";
 import HelpCenter from "./pages/HelpCenter";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
+import ClientRequirementsDemo from "./pages/ClientRequirementsDemo";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -89,6 +90,7 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/fcr-calculator-pro" element={<FCRCalculator />} />
+          <Route path="/client-demo" element={<ClientRequirementsDemo />} />
           
           {/* Free Dashboard for Testing */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />

@@ -9,9 +9,11 @@ import {
   getRedirectResult,
   signOut,
   sendPasswordResetEmail,
-  updateProfile
+  updateProfile,
+  linkWithCredential,
+  EmailAuthProvider
 } from 'firebase/auth';
-import { doc, setDoc, getDoc } from 'firebase/firestore';
+import { doc, setDoc, getDoc, query, collection, where, getDocs } from 'firebase/firestore';
 import { auth, googleProvider, db } from '@/lib/firebase';
 
 interface UserProfile {
@@ -22,12 +24,15 @@ interface UserProfile {
   phone?: string;
   location?: string;
   farmSize?: string;
+  flockSize?: number;
+  farmCapacity?: string;
   birdCount?: number;
   businessName?: string;
   clientCount?: number;
   createdAt: Date;
   lastActive: Date;
   profileComplete?: boolean;
+  hasPassword?: boolean;
 }
 
 interface AuthContextType {
@@ -40,6 +45,8 @@ interface AuthContextType {
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
+  checkEmailExists: (email: string) => Promise<boolean>;
+  addPasswordToGoogleAccount: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -71,6 +78,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Register new user
   const register = async (email: string, password: string, userData: Partial<UserProfile>) => {
     try {
+      // Check if email already exists
+      const emailExists = await checkEmailExists(email);
+      if (emailExists) {
+        throw new Error('This email is already registered. Please login instead.');
+      }
+
       const result = await createUserWithEmailAndPassword(auth, email, password);
       
       // Update display name
@@ -86,13 +99,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: userData.role || 'farmer',
         createdAt: new Date(),
         lastActive: new Date(),
-        profileComplete: true // Email registration has complete profile
+        profileComplete: true, // Email registration has complete profile
+        hasPassword: true // User registered with password
       };
 
       // Only add optional fields if they have values
       if (userData.phone) userProfile.phone = userData.phone;
       if (userData.location) userProfile.location = userData.location;
       if (userData.farmSize) userProfile.farmSize = userData.farmSize;
+      if (userData.flockSize) userProfile.flockSize = userData.flockSize;
+      if (userData.farmCapacity) userProfile.farmCapacity = userData.farmCapacity;
       if (userData.birdCount) userProfile.birdCount = userData.birdCount;
       if (userData.businessName) userProfile.businessName = userData.businessName;
       if (userData.clientCount) userProfile.clientCount = userData.clientCount;
@@ -176,16 +192,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role: 'farmer', // Default role - will be updated in profile completion
         createdAt: new Date(),
         lastActive: new Date(),
-        profileComplete: false // Flag to indicate profile needs completion
+        profileComplete: false, // Flag to indicate profile needs completion
+        hasPassword: false // Google users initially don't have password
       };
       await setDoc(doc(db, 'users', user.uid), userProfile);
       setUserProfile(userProfile);
       console.log('New user profile created:', userProfile);
       
-      // Redirect new users to profile completion
+      // Redirect new users to profile completion with Google flag
       console.log('Redirecting new user to profile completion...');
       setTimeout(() => {
-        window.location.href = '/complete-profile';
+        window.location.href = '/complete-profile?google=true';
       }, 500);
       
     } else {
@@ -210,13 +227,23 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             window.location.href = '/admin';
           }
         }, 500);
-      } else {
-        // Existing user but incomplete profile
-        console.log('Existing user with incomplete profile, redirecting to profile completion...');
-        setTimeout(() => {
-          window.location.href = '/complete-profile';
-        }, 500);
+        return;
       }
+      
+      // Check if user needs to set up password (only for incomplete profiles)
+      if (!profile.hasPassword) {
+        console.log('Google user without password, showing password setup option...');
+        setTimeout(() => {
+          window.location.href = '/complete-profile?google=true&setup-password=true';
+        }, 500);
+        return;
+      }
+      
+      // Existing user but incomplete profile
+      console.log('Existing user with incomplete profile, redirecting to profile completion...');
+      setTimeout(() => {
+        window.location.href = '/complete-profile?google=true';
+      }, 500);
     }
     
     console.log('Google auth result processing complete');
@@ -279,6 +306,41 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
+  // Check if email exists in the system
+  const checkEmailExists = async (email: string): Promise<boolean> => {
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('email', '==', email.toLowerCase())
+      );
+      const querySnapshot = await getDocs(usersQuery);
+      return !querySnapshot.empty;
+    } catch (error) {
+      console.error('Error checking email existence:', error);
+      return false;
+    }
+  };
+
+  // Add password to Google account
+  const addPasswordToGoogleAccount = async (password: string): Promise<void> => {
+    if (!currentUser || !currentUser.email) {
+      throw new Error('No current user found');
+    }
+
+    try {
+      const credential = EmailAuthProvider.credential(currentUser.email, password);
+      await linkWithCredential(currentUser, credential);
+      
+      // Update user profile to indicate password is set
+      if (userProfile) {
+        await updateUserProfile({ hasPassword: true });
+      }
+    } catch (error) {
+      console.error('Error adding password to Google account:', error);
+      throw error;
+    }
+  };
+
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       console.log('🔥 Auth state changed:', user?.email || 'No user');
@@ -287,9 +349,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         console.log('📝 Loading user profile for:', user.uid);
         await loadUserProfile(user.uid);
+        
+        // Store session info for persistence
+        localStorage.setItem('userSession', JSON.stringify({
+          uid: user.uid,
+          email: user.email,
+          lastLogin: Date.now()
+        }));
       } else {
-        console.log('❌ No user, clearing profile');
+        console.log('❌ No user, clearing profile and session');
         setUserProfile(null);
+        localStorage.removeItem('userSession');
       }
       
       setLoading(false);
@@ -339,7 +409,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     loginWithGoogle,
     logout,
     resetPassword,
-    updateUserProfile
+    updateUserProfile,
+    checkEmailExists,
+    addPasswordToGoogleAccount
   };
 
   return (

@@ -20,6 +20,7 @@ const Register = () => {
     location: '',
     role: '',
     flockSize: '',
+    farmCapacity: '',
     businessName: ''
   });
   const [error, setError] = useState('');
@@ -43,14 +44,25 @@ const Register = () => {
     }
   }, [searchParams]);
 
-  const handlePostRegistrationNavigation = () => {
+  const handlePostRegistrationNavigation = (isGoogleSignup = false) => {
     const pendingInvitation = localStorage.getItem('pendingInvitation');
     if (pendingInvitation) {
       // Clear the pending invitation and redirect to farmer-connect for auto-connection
       localStorage.removeItem('pendingInvitation');
       navigate(`/farmer-connect?invite=${pendingInvitation}`, { replace: true });
+    } else if (isGoogleSignup) {
+      // Google users need to complete their profile
+      navigate('/complete-profile?google=true', { replace: true });
     } else {
-      navigate('/complete-profile', { replace: true });
+      // Email registration users have complete profiles, redirect to dashboard
+      const role = formData.role;
+      if (role === 'farmer') {
+        navigate('/farmer/dashboard', { replace: true });
+      } else if (role === 'dealer') {
+        navigate('/dealer/dashboard', { replace: true });
+      } else {
+        navigate('/dashboard', { replace: true });
+      }
     }
   };
 
@@ -90,14 +102,17 @@ const Register = () => {
         role: formData.role as 'farmer' | 'dealer',
         phone: formData.phone,
         location: formData.location,
-        ...(formData.role === 'farmer' && { flockSize: formData.flockSize }),
+        ...(formData.role === 'farmer' && { 
+          flockSize: parseInt(formData.flockSize) || 0,
+          farmCapacity: formData.farmCapacity 
+        }),
         ...(formData.role === 'dealer' && { businessName: formData.businessName })
       };
 
       await register(formData.email, formData.password, userData);
       
-      // Handle post-registration navigation
-      handlePostRegistrationNavigation();
+      // Handle post-registration navigation for email registration
+      handlePostRegistrationNavigation(false);
     } catch (error: any) {
       setError(error.message);
     }
@@ -112,8 +127,8 @@ const Register = () => {
       // Use popup mode for consistent experience with login pages
       await loginWithGoogle(); // Use default redirect mode to avoid CORS issues
       console.log('RegisterNew: Google signup successful, redirecting to profile completion...');
-      // Handle post-registration navigation
-      handlePostRegistrationNavigation();
+      // Handle post-registration navigation for Google signup
+      handlePostRegistrationNavigation(true);
     } catch (error: any) {
       console.error('Google signup error in RegisterNew:', error);
       setError(error.message);
@@ -216,18 +231,30 @@ const Register = () => {
             </div>
 
             {formData.role === 'farmer' && (
-              <div className="space-y-2">
-                <Label htmlFor="flockSize">Flock Size (Number of Birds) *</Label>
-                <Input
-                  id="flockSize"
-                  type="number"
-                  placeholder="e.g., 5000"
-                  value={formData.flockSize}
-                  onChange={(e) => handleChange('flockSize', e.target.value)}
-                  min="1"
-                  required
-                />
-              </div>
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="flockSize">Current Flock Size (Number of Birds) *</Label>
+                  <Input
+                    id="flockSize"
+                    type="number"
+                    placeholder="e.g., 5000"
+                    value={formData.flockSize}
+                    onChange={(e) => handleChange('flockSize', e.target.value)}
+                    min="1"
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="farmCapacity">Farm Capacity</Label>
+                  <Input
+                    id="farmCapacity"
+                    type="text"
+                    placeholder="e.g., 10,000 birds capacity"
+                    value={formData.farmCapacity}
+                    onChange={(e) => handleChange('farmCapacity', e.target.value)}
+                  />
+                </div>
+              </>
             )}
 
             {formData.role === 'dealer' && (
