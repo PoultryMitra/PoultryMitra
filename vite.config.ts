@@ -7,6 +7,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    historyApiFallback: true, // Enable SPA fallback for client-side routing
   },
   plugins: [
     react(),
@@ -34,5 +35,6 @@ export default defineConfig(({ mode }) => ({
   preview: {
     port: 8080,
     host: "::",
+    historyApiFallback: true, // Also enable for preview mode
   },
 }));

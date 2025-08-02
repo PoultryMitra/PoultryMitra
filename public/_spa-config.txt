@@ -1,0 +1,26 @@
+# Nginx configuration for SPA routing
+# Add this to your nginx server block:
+
+# location / {
+#   try_files $uri $uri/ /index.html;
+# }
+
+# For Node.js/Express server fallback
+# app.get('*', (req, res) => {
+#   res.sendFile(path.join(__dirname, 'dist/index.html'));
+# });
+
+# This file ensures that all deployment platforms understand
+# that this is a Single Page Application (SPA) that requires
+# client-side routing support.
+
+# Routes that should be handled by the client:
+# /farmer-login
+# /dealer-login  
+# /admin-login
+# /farmer/dashboard
+# /dealer/dashboard
+# /admin/*
+# /farmer/*
+# /dealer/*
+# And all other React Router routes
