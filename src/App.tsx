@@ -44,6 +44,8 @@ import HelpCenter from "./pages/HelpCenter";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
 import TermsOfService from "./pages/TermsOfService";
 import ClientRequirementsDemo from "./pages/ClientRequirementsDemo";
+import PoultryCalculators from "./pages/PoultryCalculators";
+import ShedManagement from "./pages/ShedManagement";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -91,6 +93,8 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/fcr-calculator-pro" element={<FCRCalculator />} />
           <Route path="/client-demo" element={<ClientRequirementsDemo />} />
+          <Route path="/poultry-calculators" element={<PoultryCalculators />} />
+          <Route path="/shed-management" element={<ShedManagement />} />
           
           {/* Free Dashboard for Testing */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
@@ -105,6 +109,8 @@ const App = () => (
             <Route path="feed-prices" element={<FarmerFeedView />} />
             <Route path="fcr-calculator" element={<FCRCalculator />} />
             <Route path="vaccines" element={<VaccinesWorking />} />
+            <Route path="calculators" element={<PoultryCalculators />} />
+            <Route path="shed-management" element={<ShedManagement />} />
           </Route>
           
           {/* Dealer Routes */}

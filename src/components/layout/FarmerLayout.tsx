@@ -14,6 +14,10 @@ const getPageTitle = (pathname: string) => {
       return "FCR Calculator";
     case "/farmer/vaccines":
       return "Vaccine Reminders";
+    case "/farmer/calculators":
+      return "Advanced Poultry Calculators";
+    case "/farmer/shed-management":
+      return "Shed Design & Management";
     default:
       return "Farmer Portal";
   }

@@ -12,6 +12,8 @@ import {
   Shield,
   Syringe,
   X,
+  Building,
+  Zap,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -27,6 +29,10 @@ const navigationGroups = {
       { title: "Feed Prices", url: "/farmer/feed-prices", icon: DollarSign },
       { title: "FCR Calculator", url: "/farmer/fcr-calculator", icon: Calculator },
       { title: "Vaccine Reminders", url: "/farmer/vaccines", icon: Syringe },
+    ],
+    "ADVANCED TOOLS": [
+      { title: "Poultry Calculators", url: "/farmer/calculators", icon: Zap },
+      { title: "Shed Management", url: "/farmer/shed-management", icon: Building },
     ],
   },
   dealer: {

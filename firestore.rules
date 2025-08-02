@@ -12,6 +12,13 @@ service cloud.firestore {
       return isAuthenticated() && request.auth.uid == userId;
     }
     
+    // Function to check if user has admin role
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    
     // Function to check if user has dealer role
     function isDealer() {
       return isAuthenticated() && 
@@ -29,21 +36,22 @@ service cloud.firestore {
     // User profile rules
     match /users/{userId} {
       allow read: if isAuthenticated();
-      allow write: if isOwner(userId);
+      allow write: if isOwner(userId) || isAdmin();
+      allow delete: if isAdmin(); // Only admin can delete users
     }
     
     // Dealer profile rules
     match /dealers/{dealerId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(dealerId);
-      allow delete: if isOwner(dealerId);
+      allow create, update: if isOwner(dealerId) || isAdmin();
+      allow delete: if isOwner(dealerId) || isAdmin();
     }
     
     // Farmer profile rules
     match /farmers/{farmerId} {
       allow read: if isAuthenticated();
-      allow create, update: if isOwner(farmerId);
-      allow delete: if isOwner(farmerId);
+      allow create, update: if isOwner(farmerId) || isAdmin();
+      allow delete: if isOwner(farmerId) || isAdmin();
     }
     
     // Product rules

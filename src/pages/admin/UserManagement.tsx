@@ -2,11 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Users, Search, Trash2, Edit, Mail, Phone, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { AdminService } from "@/services/adminService";
-import { collection, getDocs, doc, deleteDoc } from "firebase/firestore";
+import { collection, getDocs, doc, deleteDoc, updateDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 interface UserData {
@@ -27,6 +30,15 @@ const UserManagement = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [editingUser, setEditingUser] = useState<UserData | null>(null);
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    email: '',
+    role: '',
+    phone: '',
+    location: ''
+  });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -104,6 +116,50 @@ const UserManagement = () => {
       toast({
         title: "Error",
         description: "Failed to delete user",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUser = (user: UserData) => {
+    console.log('Edit button clicked for user:', user);
+    setEditingUser(user);
+    setEditForm({
+      displayName: user.displayName || '',
+      email: user.email || '',
+      role: user.role || '',
+      phone: user.phone || '',
+      location: user.location || ''
+    });
+    setIsEditDialogOpen(true);
+    console.log('Edit dialog should be open now:', true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      await updateDoc(doc(db, 'users', editingUser.id), {
+        displayName: editForm.displayName,
+        email: editForm.email,
+        role: editForm.role,
+        phone: editForm.phone,
+        location: editForm.location
+      });
+      
+      toast({
+        title: "Success",
+        description: `User ${editForm.email} updated successfully`,
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      loadUsers(); // Reload users
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
         variant: "destructive",
       });
     }
@@ -246,6 +302,7 @@ const UserManagement = () => {
                           size="sm"
                           variant="outline"
                           className="h-8 w-8 p-0"
+                          onClick={() => handleEditUser(user)}
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -273,6 +330,97 @@ const UserManagement = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-displayName" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="edit-displayName"
+                value={editForm.displayName}
+                onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-user-email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="edit-user-email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter email"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-phone" className="text-right">
+                Phone
+              </Label>
+              <Input
+                id="edit-phone"
+                value={editForm.phone}
+                onChange={(e) => setEditForm({ ...editForm, phone: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter phone number"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-location" className="text-right">
+                Location
+              </Label>
+              <Input
+                id="edit-location"
+                value={editForm.location}
+                onChange={(e) => setEditForm({ ...editForm, location: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter location"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-role" className="text-right">
+                Role
+              </Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) => setEditForm({ ...editForm, role: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="farmer">Farmer</SelectItem>
+                  <SelectItem value="dealer">Dealer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                console.log('Cancel clicked');
+                setIsEditDialogOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser}>
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target } from "lucide-react";
+import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target, Zap, Building } from "lucide-react";
 
 const IndexNew = () => {
   const [language, setLanguage] = useState("hi");
@@ -284,6 +284,84 @@ const IndexNew = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Quick Access Tools Section */}
+      <section className="py-12 bg-gradient-to-br from-orange-50 to-green-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="text-center mb-8">
+            <h2 className="text-2xl md:text-3xl font-bold text-gray-900 mb-4">
+              {language === 'hi' ? 'नए एडवांस्ड टूल्स' : 'New Advanced Tools'}
+            </h2>
+            <p className="text-lg text-gray-600">
+              {language === 'hi' ? 'आधुनिक किसानी के लिए प्रोफेशनल कैलकुलेटर और मैनेजमेंट टूल्स' : 'Professional calculators and management tools for modern farming'}
+            </p>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link to="/fcr-calculator" className="block">
+              <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
+                <CardContent className="p-6 text-center">
+                  <Calculator className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {language === 'hi' ? 'FCR कैलकुलेटर' : 'FCR Calculator'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'hi' ? 'फीड कन्वर्जन रेट' : 'Feed Conversion Rate'}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/poultry-calculators" className="block">
+              <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-orange-200">
+                <CardContent className="p-6 text-center">
+                  <Zap className="w-12 h-12 text-orange-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {language === 'hi' ? 'पोल्ट्री कैलकुलेटर' : 'Poultry Calculators'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'hi' ? '7 एडवांस्ड टूल्स' : '7 Advanced Tools'}
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-orange-100 text-orange-800 text-xs rounded-full">
+                    {language === 'hi' ? 'नया' : 'NEW'}
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/shed-management" className="block">
+              <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-blue-200">
+                <CardContent className="p-6 text-center">
+                  <Building className="w-12 h-12 text-blue-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {language === 'hi' ? 'शेड मैनेजमेंट' : 'Shed Management'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'hi' ? 'डिज़ाइन और प्रबंधन' : 'Design & Management'}
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
+                    {language === 'hi' ? 'नया' : 'NEW'}
+                  </span>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/register" className="block">
+              <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-green-200 bg-gradient-to-br from-green-50 to-green-100">
+                <CardContent className="p-6 text-center">
+                  <Star className="w-12 h-12 text-green-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {language === 'hi' ? 'प्रीमियम प्लान' : 'Premium Plan'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'hi' ? 'सभी फीचर्स अनलॉक करें' : 'Unlock All Features'}
+                  </p>
+                </CardContent>
+              </Card>
+            </Link>
           </div>
         </div>
       </section>

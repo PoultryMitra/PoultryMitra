@@ -1,11 +1,17 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ResponsiveTable } from "@/components/ui/responsive-table";
 import { useState, useEffect } from "react";
 import { fixConnectionData, fixAllConnectionsWithPlaceholderData } from "@/services/connectionFixService";
 import { useToast } from "@/hooks/use-toast";
-import { collection, getDocs, doc, deleteDoc, query, where } from "firebase/firestore";
+import { useAuth } from "@/contexts/AuthContext";
+import { collection, getDocs, doc, deleteDoc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Pencil, Trash2 } from "lucide-react";
 
 interface User {
   id: string;
@@ -32,7 +38,15 @@ export default function AdminPanel() {
   const [users, setUsers] = useState<User[]>([]);
   const [connections, setConnections] = useState<Connection[]>([]);
   const [loading, setLoading] = useState(true);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    email: '',
+    role: ''
+  });
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
+  const { currentUser, userProfile } = useAuth();
 
   // Load real data from Firebase
   useEffect(() => {
@@ -80,6 +94,10 @@ export default function AdminPanel() {
     }
 
     try {
+      console.log('Attempting to delete user:', userId, email);
+      console.log('Current user:', currentUser?.uid);
+      console.log('Current user profile:', userProfile);
+      
       await deleteDoc(doc(db, 'users', userId));
       toast({
         title: "Success",
@@ -91,7 +109,47 @@ export default function AdminPanel() {
       console.error('Error deleting user:', error);
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: `Failed to delete user: ${error.message}`,
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleEditUser = (user: User) => {
+    console.log('Edit button clicked for user:', user);
+    setEditingUser(user);
+    setEditForm({
+      displayName: user.displayName || '',
+      email: user.email || '',
+      role: user.role || ''
+    });
+    setIsEditDialogOpen(true);
+    console.log('Edit dialog should be open now:', true);
+  };
+
+  const handleUpdateUser = async () => {
+    if (!editingUser) return;
+
+    try {
+      await updateDoc(doc(db, 'users', editingUser.id), {
+        displayName: editForm.displayName,
+        email: editForm.email,
+        role: editForm.role
+      });
+      
+      toast({
+        title: "Success",
+        description: `User ${editForm.email} updated successfully`,
+      });
+      
+      setIsEditDialogOpen(false);
+      setEditingUser(null);
+      loadData();
+    } catch (error) {
+      console.error('Error updating user:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update user",
         variant: "destructive",
       });
     }
@@ -255,12 +313,22 @@ export default function AdminPanel() {
                 key: 'actions', 
                 label: 'Actions',
                 render: (_, row) => (
-                  <Button
-                    onClick={() => handleDeleteUser(row.id, row.email)}
-                    className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-sm rounded"
-                  >
-                    Delete
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleEditUser(row)}
+                      className="bg-blue-500 hover:bg-blue-600 text-white px-3 py-1 text-sm rounded"
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Edit
+                    </Button>
+                    <Button
+                      onClick={() => handleDeleteUser(row.id, row.email)}
+                      className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 text-sm rounded"
+                    >
+                      <Trash2 className="h-4 w-4 mr-1" />
+                      Delete
+                    </Button>
+                  </div>
                 )
               }
             ]}
@@ -269,6 +337,73 @@ export default function AdminPanel() {
           />
         </CardContent>
       </Card>
+
+      {/* Edit User Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Edit User</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="displayName" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="displayName"
+                value={editForm.displayName}
+                onChange={(e) => setEditForm({ ...editForm, displayName: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter name"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-email" className="text-right">
+                Email
+              </Label>
+              <Input
+                id="edit-email"
+                value={editForm.email}
+                onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
+                className="col-span-3"
+                placeholder="Enter email"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="role" className="text-right">
+                Role
+              </Label>
+              <Select
+                value={editForm.role}
+                onValueChange={(value) => setEditForm({ ...editForm, role: value })}
+              >
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="farmer">Farmer</SelectItem>
+                  <SelectItem value="dealer">Dealer</SelectItem>
+                  <SelectItem value="admin">Admin</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                console.log('Cancel clicked');
+                setIsEditDialogOpen(false);
+              }}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleUpdateUser}>
+              Save Changes
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
