@@ -96,8 +96,9 @@ const App = () => (
           <Route path="/poultry-calculators" element={<PoultryCalculators />} />
           <Route path="/shed-management" element={<ShedManagement />} />
           
-          {/* Free Dashboard for Testing */}
+          {/* Free Dashboards for Testing - No ProfileGuard */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+          <Route path="/dealer-dashboard" element={<DealerDashboard />} />
           
           {/* Farmer Routes */}
           <Route path="/farmer" element={

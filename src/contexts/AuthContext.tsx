@@ -41,7 +41,7 @@ interface AuthContextType {
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, userData: Partial<UserProfile>) => Promise<void>;
-  loginWithGoogle: (useRedirect?: boolean) => Promise<void>;
+  loginWithGoogle: (useRedirect?: boolean, intendedRole?: 'farmer' | 'dealer') => Promise<void>;
   logout: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserProfile: (data: Partial<UserProfile>) => Promise<void>;
@@ -122,10 +122,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Login with Google
-  const loginWithGoogle = async (useRedirect = false) => {
+  const loginWithGoogle = async (useRedirect = false, intendedRole: 'farmer' | 'dealer' = 'farmer') => {
     try {
       if (useRedirect) {
         console.log('Starting Google login with redirect mode...');
+        // Store intended role for redirect handling
+        localStorage.setItem('intendedRole', intendedRole);
         // Use redirect to avoid CORS issues
         await signInWithRedirect(auth, googleProvider);
         // Note: The result will be handled by the auth state change listener
@@ -136,7 +138,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await signInWithPopup(auth, googleProvider);
         console.log('Google popup result:', result);
         console.log('Google user:', result.user);
-        await handleGoogleAuthResult(result.user);
+        await handleGoogleAuthResult(result.user, intendedRole);
         console.log('Google auth result handled successfully');
       }
     } catch (error: any) {
@@ -175,21 +177,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   // Helper function to handle Google auth result
-  const handleGoogleAuthResult = async (user: User) => {
-    console.log('Processing Google auth result for user:', user.email);
+  const handleGoogleAuthResult = async (user: User, intendedRole: 'farmer' | 'dealer' = 'farmer') => {
+    console.log('Processing Google auth result for user:', user.email, 'with intended role:', intendedRole);
     
     // Check if user profile exists, if not create one
     const userDoc = await getDoc(doc(db, 'users', user.uid));
     console.log('User document exists:', userDoc.exists());
     
     if (!userDoc.exists()) {
-      console.log('Creating new user profile...');
+      console.log('Creating new user profile with role:', intendedRole);
       // Create basic profile for Google Auth user - they'll complete it later
       const userProfile: UserProfile = {
         uid: user.uid,
         email: user.email!,
         displayName: user.displayName || '',
-        role: 'farmer', // Default role - will be updated in profile completion
+        role: intendedRole, // Use the intended role from login page
         createdAt: new Date(),
         lastActive: new Date(),
         profileComplete: false, // Flag to indicate profile needs completion
@@ -199,12 +201,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setUserProfile(userProfile);
       console.log('New user profile created:', userProfile);
       
-      // Redirect new users to profile completion with Google flag
-      console.log('Redirecting new user to profile completion...');
-      setTimeout(() => {
-        window.location.href = '/complete-profile?google=true';
-      }, 500);
-      
     } else {
       console.log('Loading existing user profile...');
       const profile = userDoc.data() as UserProfile;
@@ -213,37 +209,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       
       // Update last active
       await setDoc(doc(db, 'users', user.uid), { lastActive: new Date() }, { merge: true });
-      
-      // If profile is complete, redirect to appropriate dashboard
-      if (profile.profileComplete && profile.role) {
-        console.log('Profile is complete, redirecting to dashboard...');
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          if (profile.role === 'farmer') {
-            window.location.href = '/farmer/dashboard';
-          } else if (profile.role === 'dealer') {
-            window.location.href = '/dealer/dashboard';
-          } else if (profile.role === 'admin') {
-            window.location.href = '/admin';
-          }
-        }, 500);
-        return;
-      }
-      
-      // Check if user needs to set up password (only for incomplete profiles)
-      if (!profile.hasPassword) {
-        console.log('Google user without password, showing password setup option...');
-        setTimeout(() => {
-          window.location.href = '/complete-profile?google=true&setup-password=true';
-        }, 500);
-        return;
-      }
-      
-      // Existing user but incomplete profile
-      console.log('Existing user with incomplete profile, redirecting to profile completion...');
-      setTimeout(() => {
-        window.location.href = '/complete-profile?google=true';
-      }, 500);
     }
     
     console.log('Google auth result processing complete');
@@ -372,7 +337,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const result = await getRedirectResult(auth);
         if (result?.user) {
           console.log('Google redirect successful:', result.user.email);
-          await handleGoogleAuthResult(result.user);
+          // Get intended role from localStorage
+          const intendedRole = localStorage.getItem('intendedRole') as 'farmer' | 'dealer' || 'farmer';
+          localStorage.removeItem('intendedRole'); // Clean up
+          await handleGoogleAuthResult(result.user, intendedRole);
         } else {
           console.log('No redirect result found');
         }

@@ -35,6 +35,7 @@ const FarmerLogin = () => {
       localStorage.removeItem('pendingDealerCode');
       navigate('/farmer-connect', { replace: true });
     } else {
+      // Navigate to farmer dashboard with full navigation
       navigate('/farmer/dashboard', { replace: true });
     }
   };
@@ -63,7 +64,7 @@ const FarmerLogin = () => {
       setError('');
       setLoading(true);
       console.log('FarmerLogin: Starting Google login...');
-      await loginWithGoogle(); // Use popup mode for better UX
+      await loginWithGoogle(false, 'farmer'); // Pass 'farmer' as intended role
       console.log('FarmerLogin: Google login successful, redirecting...');
       handlePostLoginNavigation();
     } catch (error: any) {

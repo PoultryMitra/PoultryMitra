@@ -43,15 +43,15 @@ const DealerLogin = () => {
       setError('');
       setLoading(true);
       console.log('DealerLogin: Starting Google login...');
-      // Use popup mode (default behavior)
-      await loginWithGoogle(); // popup mode for better UX
-      console.log('DealerLogin: Google login successful...');
-      // After successful popup login, user will be handled by AuthContext
+      await loginWithGoogle(false, 'dealer'); // Pass 'dealer' as intended role
+      console.log('DealerLogin: Google login successful, redirecting to dealer dashboard...');
+      // Navigate to dealer dashboard after successful Google login
+      navigate('/dealer/dashboard', { replace: true });
     } catch (error: any) {
       console.error('Google login error in DealerLogin:', error);
       setError(error.message);
-      setLoading(false);
     }
+    setLoading(false);
   };
 
   const handleResetPassword = async () => {

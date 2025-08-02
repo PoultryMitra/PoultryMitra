@@ -238,7 +238,7 @@ export default function FarmerConnect() {
         localStorage.removeItem('pendingDealerCode');
         
         // Redirect to farmer dashboard
-        navigate('/farmer', { replace: true });
+        navigate('/farmer/dashboard', { replace: true });
         return;
       }
       
@@ -285,7 +285,7 @@ export default function FarmerConnect() {
       
       console.log('🏠 Redirecting to farmer dashboard');
       // Redirect to farmer dashboard
-      navigate('/farmer', { replace: true });
+      navigate('/farmer/dashboard', { replace: true });
     } catch (error) {
       console.error('💥 Auto-connect error:', {
         error,

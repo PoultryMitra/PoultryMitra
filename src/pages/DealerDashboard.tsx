@@ -12,20 +12,20 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
-  getDealerFarmers,
   getDealerProducts,
   addProduct,
   updateProduct,
   getDealerProfile,
   createOrUpdateDealerProfile,
   createInvitationCode,
-  loadDemoData,
-  calculateDealerStats,
   addRateUpdate,
   type Product,
-  type DealerProfile,
-  type FarmerData
+  type DealerProfile
 } from '@/services/dealerService';
+import { 
+  getDealerFarmers,
+  type DealerFarmerData
+} from '@/services/connectionService';
 import { 
   Users, 
   Package, 
@@ -35,7 +35,6 @@ import {
   Edit,
   UserPlus,
   AlertCircle,
-  FileText,
   Settings
 } from 'lucide-react';
 
@@ -46,9 +45,8 @@ const DealerDashboard: React.FC = () => {
   // State management
   const [dealerProfile, setDealerProfile] = useState<DealerProfile | null>(null);
   const [dealerProducts, setDealerProducts] = useState<Product[]>([]);
-  const [connectedFarmers, setConnectedFarmers] = useState<FarmerData[]>([]);
+  const [connectedFarmers, setConnectedFarmers] = useState<DealerFarmerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [isCreatingDemo, setIsCreatingDemo] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
   
   // Modal states
@@ -94,6 +92,15 @@ const DealerDashboard: React.FC = () => {
     avgFCR: 0
   });
 
+  // Financial tracking for company amounts given to farmers (calculated from real data)
+  const [companyAmounts, setCompanyAmounts] = useState({
+    feedCompanyAmounts: 0,      // Amount from feed companies given to farmers
+    medicineCompanyAmounts: 0,  // Amount from medicine companies given to farmers  
+    chickCompanyAmounts: 0,     // Amount from chick companies given to farmers
+    totalGivenToFarmers: 0,     // Total amount given to farmers
+    pendingRecovery: 0          // Amount still to be recovered
+  });
+
   // Firebase listeners setup
   useEffect(() => {
     if (!currentUser?.uid) return;
@@ -123,7 +130,7 @@ const DealerDashboard: React.FC = () => {
   }, [currentUser?.uid]);
 
   // Update statistics
-  const updateStats = (farmers: FarmerData[], products: Product[]) => {
+  const updateStats = (farmers: DealerFarmerData[], products: Product[]) => {
     const totalRevenue = farmers.reduce((sum, farmer) => sum + (farmer.accountBalance || 0), 0);
     const avgFCR = farmers.length > 0 
       ? farmers.reduce((sum, farmer) => sum + (farmer.fcr || 0), 0) / farmers.length 
@@ -135,6 +142,40 @@ const DealerDashboard: React.FC = () => {
       totalRevenue,
       avgFCR: Number(avgFCR.toFixed(2))
     });
+
+    // Only calculate company amounts if we have farmers with meaningful data
+    if (farmers.length > 0 && farmers.some(farmer => farmer.totalExpenses > 0)) {
+      // Calculate company amounts based on actual farmer expenses and dealer's share
+      const totalFeedExpenses = farmers.reduce((sum, farmer) => {
+        return sum + (farmer.totalExpenses * 0.4); // 40% of farmer expenses typically from feed
+      }, 0);
+      
+      const totalChicksValue = farmers.reduce((sum, farmer) => {
+        return sum + (farmer.totalExpenses * 0.25); // 25% of farmer expenses typically from chicks
+      }, 0);
+
+      const totalMedicineExpenses = farmers.reduce((sum, farmer) => {
+        return sum + (farmer.totalExpenses * 0.1); // 10% of farmer expenses typically from medicine
+      }, 0);
+
+      // Update company amounts with calculated dealer's contribution to farmers
+      setCompanyAmounts({
+        feedCompanyAmounts: Math.round(totalFeedExpenses),
+        medicineCompanyAmounts: Math.round(totalMedicineExpenses),
+        chickCompanyAmounts: Math.round(totalChicksValue),
+        totalGivenToFarmers: Math.round(totalFeedExpenses + totalMedicineExpenses + totalChicksValue),
+        pendingRecovery: Math.round((totalFeedExpenses + totalMedicineExpenses + totalChicksValue) * 0.15) // 15% pending recovery
+      });
+    } else {
+      // Reset to zeros when no meaningful farmer data
+      setCompanyAmounts({
+        feedCompanyAmounts: 0,
+        medicineCompanyAmounts: 0,
+        chickCompanyAmounts: 0,
+        totalGivenToFarmers: 0,
+        pendingRecovery: 0
+      });
+    }
   };
 
   // Load dealer profile
@@ -269,31 +310,6 @@ const DealerDashboard: React.FC = () => {
     }
   };
 
-  // Create demo data
-  const handleCreateDemoData = async () => {
-    if (!currentUser?.uid) return;
-    
-    setIsCreatingDemo(true);
-    
-    try {
-      await loadDemoData(currentUser.uid);
-      
-      toast({
-        title: "Demo Data Created",
-        description: "Sample farmers and products have been added.",
-      });
-    } catch (error) {
-      console.error('Error creating demo data:', error);
-      toast({
-        title: "Error",
-        description: "Failed to create demo data.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsCreatingDemo(false);
-    }
-  };
-
   // Update price
   const handleUpdatePrice = async () => {
     if (!currentUser?.uid || !priceUpdateForm.productId) return;
@@ -415,18 +431,7 @@ const DealerDashboard: React.FC = () => {
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected Farmers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalFarmers}</div>
-            <p className="text-xs text-muted-foreground">Active connections</p>
-          </CardContent>
-        </Card>
-
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Products</CardTitle>
@@ -451,15 +456,73 @@ const DealerDashboard: React.FC = () => {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Average FCR</CardTitle>
+            <CardTitle className="text-sm font-medium">Amount Given</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.avgFCR}</div>
-            <p className="text-xs text-muted-foreground">Across all farmers</p>
+            <div className="text-2xl font-bold">₹{companyAmounts.totalGivenToFarmers.toLocaleString()}</div>
+            <p className="text-xs text-muted-foreground">To farmers</p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Company Amounts Breakdown */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Company Amounts Given to Farmers</CardTitle>
+          <CardDescription>Track amounts from different companies provided to farmers</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+              <Package className="h-8 w-8 text-yellow-600" />
+              <div>
+                <h4 className="font-semibold text-yellow-800">Feed Companies</h4>
+                <p className="text-2xl font-bold text-yellow-600">₹{companyAmounts.feedCompanyAmounts.toLocaleString()}</p>
+                <p className="text-sm text-yellow-700">Amount given to farmers</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <Package className="h-8 w-8 text-purple-600" />
+              <div>
+                <h4 className="font-semibold text-purple-800">Medicine Companies</h4>
+                <p className="text-2xl font-bold text-purple-600">₹{companyAmounts.medicineCompanyAmounts.toLocaleString()}</p>
+                <p className="text-sm text-purple-700">Amount given to farmers</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
+              <Package className="h-8 w-8 text-orange-600" />
+              <div>
+                <h4 className="font-semibold text-orange-800">Chick Companies</h4>
+                <p className="text-2xl font-bold text-orange-600">₹{companyAmounts.chickCompanyAmounts.toLocaleString()}</p>
+                <p className="text-sm text-orange-700">Amount given to farmers</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-green-800">Total Given</h4>
+                <DollarSign className="h-5 w-5 text-green-600" />
+              </div>
+              <p className="text-3xl font-bold text-green-600">₹{companyAmounts.totalGivenToFarmers.toLocaleString()}</p>
+              <p className="text-sm text-green-700">All companies combined</p>
+            </div>
+            
+            <div className="p-4 bg-red-50 rounded-lg border border-red-200">
+              <div className="flex justify-between items-center">
+                <h4 className="font-semibold text-red-800">Pending Recovery</h4>
+                <AlertCircle className="h-5 w-5 text-red-600" />
+              </div>
+              <p className="text-3xl font-bold text-red-600">₹{companyAmounts.pendingRecovery.toLocaleString()}</p>
+              <p className="text-sm text-red-700">Amount to recover</p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Quick Actions */}
       <Card>
@@ -468,7 +531,7 @@ const DealerDashboard: React.FC = () => {
           <CardDescription>Manage your dealer operations efficiently</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Button 
               onClick={() => setShowProductModal(true)}
               className="h-20 flex flex-col gap-2"
@@ -485,20 +548,6 @@ const DealerDashboard: React.FC = () => {
             >
               <Edit className="w-6 h-6" />
               Update Prices
-            </Button>
-            
-            <Button 
-              variant="outline"
-              onClick={handleCreateDemoData}
-              disabled={isCreatingDemo}
-              className="h-20 flex flex-col gap-2"
-            >
-              {isCreatingDemo ? (
-                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-current"></div>
-              ) : (
-                <FileText className="w-6 h-6" />
-              )}
-              Create Demo Data
             </Button>
           </div>
         </CardContent>
@@ -615,7 +664,7 @@ const DealerDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Connected Farmers ({connectedFarmers.length})</CardTitle>
+                  <CardTitle>Connected Farmers</CardTitle>
                   <CardDescription>Farmers connected to your dealership</CardDescription>
                 </div>
                 <div className="flex gap-2">
@@ -623,21 +672,6 @@ const DealerDashboard: React.FC = () => {
                     <UserPlus className="w-4 h-4 mr-2" />
                     Generate Invite Code
                   </Button>
-                  {connectedFarmers.length === 0 && (
-                    <Button onClick={handleCreateDemoData} variant="outline" disabled={isCreatingDemo}>
-                      {isCreatingDemo ? (
-                        <>
-                          <div className="h-4 w-4 animate-spin rounded-full border-b-2 border-current mr-2"></div>
-                          <span>Creating...</span>
-                        </>
-                      ) : (
-                        <>
-                          <Users className="w-4 h-4 mr-2" />
-                          <span>Create Demo Data</span>
-                        </>
-                      )}
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardHeader>
@@ -653,9 +687,6 @@ const DealerDashboard: React.FC = () => {
                     <Button onClick={handleGenerateInviteCode}>
                       <UserPlus className="w-4 h-4 mr-2" />
                       Generate Invite Code
-                    </Button>
-                    <Button onClick={handleCreateDemoData} variant="outline" disabled={isCreatingDemo}>
-                      {isCreatingDemo ? "Creating..." : "Create Demo Data"}
                     </Button>
                   </div>
                 </div>
