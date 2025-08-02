@@ -13,6 +13,8 @@ const getPageTitle = (pathname: string) => {
       return "User Management";
     case "/admin/reports":
       return "Admin Reports";
+    case "/admin/posts":
+      return "Posts & Guides Management";
     default:
       return "Admin Portal";
   }

@@ -11,7 +11,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { collection, getDocs, doc, deleteDoc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Pencil, Trash2 } from "lucide-react";
+import { Pencil, Trash2, FileText, Users, BarChart3, Settings } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface User {
   id: string;
@@ -47,6 +48,7 @@ export default function AdminPanel() {
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const { toast } = useToast();
   const { currentUser, userProfile } = useAuth();
+  const navigate = useNavigate();
 
   // Load real data from Firebase
   useEffect(() => {
@@ -214,6 +216,51 @@ export default function AdminPanel() {
 
   return (
     <div className="space-y-6">
+      {/* Admin Navigation Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate('/admin/posts')}>
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <FileText className="h-6 w-6 text-blue-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Posts & Guides</h3>
+                <p className="text-sm text-gray-600">Manage content and tutorials</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-green-100 rounded-lg">
+                <Users className="h-6 w-6 text-green-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">User Management</h3>
+                <p className="text-sm text-gray-600">Coming soon</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="hover:shadow-lg transition-shadow cursor-pointer opacity-50">
+          <CardContent className="p-6">
+            <div className="flex items-center space-x-4">
+              <div className="p-3 bg-purple-100 rounded-lg">
+                <BarChart3 className="h-6 w-6 text-purple-600" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-gray-900">Analytics</h3>
+                <p className="text-sm text-gray-600">Coming soon</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
       {/* Connection Data Fix Section */}
       <Card>
         <CardHeader>

@@ -46,6 +46,8 @@ import TermsOfService from "./pages/TermsOfService";
 import ClientRequirementsDemo from "./pages/ClientRequirementsDemo";
 import PoultryCalculators from "./pages/PoultryCalculators";
 import ShedManagement from "./pages/ShedManagement";
+import AdminPostsManagement from "./pages/AdminPostsManagement";
+import PostsAndGuides from "./pages/PostsAndGuides";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -95,6 +97,8 @@ const App = () => (
           <Route path="/client-demo" element={<ClientRequirementsDemo />} />
           <Route path="/poultry-calculators" element={<PoultryCalculators />} />
           <Route path="/shed-management" element={<ShedManagement />} />
+          <Route path="/posts" element={<PostsAndGuides />} />
+          <Route path="/guides" element={<PostsAndGuides />} />
           
           {/* Free Dashboards for Testing - No ProfileGuard */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
@@ -112,6 +116,7 @@ const App = () => (
             <Route path="vaccines" element={<VaccinesWorking />} />
             <Route path="calculators" element={<PoultryCalculators />} />
             <Route path="shed-management" element={<ShedManagement />} />
+            <Route path="posts" element={<PostsAndGuides />} />
           </Route>
           
           {/* Dealer Routes */}
@@ -122,6 +127,7 @@ const App = () => (
           }>
             <Route path="dashboard" element={<DealerDashboard />} />
             <Route path="feed-prices" element={<Rates />} />
+            <Route path="posts" element={<PostsAndGuides />} />
           </Route>
           
           {/* Admin Routes */}
@@ -135,6 +141,7 @@ const App = () => (
             <Route path="rates" element={<BroilerRate />} />
             <Route path="users" element={<Users />} />
             <Route path="reports" element={<Reports />} />
+            <Route path="posts" element={<AdminPostsManagement />} />
           </Route>
           
           {/* 404 Route */}

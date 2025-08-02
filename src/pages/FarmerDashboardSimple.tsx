@@ -426,10 +426,11 @@ export default function FarmerDashboard() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="orders">My Orders</TabsTrigger>
           <TabsTrigger value="account">My Account</TabsTrigger>
+          <TabsTrigger value="guides">Guides</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -1215,6 +1216,26 @@ export default function FarmerDashboard() {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="guides" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Poultry Guides & Tips</CardTitle>
+              <p className="text-gray-600">Learn from expert guides and community tips to improve your poultry farming</p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">Loading guides and tips...</p>
+                <Button 
+                  onClick={() => window.open('/posts', '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  View All Guides & Tips
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

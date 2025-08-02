@@ -754,11 +754,12 @@ const DealerDashboard: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
           <TabsTrigger value="overview">Products</TabsTrigger>
           <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="orders">Orders</TabsTrigger>
           <TabsTrigger value="farmers">Farmers</TabsTrigger>
+          <TabsTrigger value="guides">Guides</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -1157,6 +1158,26 @@ const DealerDashboard: React.FC = () => {
                   ))}
                 </div>
               )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="guides" className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Poultry Business Guides</CardTitle>
+              <p className="text-gray-600">Access business tips, market insights, and best practices for dealers</p>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center py-8">
+                <p className="text-gray-500 mb-4">Loading guides and business tips...</p>
+                <Button 
+                  onClick={() => window.open('/posts', '_blank')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                >
+                  View All Guides & Tips
+                </Button>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
