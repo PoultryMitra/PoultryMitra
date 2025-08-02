@@ -27,6 +27,10 @@ import {
   type DealerFarmerData
 } from '@/services/connectionService';
 import { 
+  inventoryService,
+  type InventoryItem
+} from '@/services/inventoryService';
+import { 
   Users, 
   Package, 
   DollarSign, 
@@ -35,7 +39,9 @@ import {
   Edit,
   UserPlus,
   AlertCircle,
-  Settings
+  Settings,
+  Archive,
+  Minus
 } from 'lucide-react';
 
 const DealerDashboard: React.FC = () => {
@@ -48,6 +54,13 @@ const DealerDashboard: React.FC = () => {
   const [connectedFarmers, setConnectedFarmers] = useState<DealerFarmerData[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('overview');
+  
+  // Inventory state
+  const [inventoryItems, setInventoryItems] = useState<InventoryItem[]>([]);
+  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
+  const [showInventoryModal, setShowInventoryModal] = useState(false);
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [selectedInventoryItem, setSelectedInventoryItem] = useState<InventoryItem | null>(null);
   
   // Modal states
   const [showProductModal, setShowProductModal] = useState(false);
@@ -82,6 +95,23 @@ const DealerDashboard: React.FC = () => {
     oldPrice: '',
     newPrice: '',
     reason: ''
+  });
+
+  const [inventoryForm, setInventoryForm] = useState({
+    name: '',
+    category: 'Feed' as 'Feed' | 'Medicine' | 'Equipment' | 'Chicks' | 'Other',
+    currentStock: '',
+    unit: 'bags',
+    costPrice: '',
+    sellingPrice: '',
+    supplier: '',
+    minStockLevel: ''
+  });
+
+  const [stockForm, setStockForm] = useState({
+    quantity: '',
+    type: 'add' as 'add' | 'remove',
+    notes: ''
   });
 
   const [generatedInviteCode, setGeneratedInviteCode] = useState('');
@@ -121,11 +151,17 @@ const DealerDashboard: React.FC = () => {
       updateStats(connectedFarmers, products);
     });
 
+    // Set up inventory listener
+    const unsubscribeInventory = inventoryService.subscribeToInventory(dealerId, (inventory) => {
+      setInventoryItems(inventory);
+    });
+
     setIsLoading(false);
 
     return () => {
       unsubscribeFarmers();
       unsubscribeProducts();
+      unsubscribeInventory();
     };
   }, [currentUser?.uid]);
 
@@ -395,6 +431,109 @@ const DealerDashboard: React.FC = () => {
     setShowPriceModal(true);
   };
 
+  // Inventory handlers
+  const handleAddInventoryItem = async () => {
+    if (!currentUser?.uid) return;
+
+    try {
+      setIsLoadingInventory(true);
+      await inventoryService.addInventoryItem(currentUser.uid, {
+        name: inventoryForm.name,
+        category: inventoryForm.category,
+        currentStock: parseInt(inventoryForm.currentStock),
+        unit: inventoryForm.unit,
+        costPrice: parseFloat(inventoryForm.costPrice),
+        sellingPrice: parseFloat(inventoryForm.sellingPrice),
+        supplier: inventoryForm.supplier,
+        minStockLevel: parseInt(inventoryForm.minStockLevel)
+      });
+
+      // Reset form
+      setInventoryForm({
+        name: '',
+        category: 'Feed',
+        currentStock: '',
+        unit: 'bags',
+        costPrice: '',
+        sellingPrice: '',
+        supplier: '',
+        minStockLevel: ''
+      });
+      setShowInventoryModal(false);
+
+      toast({
+        title: "Success",
+        description: "Inventory item added successfully!",
+      });
+    } catch (error) {
+      console.error('Error adding inventory item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to add inventory item. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  };
+
+  const handleStockUpdate = async () => {
+    if (!currentUser?.uid || !selectedInventoryItem) return;
+
+    try {
+      setIsLoadingInventory(true);
+      const quantity = parseInt(stockForm.quantity);
+      
+      if (stockForm.type === 'add') {
+        await inventoryService.addStock(currentUser.uid, selectedInventoryItem.id, quantity, stockForm.notes);
+      } else {
+        await inventoryService.removeStock(currentUser.uid, selectedInventoryItem.id, quantity, stockForm.notes);
+      }
+
+      // Reset form
+      setStockForm({
+        quantity: '',
+        type: 'add',
+        notes: ''
+      });
+      setSelectedInventoryItem(null);
+      setShowStockModal(false);
+
+      toast({
+        title: "Success",
+        description: "Stock updated successfully!",
+      });
+    } catch (error) {
+      console.error('Error updating stock:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update stock. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoadingInventory(false);
+    }
+  };
+
+  const handleDeleteInventoryItem = async (itemId: string) => {
+    if (!currentUser?.uid) return;
+
+    try {
+      await inventoryService.deleteInventoryItem(currentUser.uid, itemId);
+      toast({
+        title: "Success",
+        description: "Inventory item deleted successfully!",
+      });
+    } catch (error) {
+      console.error('Error deleting inventory item:', error);
+      toast({
+        title: "Error",
+        description: "Failed to delete inventory item. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -555,8 +694,9 @@ const DealerDashboard: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="overview">Products</TabsTrigger>
+          <TabsTrigger value="inventory">Inventory</TabsTrigger>
           <TabsTrigger value="farmers">Farmers</TabsTrigger>
         </TabsList>
         
@@ -645,6 +785,120 @@ const DealerDashboard: React.FC = () => {
                               <AlertCircle className="h-4 w-4" />
                               <AlertDescription className="text-xs">
                                 Low stock! Only {product.currentStock} {product.unit} remaining.
+                              </AlertDescription>
+                            </Alert>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+        
+        <TabsContent value="inventory" className="space-y-6">
+          {/* Inventory Section */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle>Inventory Management ({inventoryItems.length} items)</CardTitle>
+                  <CardDescription>Track and manage your stock levels manually</CardDescription>
+                </div>
+                <Button onClick={() => setShowInventoryModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Item
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {inventoryItems.length === 0 ? (
+                <div className="text-center py-8">
+                  <Archive className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No inventory items yet</h3>
+                  <p className="text-gray-600 mb-4">Start by adding your first inventory item to track stock levels.</p>
+                  <Button onClick={() => setShowInventoryModal(true)} className="bg-blue-600 hover:bg-blue-700">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Add First Item
+                  </Button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {inventoryItems.map((item) => (
+                    <Card key={item.id} className="border">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <h3 className="font-medium text-gray-900">{item.name}</h3>
+                            <Badge variant="outline" className="text-xs">
+                              {item.category}
+                            </Badge>
+                          </div>
+                          <div className="flex gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedInventoryItem(item);
+                                setStockForm({ ...stockForm, type: 'add' });
+                                setShowStockModal(true);
+                              }}
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => {
+                                setSelectedInventoryItem(item);
+                                setStockForm({ ...stockForm, type: 'remove' });
+                                setShowStockModal(true);
+                              }}
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="destructive"
+                              onClick={() => handleDeleteInventoryItem(item.id)}
+                            >
+                              ×
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <div className="space-y-2 text-sm">
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Stock:</span>
+                            <span className={`font-medium ${item.currentStock <= item.minStockLevel ? 'text-red-600' : 'text-green-600'}`}>
+                              {item.currentStock} {item.unit}
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Cost Price:</span>
+                            <span>₹{item.costPrice}</span>
+                          </div>
+                          
+                          <div className="flex justify-between">
+                            <span className="text-gray-600">Selling Price:</span>
+                            <span>₹{item.sellingPrice}</span>
+                          </div>
+                          
+                          {item.supplier && (
+                            <div className="flex justify-between">
+                              <span className="text-gray-600">Supplier:</span>
+                              <span className="text-xs">{item.supplier}</span>
+                            </div>
+                          )}
+                          
+                          {item.currentStock <= item.minStockLevel && (
+                            <Alert className="mt-2">
+                              <AlertCircle className="h-4 w-4" />
+                              <AlertDescription className="text-xs">
+                                Low stock! Minimum level: {item.minStockLevel} {item.unit}
                               </AlertDescription>
                             </Alert>
                           )}
@@ -1121,6 +1375,197 @@ const DealerDashboard: React.FC = () => {
               disabled={!priceUpdateForm.productId || !priceUpdateForm.newPrice}
             >
               Update Price
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Inventory Item Modal */}
+      <Dialog open={showInventoryModal} onOpenChange={setShowInventoryModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Add Inventory Item</DialogTitle>
+            <DialogDescription>Add a new item to track in your inventory</DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="inv-name">Item Name</Label>
+              <Input
+                id="inv-name"
+                value={inventoryForm.name}
+                onChange={(e) => setInventoryForm({...inventoryForm, name: e.target.value})}
+                placeholder="e.g., Broiler Feed"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="inv-category">Category</Label>
+              <Select 
+                value={inventoryForm.category} 
+                onValueChange={(value) => setInventoryForm({...inventoryForm, category: value as any})}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Feed">Feed</SelectItem>
+                  <SelectItem value="Medicine">Medicine</SelectItem>
+                  <SelectItem value="Equipment">Equipment</SelectItem>
+                  <SelectItem value="Chicks">Chicks</SelectItem>
+                  <SelectItem value="Other">Other</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="inv-stock">Current Stock</Label>
+                <Input
+                  id="inv-stock"
+                  type="number"
+                  value={inventoryForm.currentStock}
+                  onChange={(e) => setInventoryForm({...inventoryForm, currentStock: e.target.value})}
+                  placeholder="100"
+                />
+              </div>
+              <div>
+                <Label htmlFor="inv-unit">Unit</Label>
+                <Input
+                  id="inv-unit"
+                  value={inventoryForm.unit}
+                  onChange={(e) => setInventoryForm({...inventoryForm, unit: e.target.value})}
+                  placeholder="bags"
+                />
+              </div>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="inv-cost">Cost Price (₹)</Label>
+                <Input
+                  id="inv-cost"
+                  type="number"
+                  step="0.01"
+                  value={inventoryForm.costPrice}
+                  onChange={(e) => setInventoryForm({...inventoryForm, costPrice: e.target.value})}
+                  placeholder="1200"
+                />
+              </div>
+              <div>
+                <Label htmlFor="inv-selling">Selling Price (₹)</Label>
+                <Input
+                  id="inv-selling"
+                  type="number"
+                  step="0.01"
+                  value={inventoryForm.sellingPrice}
+                  onChange={(e) => setInventoryForm({...inventoryForm, sellingPrice: e.target.value})}
+                  placeholder="1400"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <Label htmlFor="inv-supplier">Supplier (Optional)</Label>
+              <Input
+                id="inv-supplier"
+                value={inventoryForm.supplier}
+                onChange={(e) => setInventoryForm({...inventoryForm, supplier: e.target.value})}
+                placeholder="Supplier name"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="inv-min">Minimum Stock Level</Label>
+              <Input
+                id="inv-min"
+                type="number"
+                value={inventoryForm.minStockLevel}
+                onChange={(e) => setInventoryForm({...inventoryForm, minStockLevel: e.target.value})}
+                placeholder="10"
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowInventoryModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleAddInventoryItem}
+              disabled={!inventoryForm.name || !inventoryForm.currentStock || isLoadingInventory}
+            >
+              {isLoadingInventory ? 'Adding...' : 'Add Item'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Stock Update Modal */}
+      <Dialog open={showStockModal} onOpenChange={setShowStockModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {stockForm.type === 'add' ? 'Add Stock' : 'Remove Stock'}
+            </DialogTitle>
+            <DialogDescription>
+              {stockForm.type === 'add' ? 'Add stock for' : 'Remove stock from'} {selectedInventoryItem?.name}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="stock-quantity">Quantity</Label>
+              <Input
+                id="stock-quantity"
+                type="number"
+                value={stockForm.quantity}
+                onChange={(e) => setStockForm({...stockForm, quantity: e.target.value})}
+                placeholder="Enter quantity"
+              />
+            </div>
+            
+            <div>
+              <Label htmlFor="stock-notes">Notes (Optional)</Label>
+              <Textarea
+                id="stock-notes"
+                value={stockForm.notes}
+                onChange={(e) => setStockForm({...stockForm, notes: e.target.value})}
+                placeholder="Add notes about this stock change..."
+                rows={2}
+              />
+            </div>
+            
+            {selectedInventoryItem && (
+              <div className="p-3 bg-gray-50 rounded-md">
+                <div className="text-sm text-gray-600">
+                  Current Stock: <span className="font-medium">{selectedInventoryItem.currentStock} {selectedInventoryItem.unit}</span>
+                </div>
+                {stockForm.quantity && (
+                  <div className="text-sm text-gray-600 mt-1">
+                    After {stockForm.type}: 
+                    <span className="font-medium ml-1">
+                      {stockForm.type === 'add' 
+                        ? selectedInventoryItem.currentStock + parseInt(stockForm.quantity)
+                        : selectedInventoryItem.currentStock - parseInt(stockForm.quantity)
+                      } {selectedInventoryItem.unit}
+                    </span>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowStockModal(false)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleStockUpdate}
+              disabled={!stockForm.quantity || isLoadingInventory}
+              className={stockForm.type === 'remove' ? 'bg-red-600 hover:bg-red-700' : ''}
+            >
+              {isLoadingInventory ? 'Updating...' : (stockForm.type === 'add' ? 'Add Stock' : 'Remove Stock')}
             </Button>
           </div>
         </DialogContent>
