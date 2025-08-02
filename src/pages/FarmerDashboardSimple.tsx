@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { getFarmerDealers, type FarmerDealerData } from "@/services/connectionService";
+import { fetchWeatherData, fetchWeatherByCoordinates } from "@/lib/weather";
+import { getCurrentLocation } from "@/lib/location";
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Link } from "react-router-dom";
@@ -60,14 +62,81 @@ export default function FarmerDashboard() {
   const [loading, setLoading] = useState(true);
   const [farmerData, setFarmerData] = useState(null);
 
-  // Weather state (mock data - this can remain as external API data)
+  // Weather state with real API integration
   const [weather, setWeather] = useState({
-    temperature: 28,
-    condition: 'sunny',
-    humidity: 65,
-    windSpeed: 12,
-    description: 'Clear sky, good for poultry'
+    temperature: 'Loading...',
+    condition: 'unknown',
+    humidity: 'Loading...',
+    rainfall: 'Loading...',
+    forecast: 'Loading weather data...',
+    isLoading: true,
+    error: null as string | null
   });
+
+  // Load weather data using real weather API
+  useEffect(() => {
+    const loadWeatherData = async () => {
+      try {
+        setWeather(prev => ({ ...prev, isLoading: true, error: null }));
+        
+        // Try to get user's location first
+        try {
+          const location = await getCurrentLocation();
+          console.log('📍 Got user location:', location);
+          
+          // Use coordinates for more accurate weather
+          const weatherData = await fetchWeatherByCoordinates(location.latitude, location.longitude);
+          
+          setWeather({
+            temperature: weatherData.temperature,
+            condition: weatherData.forecast.toLowerCase().includes('rain') ? 'rain' : 
+                      weatherData.forecast.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+            humidity: weatherData.humidity,
+            rainfall: weatherData.rainfall,
+            forecast: weatherData.forecast,
+            isLoading: false,
+            error: null
+          });
+          
+        } catch (locationError) {
+          console.log('📍 Location not available, using default city');
+          
+          // Fallback to default city weather
+          const weatherData = await fetchWeatherData('Chennai'); // Default city
+          
+          setWeather({
+            temperature: weatherData.temperature,
+            condition: weatherData.forecast.toLowerCase().includes('rain') ? 'rain' : 
+                      weatherData.forecast.toLowerCase().includes('cloud') ? 'cloudy' : 'sunny',
+            humidity: weatherData.humidity,
+            rainfall: weatherData.rainfall,
+            forecast: weatherData.forecast + ' (Default location)',
+            isLoading: false,
+            error: null
+          });
+        }
+        
+      } catch (error) {
+        console.error('🌤️ Weather API error:', error);
+        setWeather({
+          temperature: 'N/A',
+          condition: 'unknown',
+          humidity: 'N/A',
+          rainfall: 'N/A',
+          forecast: 'Weather data temporarily unavailable',
+          isLoading: false,
+          error: 'Unable to load weather data'
+        });
+      }
+    };
+
+    loadWeatherData();
+    
+    // Refresh weather data every 30 minutes
+    const weatherInterval = setInterval(loadWeatherData, 30 * 60 * 1000);
+    
+    return () => clearInterval(weatherInterval);
+  }, []);
 
   // Load real farmer data from dealerFarmers collection
   const loadFarmerData = async () => {
@@ -99,12 +168,12 @@ export default function FarmerDashboard() {
   // Calculate real data from connected dealers information
   useEffect(() => {
     if (connectedDealers.length > 0) {
-      // Since we don't have direct farmer batches, create virtual batches from dealer connections
+      // Since we don't have direct farmer batches yet, show actual dealer connections
       const virtualBatches = connectedDealers.map((dealer, index) => ({
         id: index + 1,
         name: `Connection with ${dealer.dealerName}`,
-        birds: 0, // Would need to track this per dealer
-        currentAge: 0,
+        birds: 0, // This should come from actual batch data when implemented
+        currentAge: 0, // This should come from actual batch data when implemented
         mortality: 0,
         status: "Active"
       }));
@@ -112,38 +181,47 @@ export default function FarmerDashboard() {
       setBatches(virtualBatches);
       setActiveBatches(virtualBatches.length);
       
-      // Calculate financial summary from dealer relationships
-      const totalCredit = connectedDealers.length * 5000; // Estimated credit per dealer
-      const totalDebit = connectedDealers.length * 3000;  // Estimated debt per dealer
-      
+      // Reset financial summary to show actual data (currently no real financial data)
       setFinancialSummary({
-        totalCredit,
-        totalDebit,
-        netBalance: totalCredit - totalDebit,
-        pendingPayments: Math.floor(totalCredit * 0.1)
+        totalCredit: 0,  // Should come from actual transactions
+        totalDebit: 0,   // Should come from actual transactions
+        netBalance: 0,   // Should be calculated from real data
+        pendingPayments: 0 // Should come from actual pending transactions
       });
 
-      // Calculate stock based on number of dealers
-      const baseFeedBags = connectedDealers.length * 15;
-      const baseChicks = connectedDealers.length * 100;
-      const baseMedicines = connectedDealers.length * 8;
-      
+      // Reset stock to show actual data (currently no real stock data)
       setStockSummary({
         feeds: { 
-          bags: baseFeedBags, 
-          value: baseFeedBags * 300 
+          bags: 0,     // Should come from actual inventory
+          value: 0     // Should be calculated from actual inventory
         },
         chicks: { 
-          count: baseChicks, 
-          value: baseChicks * 30 
+          count: 0,    // Should come from actual batch data
+          value: 0     // Should be calculated from actual batch data
         },
         medicines: { 
-          items: baseMedicines, 
-          value: baseMedicines * 120 
+          items: 0,    // Should come from actual inventory
+          value: 0     // Should be calculated from actual inventory
         }
       });
 
-      setTotalBirds(baseChicks);
+      setTotalBirds(0); // Should be sum of all birds in active batches
+    } else {
+      // Reset everything to empty when no dealers connected
+      setBatches([]);
+      setActiveBatches(0);
+      setFinancialSummary({
+        totalCredit: 0,
+        totalDebit: 0,
+        netBalance: 0,
+        pendingPayments: 0
+      });
+      setStockSummary({
+        feeds: { bags: 0, value: 0 },
+        chicks: { count: 0, value: 0 },
+        medicines: { items: 0, value: 0 }
+      });
+      setTotalBirds(0);
     }
   }, [connectedDealers]);
 
@@ -183,8 +261,10 @@ export default function FarmerDashboard() {
     switch (weather.condition) {
       case 'sunny': return <Sun className="h-8 w-8 text-yellow-500" />;
       case 'cloudy': return <Cloud className="h-8 w-8 text-gray-500" />;
+      case 'rain': return <CloudRain className="h-8 w-8 text-blue-500" />;
       case 'rainy': return <CloudRain className="h-8 w-8 text-blue-500" />;
-      default: return <Sun className="h-8 w-8 text-yellow-500" />;
+      case 'unknown':
+      default: return <Cloud className="h-8 w-8 text-gray-400" />;
     }
   };
 
@@ -239,14 +319,24 @@ export default function FarmerDashboard() {
             {getWeatherIcon()}
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{weather.temperature}°C</div>
-            <p className="text-xs text-muted-foreground">
-              {weather.description}
-            </p>
-            <div className="flex gap-3 mt-1 text-xs">
-              <span className="text-blue-600">Humidity: {weather.humidity}%</span>
-              <span className="text-gray-600">Wind: {weather.windSpeed} km/h</span>
-            </div>
+            {weather.isLoading ? (
+              <div className="text-sm text-muted-foreground">Loading weather...</div>
+            ) : weather.error ? (
+              <div className="text-sm text-red-600">{weather.error}</div>
+            ) : (
+              <>
+                <div className="text-2xl font-bold">
+                  {weather.temperature}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  {weather.forecast}
+                </p>
+                <div className="flex gap-3 mt-1 text-xs">
+                  <span className="text-blue-600">Humidity: {weather.humidity}</span>
+                  <span className="text-green-600">Rainfall: {weather.rainfall}</span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -282,34 +372,49 @@ export default function FarmerDashboard() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              {batches.slice(0, 3).map((batch) => (
-                <div key={batch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <h4 className="font-medium">{batch.name}</h4>
-                    <p className="text-sm text-gray-600">{batch.birds} birds • {batch.currentAge} days</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      batch.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {batch.status}
-                    </span>
-                  </div>
+            {batches.length > 0 ? (
+              <>
+                <div className="space-y-3">
+                  {batches.slice(0, 3).map((batch) => (
+                    <div key={batch.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                      <div>
+                        <h4 className="font-medium">{batch.name}</h4>
+                        <p className="text-sm text-gray-600">{batch.birds} birds • {batch.currentAge} days</p>
+                      </div>
+                      <div className="text-right">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          batch.status === 'Active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {batch.status}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
 
-            <div className="flex gap-2">
-              <Link to="/batch-management" className="flex-1">
-                <Button className="w-full">
-                  View All Batches
+                <div className="flex gap-2">
+                  <Link to="/batch-management" className="flex-1">
+                    <Button className="w-full">
+                      View All Batches
+                    </Button>
+                  </Link>
+                  <Button onClick={addNewBatch} variant="outline" className="flex-1" disabled={batches.length >= 10}>
+                    Add Batch {batches.length >= 10 ? '(Max)' : ''}
+                  </Button>
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">No Active Batches</h3>
+                <p className="text-gray-600 mb-4">
+                  Start managing your poultry by creating your first batch
+                </p>
+                <Button onClick={addNewBatch} className="w-full">
+                  Create First Batch
                 </Button>
-              </Link>
-              <Button onClick={addNewBatch} variant="outline" className="flex-1" disabled={batches.length >= 10}>
-                Add Batch {batches.length >= 10 ? '(Max)' : ''}
-              </Button>
-            </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -325,38 +430,60 @@ export default function FarmerDashboard() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                <ArrowUpCircle className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium text-green-600">₹{financialSummary.totalCredit.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">Credit</p>
+            {financialSummary.totalCredit > 0 || financialSummary.totalDebit > 0 ? (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <ArrowUpCircle className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium text-green-600">₹{financialSummary.totalCredit.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">Credit</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
+                    <ArrowDownCircle className="h-5 w-5 text-red-600" />
+                    <div>
+                      <p className="font-medium text-red-600">₹{financialSummary.totalDebit.toLocaleString()}</p>
+                      <p className="text-sm text-gray-600">Debit</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-blue-800">Net Balance</h4>
+                    <p className={`text-lg font-bold ${financialSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                      ₹{Math.abs(financialSummary.netBalance).toLocaleString()}
+                      {financialSummary.netBalance >= 0 ? ' Credit' : ' Debit'}
+                    </p>
+                  </div>
+                  {financialSummary.pendingPayments > 0 && (
+                    <p className="text-sm text-blue-700 mt-2">
+                      Pending: ₹{financialSummary.pendingPayments.toLocaleString()}
+                    </p>
+                  )}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">No Financial Data</h3>
+                <p className="text-gray-600 mb-4">
+                  Financial transactions will appear here once you start trading with dealers
+                </p>
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="font-medium">₹0</p>
+                    <p className="text-gray-600">Total Credit</p>
+                  </div>
+                  <div className="p-3 bg-gray-50 rounded-lg">
+                    <p className="font-medium">₹0</p>
+                    <p className="text-gray-600">Total Debit</p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-red-50 rounded-lg">
-                <ArrowDownCircle className="h-5 w-5 text-red-600" />
-                <div>
-                  <p className="font-medium text-red-600">₹{financialSummary.totalDebit.toLocaleString()}</p>
-                  <p className="text-sm text-gray-600">Debit</p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium text-blue-800">Net Balance</h4>
-                <p className={`text-lg font-bold ${financialSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ₹{Math.abs(financialSummary.netBalance).toLocaleString()}
-                  {financialSummary.netBalance >= 0 ? ' Credit' : ' Debit'}
-                </p>
-              </div>
-              {financialSummary.pendingPayments > 0 && (
-                <p className="text-sm text-blue-700 mt-2">
-                  Pending: ₹{financialSummary.pendingPayments.toLocaleString()}
-                </p>
-              )}
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -372,43 +499,75 @@ export default function FarmerDashboard() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-3">
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                <Wheat className="h-5 w-5 text-yellow-600" />
-                <div className="flex-1">
-                  <p className="font-medium">{stockSummary.feeds.bags} Bags</p>
-                  <p className="text-sm text-gray-600">Feed Stock</p>
+            {(stockSummary.feeds.bags > 0 || stockSummary.chicks.count > 0 || stockSummary.medicines.items > 0) ? (
+              <>
+                <div className="space-y-3">
+                  {stockSummary.feeds.bags > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                      <Wheat className="h-5 w-5 text-yellow-600" />
+                      <div className="flex-1">
+                        <p className="font-medium">{stockSummary.feeds.bags} Bags</p>
+                        <p className="text-sm text-gray-600">Feed Stock</p>
+                      </div>
+                      <p className="text-sm font-medium">₹{stockSummary.feeds.value.toLocaleString()}</p>
+                    </div>
+                  )}
+                  
+                  {stockSummary.chicks.count > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
+                      <Bird className="h-5 w-5 text-orange-600" />
+                      <div className="flex-1">
+                        <p className="font-medium">{stockSummary.chicks.count} Chicks</p>
+                        <p className="text-sm text-gray-600">Active Birds</p>
+                      </div>
+                      <p className="text-sm font-medium">₹{stockSummary.chicks.value.toLocaleString()}</p>
+                    </div>
+                  )}
+                  
+                  {stockSummary.medicines.items > 0 && (
+                    <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                      <Pill className="h-5 w-5 text-purple-600" />
+                      <div className="flex-1">
+                        <p className="font-medium">{stockSummary.medicines.items} Items</p>
+                        <p className="text-sm text-gray-600">Medicines</p>
+                      </div>
+                      <p className="text-sm font-medium">₹{stockSummary.medicines.value.toLocaleString()}</p>
+                    </div>
+                  )}
                 </div>
-                <p className="text-sm font-medium">₹{stockSummary.feeds.value.toLocaleString()}</p>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
-                <Bird className="h-5 w-5 text-orange-600" />
-                <div className="flex-1">
-                  <p className="font-medium">{stockSummary.chicks.count} Chicks</p>
-                  <p className="text-sm text-gray-600">New Stock</p>
+                
+                <div className="p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium">Total Stock Value</h4>
+                    <p className="text-lg font-bold text-blue-600">
+                      ₹{(stockSummary.feeds.value + stockSummary.chicks.value + stockSummary.medicines.value).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
-                <p className="text-sm font-medium">₹{stockSummary.chicks.value.toLocaleString()}</p>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
-                <Pill className="h-5 w-5 text-purple-600" />
-                <div className="flex-1">
-                  <p className="font-medium">{stockSummary.medicines.items} Items</p>
-                  <p className="text-sm text-gray-600">Medicines</p>
-                </div>
-                <p className="text-sm font-medium">₹{stockSummary.medicines.value.toLocaleString()}</p>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <h4 className="font-medium">Total Stock Value</h4>
-                <p className="text-lg font-bold text-blue-600">
-                  ₹{(stockSummary.feeds.value + stockSummary.chicks.value + stockSummary.medicines.value).toLocaleString()}
+              </>
+            ) : (
+              <div className="text-center py-8 text-gray-500">
+                <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">No Stock Data</h3>
+                <p className="text-gray-600 mb-4">
+                  Your inventory will appear here once you start tracking stock
                 </p>
+                <div className="grid grid-cols-3 gap-2 text-xs">
+                  <div className="p-2 bg-gray-50 rounded">
+                    <p className="font-medium">0 Bags</p>
+                    <p className="text-gray-600">Feed</p>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded">
+                    <p className="font-medium">0 Birds</p>
+                    <p className="text-gray-600">Chicks</p>
+                  </div>
+                  <div className="p-2 bg-gray-50 rounded">
+                    <p className="font-medium">0 Items</p>
+                    <p className="text-gray-600">Medicine</p>
+                  </div>
+                </div>
               </div>
-            </div>
+            )}
           </CardContent>
         </Card>
 
@@ -424,51 +583,80 @@ export default function FarmerDashboard() {
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
-                <Thermometer className="h-5 w-5 text-orange-600" />
-                <div>
-                  <p className="font-medium">{weather.temperature}°C</p>
-                  <p className="text-sm text-gray-600">Temperature</p>
-                </div>
+            {weather.isLoading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+                <p className="text-gray-600">Loading weather data...</p>
               </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-                <Activity className="h-5 w-5 text-blue-600" />
-                <div>
-                  <p className="font-medium">{weather.humidity}%</p>
-                  <p className="text-sm text-gray-600">Humidity</p>
-                </div>
+            ) : weather.error ? (
+              <div className="text-center py-8 text-gray-500">
+                <Cloud className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <h3 className="text-lg font-semibold mb-2">Weather Data Unavailable</h3>
+                <p className="text-gray-600 mb-4">{weather.error}</p>
+                <p className="text-sm text-gray-500">
+                  Weather information will be available once the service is restored
+                </p>
               </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <Wind className="h-5 w-5 text-gray-600" />
-                <div>
-                  <p className="font-medium">{weather.windSpeed} km/h</p>
-                  <p className="text-sm text-gray-600">Wind Speed</p>
+            ) : (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
+                    <Thermometer className="h-5 w-5 text-orange-600" />
+                    <div>
+                      <p className="font-medium">{weather.temperature}</p>
+                      <p className="text-sm text-gray-600">Temperature</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
+                    <Activity className="h-5 w-5 text-blue-600" />
+                    <div>
+                      <p className="font-medium">{weather.humidity}</p>
+                      <p className="text-sm text-gray-600">Humidity</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
+                    <CloudRain className="h-5 w-5 text-green-600" />
+                    <div>
+                      <p className="font-medium">{weather.rainfall}</p>
+                      <p className="text-sm text-gray-600">Rainfall</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
+                    {getWeatherIcon()}
+                    <div>
+                      <p className="font-medium">
+                        {weather.condition === 'sunny' ? 'Excellent' : 
+                         weather.condition === 'cloudy' ? 'Good' : 
+                         weather.condition === 'rain' ? 'Fair' : 'Monitor'}
+                      </p>
+                      <p className="text-sm text-gray-600">Poultry Conditions</p>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="flex items-center gap-3 p-3 bg-green-50 rounded-lg">
-                <Sun className="h-5 w-5 text-green-600" />
-                <div>
-                  <p className="font-medium">Good</p>
-                  <p className="text-sm text-gray-600">Poultry Conditions</p>
-                </div>
-              </div>
-            </div>
 
-            <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <h4 className="font-medium text-blue-800 mb-1">Weather Advice</h4>
-              <p className="text-sm text-blue-700">
-                {weather.temperature > 30 ? 
-                  "High temperature - ensure adequate ventilation and water supply" :
-                  weather.temperature < 20 ?
-                  "Cool weather - check heating and provide extra bedding" :
-                  "Ideal temperature for poultry. Maintain regular feeding schedule."
-                }
-              </p>
-            </div>
+                <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <h4 className="font-medium text-blue-800 mb-1">Weather Forecast</h4>
+                  <p className="text-sm text-blue-700">
+                    {weather.forecast}
+                  </p>
+                </div>
+
+                <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <h4 className="font-medium text-green-800 mb-1">Poultry Care Advice</h4>
+                  <p className="text-sm text-green-700">
+                    {weather.condition === 'rain' ? 
+                      "Rainy conditions - ensure proper drainage and dry bedding for birds" :
+                      weather.condition === 'sunny' ?
+                      "Clear weather - maintain adequate ventilation and fresh water supply" :
+                      "Monitor birds regularly and maintain optimal housing conditions"
+                    }
+                  </p>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
 
@@ -612,11 +800,19 @@ export default function FarmerDashboard() {
               variant="outline" 
               className="gap-2 h-auto p-4 flex-col"
               onClick={() => {
-                toast({
-                  title: "Weather Information",
-                  description: `${weather.temperature}°C, ${weather.description}. Humidity: ${weather.humidity}%`,
-                  variant: "default"
-                });
+                if (!weather.isLoading && !weather.error) {
+                  toast({
+                    title: "Weather Information",
+                    description: `${weather.temperature}, ${weather.forecast}. Humidity: ${weather.humidity}`,
+                    variant: "default"
+                  });
+                } else {
+                  toast({
+                    title: "Weather Data Unavailable",
+                    description: weather.error || "Weather information is loading. Please wait a moment.",
+                    variant: "default"
+                  });
+                }
               }}
             >
               <Cloud className="h-6 w-6" />
