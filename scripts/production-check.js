@@ -76,20 +76,80 @@ if (updatedContent !== indexContent) {
 }
 
 // Create _redirects file for various hosting platforms
-const redirectsContent = `# SPA routing fallback
-/*    /index.html   200
+const redirectsContent = `# SPA routing fallback for Render.com and other platforms
+# IMPORTANT: For Render.com, this file must be in the root of the build output
 
-# Specific route fallbacks for better caching
-/farmer-login    /index.html   200
-/dealer-login    /index.html   200
-/admin-login     /index.html   200
-/farmer/*        /index.html   200
-/dealer/*        /index.html   200
-/admin/*         /index.html   200
+# Static assets should be served as-is
+/assets/*               /assets/:splat              200
+/*.js                   /:splat                     200
+/*.css                  /:splat                     200
+/*.png                  /:splat                     200
+/*.jpg                  /:splat                     200
+/*.jpeg                 /:splat                     200
+/*.gif                  /:splat                     200
+/*.svg                  /:splat                     200
+/*.ico                  /:splat                     200
+/*.woff                 /:splat                     200
+/*.woff2                /:splat                     200
+/*.ttf                  /:splat                     200
+/*.eot                  /:splat                     200
+/*.json                 /:splat                     200
+/*.xml                  /:splat                     200
+/*.txt                  /:splat                     200
+
+# API routes should not be redirected (if any)
+/api/*                  /api/:splat                 200
+
+# Specific important routes for better SEO
+/farmer-login           /index.html                 200
+/dealer-login           /index.html                 200
+/admin-login            /index.html                 200
+/farmer/*               /index.html                 200
+/dealer/*               /index.html                 200
+/admin/*                /index.html                 200
+/register               /index.html                 200
+/login                  /index.html                 200
+/farmer-connect         /index.html                 200
+/complete-profile       /index.html                 200
+
+# Catch-all rule for SPA routing (MUST be last)
+/*                      /index.html                 200
 `;
 
 fs.writeFileSync(path.join(distDir, '_redirects'), redirectsContent);
-console.log('✅ Created _redirects file for SPA routing');
+console.log('✅ Created _redirects file for SPA routing (Render.com compatible)');
+
+// Create _headers file for Render.com
+const headersContent = `# Headers for Render.com deployment
+/*
+  X-Frame-Options: DENY
+  X-Content-Type-Options: nosniff  
+  X-XSS-Protection: 1; mode=block
+  Referrer-Policy: strict-origin-when-cross-origin
+  Cache-Control: no-cache
+
+# Cache static assets
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
+
+# Cache JS and CSS
+*.js
+  Cache-Control: public, max-age=86400
+
+*.css
+  Cache-Control: public, max-age=86400
+`;
+
+fs.writeFileSync(path.join(distDir, '_headers'), headersContent);
+console.log('✅ Created _headers file for Render.com');
+
+// Debug info for Render.com deployment
+console.log('');
+console.log('🔧 Render.com Deployment Debug Info:');
+console.log('   - Build output: ./dist');
+console.log('   - SPA routing: _redirects file created');
+console.log('   - Headers: _headers file created');
+console.log('   - Environment variables: Set in render.yaml');
 
 // Create netlify.toml for Netlify deployments
 const netlifyToml = `[build]
