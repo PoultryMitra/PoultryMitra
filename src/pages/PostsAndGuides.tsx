@@ -197,10 +197,10 @@ const PostsAndGuides: React.FC = () => {
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="announcement">📢 News</TabsTrigger>
-          <TabsTrigger value="guide">📖 Guides</TabsTrigger>
-          <TabsTrigger value="tip">💡 Tips</TabsTrigger>
-          <TabsTrigger value="tutorial">🎥 Videos</TabsTrigger>
+          <TabsTrigger value="announcement">News</TabsTrigger>
+          <TabsTrigger value="guide">Guides</TabsTrigger>
+          <TabsTrigger value="tip">Tips</TabsTrigger>
+          <TabsTrigger value="tutorial">Videos</TabsTrigger>
         </TabsList>
         
         <TabsContent value={activeTab} className="space-y-6 mt-8">

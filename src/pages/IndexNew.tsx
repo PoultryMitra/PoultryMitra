@@ -13,6 +13,7 @@ const IndexNew = () => {
         title: "पोल्ट्री मित्र",
         about: "हमारे बारे में",
         services: "सेवाएं",
+        guides: "गाइड्स",
         contact: "संपर्क",
         login: "लॉग इन",
         register: "रजिस्टर करें"
@@ -94,7 +95,8 @@ const IndexNew = () => {
       header: {
         title: "Poultry Mitra",
         about: "About",
-        services: "Services", 
+        services: "Services",
+        guides: "Guides",
         contact: "Contact",
         login: "Login",
         register: "Register"
@@ -201,6 +203,7 @@ const IndexNew = () => {
               <Link to="/fcr-reports" className="text-gray-600 hover:text-green-600 transition-colors">
                 {language === 'hi' ? 'FCR रिपोर्ट्स' : 'FCR Reports'}
               </Link>
+              <Link to="/posts" className="text-gray-600 hover:text-green-600 transition-colors">{t.header.guides}</Link>
               <a href="#testimonials" className="text-gray-600 hover:text-black-600 transition-colors">Reviews</a>
               <Link to="/contact" className="text-gray-600 hover:text-green-600 transition-colors">{t.header.contact}</Link>
             </nav>

@@ -64,6 +64,7 @@ const Index = () => {
         title: "पोल्ट्री मित्र",
         about: "हमारे बारे में",
         services: "सेवाएं",
+        guides: "गाइड्स",
         contact: "संपर्क",
         login: "लॉग इन",
         register: "रजिस्टर करें"
@@ -132,6 +133,7 @@ const Index = () => {
         title: "Poultry Mitra",
         about: "About",
         services: "Services",
+        guides: "Guides",
         contact: "Contact",
         login: "Login",
         register: "Register"
@@ -221,9 +223,10 @@ const Index = () => {
               <h1 className="text-2xl font-bold text-green-600">{t('header.title')}</h1>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-500 hover:text-gray-900">{t('nav.about')}</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t('nav.services')}</Link>
-              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{t('nav.contact')}</Link>
+              <Link to="/about" className="text-gray-500 hover:text-gray-900">{t('header.about')}</Link>
+              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t('header.services')}</Link>
+              <Link to="/posts" className="text-gray-500 hover:text-gray-900">{t('header.guides')}</Link>
+              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{t('header.contact')}</Link>
             </nav>
             <div className="flex items-center space-x-4">
               <Button
@@ -236,10 +239,10 @@ const Index = () => {
                 {language === 'hi' ? 'EN' : 'हिं'}
               </Button>
               <Link to="/login">
-                <Button variant="outline">{t('nav.login')}</Button>
+                <Button variant="outline">{t('header.login')}</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">{t('nav.register')}</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{t('header.register')}</Button>
               </Link>
             </div>
           </div>

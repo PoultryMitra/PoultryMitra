@@ -482,10 +482,10 @@ const AdminPostsManagement: React.FC = () => {
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="announcement">📢 Announcement</SelectItem>
-                    <SelectItem value="guide">📖 Guide</SelectItem>
-                    <SelectItem value="tip">💡 Tip</SelectItem>
-                    <SelectItem value="tutorial">🎥 Tutorial</SelectItem>
+                    <SelectItem value="announcement">Announcement</SelectItem>
+                    <SelectItem value="guide">Guide</SelectItem>
+                    <SelectItem value="tip">Tip</SelectItem>
+                    <SelectItem value="tutorial">Tutorial</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
