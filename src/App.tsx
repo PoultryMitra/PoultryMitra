@@ -51,6 +51,7 @@ import PoultryCalculators from "./pages/PoultryCalculators";
 import ShedManagement from "./pages/ShedManagement";
 import AdminPostsManagement from "./pages/AdminPostsManagement";
 import PostsAndGuides from "./pages/PostsAndGuides";
+import PostDetail from "./pages/PostDetail";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -101,7 +102,9 @@ const App = () => (
           <Route path="/poultry-calculators" element={<PoultryCalculators />} />
           <Route path="/shed-management" element={<ShedManagement />} />
           <Route path="/posts" element={<PostsAndGuides />} />
+          <Route path="/posts/:postId" element={<PostDetail />} />
           <Route path="/guides" element={<PostsAndGuides />} />
+          <Route path="/guides/:postId" element={<PostDetail />} />
           
           {/* Free Dashboards for Testing - No ProfileGuard */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
@@ -121,6 +124,7 @@ const App = () => (
             <Route path="shed-management" element={<ShedManagement />} />
             <Route path="orders" element={<FarmerOrdering />} />
             <Route path="posts" element={<PostsAndGuides />} />
+            <Route path="posts/:postId" element={<PostDetail />} />
           </Route>
           
           {/* Dealer Routes */}
@@ -134,6 +138,7 @@ const App = () => (
             <Route path="inventory" element={<InventoryManagement />} />
             <Route path="orders" element={<DealerOrderManagement />} />
             <Route path="posts" element={<PostsAndGuides />} />
+            <Route path="posts/:postId" element={<PostDetail />} />
           </Route>
           
           {/* Admin Routes */}

@@ -2,6 +2,7 @@ import {
   collection, 
   addDoc, 
   getDocs, 
+  getDoc,
   query, 
   orderBy, 
   onSnapshot, 
@@ -238,6 +239,23 @@ export const subscribeToAllAdminPosts = (
   return unsubscribe;
 };
 
+// Get single post by ID
+export const getPostById = async (postId: string): Promise<AdminPost | null> => {
+  try {
+    const postRef = doc(db, 'adminPosts', postId);
+    const postDoc = await getDoc(postRef);
+    
+    if (postDoc.exists()) {
+      return { id: postDoc.id, ...postDoc.data() } as AdminPost;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting post by ID:', error);
+    throw error;
+  }
+};
+
 // Update post views
 export const incrementPostViews = async (postId: string): Promise<void> => {
   try {
@@ -304,7 +322,8 @@ export const addComment = async (
   content: string
 ): Promise<void> => {
   try {
-    const commentsRef = collection(db, 'postComments');
+    // Use subcollection structure to match Firestore rules
+    const commentsRef = collection(db, 'adminPosts', postId, 'comments');
     
     await addDoc(commentsRef, {
       postId,
@@ -334,9 +353,9 @@ export const subscribeToPostComments = (
   postId: string,
   callback: (comments: Comment[]) => void
 ): (() => void) => {
+  // Use subcollection structure to match Firestore rules
   const q = query(
-    collection(db, 'postComments'),
-    where('postId', '==', postId),
+    collection(db, 'adminPosts', postId, 'comments'),
     where('isHidden', '==', false),
     orderBy('createdAt', 'desc')
   );
@@ -347,6 +366,28 @@ export const subscribeToPostComments = (
       comments.push({ id: doc.id, ...doc.data() } as Comment);
     });
     callback(comments);
+  }, (error) => {
+    console.error('Error loading comments:', error);
+    
+    // If index is still building, try a simpler query without orderBy
+    if (error.code === 'failed-precondition') {
+      const simpleQ = query(
+        collection(db, 'adminPosts', postId, 'comments'),
+        where('isHidden', '==', false)
+      );
+      
+      const fallbackUnsubscribe = onSnapshot(simpleQ, (snapshot) => {
+        const comments: Comment[] = [];
+        snapshot.forEach((doc) => {
+          comments.push({ id: doc.id, ...doc.data() } as Comment);
+        });
+        // Sort manually since we can't use orderBy yet
+        comments.sort((a, b) => b.createdAt.toMillis() - a.createdAt.toMillis());
+        callback(comments);
+      });
+      
+      return fallbackUnsubscribe;
+    }
   });
 
   return unsubscribe;
@@ -387,6 +428,7 @@ export const adminContentService = {
   createAdminPost,
   subscribeToAdminPosts,
   subscribeToAllAdminPosts,
+  getPostById,
   incrementPostViews,
   togglePostLike,
   updateAdminPost,

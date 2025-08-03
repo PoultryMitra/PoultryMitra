@@ -1,17 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
 import { 
   adminContentService,
-  type AdminPost,
-  type Comment
+  type AdminPost
 } from '@/services/adminContentService';
 import {
   Eye,
@@ -24,25 +22,20 @@ import {
   BookOpen,
   Lightbulb,
   Search,
-  Send,
-  Heart,
-  Reply
+  Share2
 } from 'lucide-react';
 
 const PostsAndGuides: React.FC = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   // State management
   const [posts, setPosts] = useState<AdminPost[]>([]);
   const [filteredPosts, setFilteredPosts] = useState<AdminPost[]>([]);
-  const [selectedPost, setSelectedPost] = useState<AdminPost | null>(null);
-  const [postComments, setPostComments] = useState<Comment[]>([]);
-  const [showPostModal, setShowPostModal] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [searchQuery, setSearchQuery] = useState('');
-  const [newComment, setNewComment] = useState('');
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
 
   // Load published posts
   useEffect(() => {
@@ -77,71 +70,24 @@ const PostsAndGuides: React.FC = () => {
 
   // Handle post click
   const handlePostClick = async (post: AdminPost) => {
-    setSelectedPost(post);
-    setShowPostModal(true);
+    // Navigate to individual post page
+    const basePath = location.pathname.includes('/farmer/') ? '/farmer/posts' : 
+                     location.pathname.includes('/dealer/') ? '/dealer/posts' : '/posts';
+    navigate(`${basePath}/${post.id}`);
+  };
+
+  // Handle share post
+  const handleSharePost = (post: AdminPost, e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent card click
+    const basePath = location.pathname.includes('/farmer/') ? '/farmer/posts' : 
+                     location.pathname.includes('/dealer/') ? '/dealer/posts' : '/posts';
+    const url = `${window.location.origin}${basePath}/${post.id}`;
     
-    // Increment views
-    await adminContentService.incrementPostViews(post.id);
-    
-    // Load comments
-    const unsubscribe = adminContentService.subscribeToPostComments(post.id, (comments) => {
-      setPostComments(comments);
+    navigator.clipboard.writeText(url);
+    toast({
+      title: "Success",
+      description: "Post link copied to clipboard!",
     });
-    
-    return unsubscribe;
-  };
-
-  // Handle like post
-  const handleLikePost = async (post: AdminPost) => {
-    if (!currentUser) return;
-
-    try {
-      const isLiked = likedPosts.has(post.id);
-      await adminContentService.togglePostLike(post.id, !isLiked);
-      
-      const newLikedPosts = new Set(likedPosts);
-      if (isLiked) {
-        newLikedPosts.delete(post.id);
-      } else {
-        newLikedPosts.add(post.id);
-      }
-      setLikedPosts(newLikedPosts);
-      
-    } catch (error) {
-      console.error('Error liking post:', error);
-    }
-  };
-
-  // Handle add comment
-  const handleAddComment = async () => {
-    if (!currentUser || !selectedPost || !newComment.trim()) return;
-
-    try {
-      const userType = currentUser.email?.includes('admin') ? 'admin' : 
-                      currentUser.email?.includes('dealer') ? 'dealer' : 'farmer';
-      
-      await adminContentService.addComment(
-        selectedPost.id,
-        currentUser.uid,
-        currentUser.displayName || 'User',
-        userType,
-        newComment
-      );
-      
-      setNewComment('');
-      toast({
-        title: "Success",
-        description: "Comment added successfully!",
-      });
-      
-    } catch (error) {
-      console.error('Error adding comment:', error);
-      toast({
-        title: "Error",
-        description: "Failed to add comment. Please try again.",
-        variant: "destructive",
-      });
-    }
   };
 
   // Get post type icon
@@ -153,21 +99,6 @@ const PostsAndGuides: React.FC = () => {
       case 'tutorial': return <Youtube className="w-4 h-4" />;
       default: return <FileText className="w-4 h-4" />;
     }
-  };
-
-  // Render YouTube embed
-  const renderYouTubeEmbed = (videoId: string) => {
-    return (
-      <div className="relative w-full aspect-video rounded-lg overflow-hidden mb-4">
-        <iframe
-          src={`https://www.youtube.com/embed/${videoId}`}
-          title="YouTube video"
-          frameBorder="0"
-          allowFullScreen
-          className="absolute inset-0 w-full h-full"
-        />
-      </div>
-    );
   };
 
   return (
@@ -239,11 +170,25 @@ const PostsAndGuides: React.FC = () => {
                       )}
                     </div>
                     <CardTitle className="line-clamp-2">{post.title}</CardTitle>
+                    <div className="mb-2">
+                      <Badge variant="secondary">{post.category}</Badge>
+                    </div>
                     <CardDescription>
-                      <Badge variant="secondary" className="mb-2">{post.category}</Badge>
+                      {post.content.length > 100 ? `${post.content.substring(0, 100)}...` : post.content}
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
+                    {/* Featured Image */}
+                    {post.featuredImage && (
+                      <div className="mb-4">
+                        <img
+                          src={post.featuredImage}
+                          alt={post.title}
+                          className="w-full h-48 object-cover rounded-lg"
+                        />
+                      </div>
+                    )}
+                    
                     <p className="text-gray-600 line-clamp-3 mb-4">{post.content}</p>
                     
                     <div className="flex items-center justify-between text-sm text-gray-500">
@@ -261,7 +206,17 @@ const PostsAndGuides: React.FC = () => {
                           {post.commentsCount}
                         </span>
                       </div>
-                      <span>{post.createdAt.toDate().toLocaleDateString()}</span>
+                      <div className="flex items-center gap-2">
+                        <span>{post.createdAt.toDate().toLocaleDateString()}</span>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={(e) => handleSharePost(post, e)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Share2 className="w-4 h-4" />
+                        </Button>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -270,149 +225,6 @@ const PostsAndGuides: React.FC = () => {
           )}
         </TabsContent>
       </Tabs>
-
-      {/* Post Detail Modal */}
-      <Dialog open={showPostModal} onOpenChange={setShowPostModal}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
-          {selectedPost && (
-            <>
-              <DialogHeader>
-                <div className="flex items-center gap-2 mb-2">
-                  {getPostTypeIcon(selectedPost.type)}
-                  <Badge variant="outline">{selectedPost.type}</Badge>
-                  <Badge variant="secondary">{selectedPost.category}</Badge>
-                  {selectedPost.isPinned && <Pin className="w-4 h-4 text-blue-600" />}
-                </div>
-                <DialogTitle className="text-xl">{selectedPost.title}</DialogTitle>
-                <DialogDescription>
-                  By {selectedPost.author} • {selectedPost.createdAt.toDate().toLocaleDateString()}
-                </DialogDescription>
-              </DialogHeader>
-              
-              <div className="space-y-6">
-                {/* YouTube Video */}
-                {selectedPost.youtubeVideoId && renderYouTubeEmbed(selectedPost.youtubeVideoId)}
-                
-                {/* Content */}
-                <div className="prose max-w-none">
-                  <p className="whitespace-pre-wrap">{selectedPost.content}</p>
-                </div>
-                
-                {/* Tags */}
-                {selectedPost.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
-                    {selectedPost.tags.map((tag, index) => (
-                      <Badge key={index} variant="outline" className="text-xs">
-                        #{tag}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-                
-                {/* Post Stats & Actions */}
-                <div className="flex items-center justify-between py-4 border-t border-b">
-                  <div className="flex items-center gap-4 text-sm text-gray-500">
-                    <span className="flex items-center gap-1">
-                      <Eye className="w-4 h-4" />
-                      {selectedPost.views} views
-                    </span>
-                    <span className="flex items-center gap-1">
-                      <MessageCircle className="w-4 h-4" />
-                      {postComments.length} comments
-                    </span>
-                  </div>
-                  
-                  {currentUser && (
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleLikePost(selectedPost);
-                      }}
-                      className={likedPosts.has(selectedPost.id) ? 'text-red-600' : ''}
-                    >
-                      <Heart className={`w-4 h-4 mr-1 ${likedPosts.has(selectedPost.id) ? 'fill-current' : ''}`} />
-                      {selectedPost.likes}
-                    </Button>
-                  )}
-                </div>
-                
-                {/* Comments Section */}
-                <div className="space-y-4">
-                  <h3 className="text-lg font-semibold">Comments</h3>
-                  
-                  {/* Add Comment */}
-                  {currentUser ? (
-                    <div className="flex gap-2">
-                      <Textarea
-                        placeholder="Add a comment..."
-                        value={newComment}
-                        onChange={(e) => setNewComment(e.target.value)}
-                        rows={2}
-                        className="flex-1"
-                      />
-                      <Button 
-                        onClick={handleAddComment}
-                        disabled={!newComment.trim()}
-                        size="sm"
-                      >
-                        <Send className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ) : (
-                    <p className="text-gray-500 text-sm">Please log in to leave a comment</p>
-                  )}
-                  
-                  {/* Comments List */}
-                  <div className="space-y-4">
-                    {postComments.length === 0 ? (
-                      <p className="text-gray-500 text-center py-8">No comments yet. Be the first to comment!</p>
-                    ) : (
-                      postComments.map((comment) => (
-                        <div key={comment.id} className="border rounded-lg p-4">
-                          <div className="flex items-center justify-between mb-2">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{comment.userName}</span>
-                              <Badge variant="outline" className="text-xs">
-                                {comment.userType}
-                              </Badge>
-                            </div>
-                            <span className="text-xs text-gray-500">
-                              {comment.createdAt.toDate().toLocaleDateString()}
-                            </span>
-                          </div>
-                          <p className="text-gray-700 mb-2">{comment.content}</p>
-                          
-                          {/* Comment Replies */}
-                          {comment.replies.length > 0 && (
-                            <div className="ml-4 space-y-2 border-l-2 border-gray-200 pl-4">
-                              {comment.replies.map((reply) => (
-                                <div key={reply.id} className="text-sm">
-                                  <div className="flex items-center gap-2 mb-1">
-                                    <span className="font-medium">{reply.userName}</span>
-                                    <Badge variant="outline" className="text-xs">
-                                      {reply.userType}
-                                    </Badge>
-                                    <span className="text-xs text-gray-500">
-                                      {reply.createdAt.toDate().toLocaleDateString()}
-                                    </span>
-                                  </div>
-                                  <p className="text-gray-600">{reply.content}</p>
-                                </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      ))
-                    )}
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
     </div>
   );
 };

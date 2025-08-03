@@ -165,7 +165,7 @@ service cloud.firestore {
     
     // Admin Posts Comments rules
     match /adminPosts/{postId}/comments/{commentId} {
-      // Everyone can read comments
+      // Only authenticated users can read comments
       allow read: if isAuthenticated();
       
       // Authenticated users can create comments
