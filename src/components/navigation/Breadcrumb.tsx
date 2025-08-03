@@ -47,6 +47,11 @@ const getBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
     const segment = segments[i];
     const path = `/${segments.slice(0, i + 1).join('/')}`;
     
+    // Skip dashboard segment to avoid duplicates with the initial dashboard breadcrumb
+    if (segment === 'dashboard') {
+      continue;
+    }
+    
     let label = segment;
     
     // Convert segment names to proper labels
@@ -74,9 +79,6 @@ const getBreadcrumbs = (pathname: string): BreadcrumbItem[] => {
         break;
       case 'inventory':
         label = 'Inventory Management';
-        break;
-      case 'dashboard':
-        label = 'Dashboard';
         break;
       case 'settings':
         label = 'Settings';
@@ -112,7 +114,7 @@ export function Breadcrumb({ className = '' }: BreadcrumbProps) {
   return (
     <nav className={`flex items-center space-x-1 text-sm text-gray-600 ${className}`}>
       {breadcrumbs.map((crumb, index) => (
-        <React.Fragment key={crumb.path}>
+        <React.Fragment key={`breadcrumb-${index}-${crumb.path}`}>
           {index === breadcrumbs.length - 1 ? (
             // Current page - not clickable
             <span className="flex items-center text-gray-900 font-medium">

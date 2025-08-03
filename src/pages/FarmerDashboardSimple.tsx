@@ -10,6 +10,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+
+// Enhanced imports for stability
+import { useFarmerDashboardStability } from '@/hooks/useFarmerDashboardStability';
+import { FarmerDashboardErrorBoundary } from '@/components/error/FarmerDashboardErrorBoundary';
+import { CreditDebitNoteManager } from '@/components/finance/CreditDebitNoteManager';
+
 import { getFarmerDealers, type FarmerDealerData } from "@/services/connectionService";
 import { 
   orderService, 
@@ -48,12 +54,24 @@ import {
   Clock,
   CheckCircle,
   XCircle,
-  AlertCircle
+  AlertCircle,
+  RefreshCw,
+  Shield
 } from "lucide-react";
 
-export default function FarmerDashboard() {
+function FarmerDashboard() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  
+  // Enhanced stability hook
+  const { 
+    executeWithStability, 
+    isStable, 
+    isRecovering, 
+    resetStability,
+    isNetworkBlocked,
+    circuitBreakerOpen
+  } = useFarmerDashboardStability();
   
   // Batch Management State (will be calculated from real data)
   const [batches, setBatches] = useState([]);
@@ -260,45 +278,106 @@ export default function FarmerDashboard() {
     }
   }, [connectedDealers]);
 
-  // Subscribe to connected dealers
+  // Subscribe to connected dealers with stability
   useEffect(() => {
     if (!currentUser?.uid) return;
 
     loadFarmerData();
     
-    const unsubscribe = getFarmerDealers(currentUser.uid, (farmerDealers) => {
-      setConnectedDealers(farmerDealers);
-      setLoading(false);
-    });
+    const loadDealersWithStability = async () => {
+      try {
+        await executeWithStability(
+          async () => {
+            return new Promise<void>((resolve, reject) => {
+              try {
+                const unsubscribe = getFarmerDealers(currentUser.uid, (farmerDealers) => {
+                  setConnectedDealers(farmerDealers);
+                  setLoading(false);
+                  resolve();
+                });
+                // Store for cleanup
+                (window as any)._farmerDealersUnsubscribe = unsubscribe;
+              } catch (error) {
+                reject(error);
+              }
+            });
+          },
+          'Load Connected Dealers',
+          { 
+            showErrorToast: true
+          }
+        );
+      } catch (error) {
+        // Fallback on stability failure
+        setConnectedDealers([]);
+        setLoading(false);
+      }
+    };
 
-    return unsubscribe;
-  }, [currentUser?.uid]);
+    loadDealersWithStability();
 
-  // Subscribe to order requests and transactions
+    return () => {
+      if ((window as any)._farmerDealersUnsubscribe) {
+        (window as any)._farmerDealersUnsubscribe();
+      }
+    };
+  }, [currentUser?.uid, executeWithStability]);
+
+  // Subscribe to order requests and transactions with stability
   useEffect(() => {
     if (!currentUser?.uid) return;
 
-    const unsubscribeOrders = orderService.subscribeFarmerOrderRequests(
-      currentUser.uid,
-      (orders) => {
-        setOrderRequests(orders);
-      }
-    );
+    const loadOrderDataWithStability = async () => {
+      // Load order requests
+      await executeWithStability(
+        async () => {
+          return new Promise<void>((resolve) => {
+            const unsubscribe = orderService.subscribeFarmerOrderRequests(
+              currentUser.uid,
+              (orders) => {
+                setOrderRequests(orders);
+                resolve();
+              }
+            );
+            (window as any)._farmerOrdersUnsubscribe = unsubscribe;
+          });
+        },
+        'Load Order Requests',
+        { showErrorToast: true }
+      );
 
-    const unsubscribeTransactions = orderService.subscribeFarmerTransactions(
-      currentUser.uid,
-      (transactions) => {
-        setFarmerTransactions(transactions);
-        const balances = orderService.calculateFarmerBalances(transactions);
-        setFarmerBalances(balances);
-      }
-    );
+      // Load transactions
+      await executeWithStability(
+        async () => {
+          return new Promise<void>((resolve) => {
+            const unsubscribe = orderService.subscribeFarmerTransactions(
+              currentUser.uid,
+              (transactions) => {
+                setFarmerTransactions(transactions);
+                const balances = orderService.calculateFarmerBalances(transactions);
+                setFarmerBalances(balances);
+                resolve();
+              }
+            );
+            (window as any)._farmerTransactionsUnsubscribe = unsubscribe;
+          });
+        },
+        'Load Farmer Transactions',
+        { showErrorToast: true }
+      );
+    };
+
+    loadOrderDataWithStability();
 
     return () => {
-      unsubscribeOrders();
-      unsubscribeTransactions();
+      if ((window as any)._farmerOrdersUnsubscribe) {
+        (window as any)._farmerOrdersUnsubscribe();
+      }
+      if ((window as any)._farmerTransactionsUnsubscribe) {
+        (window as any)._farmerTransactionsUnsubscribe();
+      }
     };
-  }, [currentUser?.uid]);
+  }, [currentUser?.uid, executeWithStability]);
 
   // Batch Management Functions
   const addNewBatch = () => {
@@ -415,14 +494,61 @@ export default function FarmerDashboard() {
   }
 
   return (
-    <div className="p-6 space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold">Farmer Dashboard</h1>
-        <p className="text-muted-foreground">
-          View feed prices, calculate FCR, and check weather conditions
-        </p>
-      </div>
+    <FarmerDashboardErrorBoundary>
+      <div className="p-6 space-y-6">
+        {/* Enhanced Header with Stability */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold">Farmer Dashboard</h1>
+            <p className="text-muted-foreground">
+              View feed prices, calculate FCR, and manage your farm finances
+            </p>
+            <div className="flex items-center gap-2 mt-2">
+              {!isStable && isNetworkBlocked ? (
+                <Badge className="bg-orange-100 text-orange-800">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  Network Blocked - Check Firewall/Ad Blocker
+                </Badge>
+              ) : !isStable ? (
+                <Badge className="bg-red-100 text-red-800">
+                  <AlertCircle className="w-3 h-3 mr-1" />
+                  System Issues
+                </Badge>
+              ) : isRecovering ? (
+                <Badge className="bg-yellow-100 text-yellow-800">
+                  <RefreshCw className="w-3 h-3 mr-1 animate-spin" />
+                  Recovering
+                </Badge>
+              ) : (
+                <Badge className="bg-green-100 text-green-800">
+                  <CheckCircle className="w-3 h-3 mr-1" />
+                  All Systems Operational
+                </Badge>
+              )}
+              {isNetworkBlocked && (
+                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mt-2">
+                  <p className="text-sm text-orange-800">
+                    <strong>Connection Issue:</strong> Your network or browser is blocking Firebase connections. 
+                    Try disabling ad blockers, checking firewall settings, or switching networks.
+                  </p>
+                </div>
+              )}
+            </div>
+          </div>
+          
+          {!isStable && (
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={resetStability}>
+                <Shield className="w-4 h-4 mr-2" />
+                Reset
+              </Button>
+              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                <RefreshCw className="w-4 h-4 mr-2" />
+                Refresh
+              </Button>
+            </div>
+          )}
+        </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -430,7 +556,7 @@ export default function FarmerDashboard() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="orders">My Orders</TabsTrigger>
           <TabsTrigger value="account">My Account</TabsTrigger>
-          <TabsTrigger value="guides">Guides</TabsTrigger>
+          <TabsTrigger value="finance">Finance</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -1034,7 +1160,7 @@ export default function FarmerDashboard() {
               <Card key={dealer.dealerId}>
                 <CardHeader>
                   <CardTitle className="text-lg">{dealer.dealerName}</CardTitle>
-                  <p className="text-sm text-muted-foreground">{dealer.phone}</p>
+                  <p className="text-sm text-muted-foreground">{dealer.dealerPhone || dealer.dealerEmail}</p>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   <Button 
@@ -1220,24 +1346,32 @@ export default function FarmerDashboard() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="guides" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Poultry Guides & Tips</CardTitle>
-              <p className="text-gray-600">Learn from expert guides and community tips to improve your poultry farming</p>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">Loading guides and tips...</p>
-                <Button 
-                  onClick={() => window.open('/posts', '_blank')}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                >
-                  View All Guides & Tips
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+        <TabsContent value="finance" className="space-y-6">
+          {!isStable ? (
+            <Card>
+              <CardContent className="flex items-center justify-center py-8">
+                <div className="text-center">
+                  <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
+                  <p className="text-gray-600">Financial system is temporarily unavailable</p>
+                  <p className="text-sm text-gray-500 mt-1">Please wait for the system to stabilize</p>
+                  <div className="mt-4 space-x-2">
+                    <Button variant="outline" size="sm" onClick={resetStability}>
+                      Reset System
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                      Refresh Page
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ) : (
+            <CreditDebitNoteManager 
+              userRole="farmer"
+              targetUserId={undefined}
+              targetUserName={undefined}
+            />
+          )}
         </TabsContent>
       </Tabs>
 
@@ -1299,5 +1433,15 @@ export default function FarmerDashboard() {
         </DialogContent>
       </Dialog>
     </div>
+    </FarmerDashboardErrorBoundary>
+  );
+}
+
+// Wrap with error boundary for stability
+export default function WrappedFarmerDashboardSimple() {
+  return (
+    <FarmerDashboardErrorBoundary>
+      <FarmerDashboard />
+    </FarmerDashboardErrorBoundary>
   );
 }
