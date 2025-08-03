@@ -12,6 +12,9 @@ import * as dealerService from "@/services/dealerService";
 import type { DealerProfile, Product, FarmerData, Order } from "@/services/dealerService";
 import { createInvitationCode, getDealerFarmers, type DealerFarmerData } from "@/services/connectionService";
 import { createDemoData } from "@/services/demoService";
+import { LedgerView } from "@/components/accounting/LedgerView";
+import { AccountSummary } from "@/components/accounting/AccountSummary";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Users, 
   TrendingUp, 
@@ -534,8 +537,18 @@ function DealerDashboard() {
         </Card>
       </div>
 
-      {/* Main Content Grid */}
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Main Content */}
+      <Tabs defaultValue="dashboard" className="space-y-6">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
+          <TabsTrigger value="accounts">Accounts</TabsTrigger>
+          <TabsTrigger value="ledger">Ledger</TabsTrigger>
+          <TabsTrigger value="insights">Insights</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="dashboard" className="space-y-6">
+          {/* Main Content Grid */}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
         
         {/* Connected Farmers */}
         <Card className="md:col-span-2">
@@ -676,6 +689,34 @@ function DealerDashboard() {
           </CardContent>
         </Card>
       </div>
+      </TabsContent>
+
+      <TabsContent value="accounts" className="space-y-6">
+        <AccountSummary dealerId={currentUser?.uid} />
+      </TabsContent>
+
+      <TabsContent value="ledger" className="space-y-6">
+        <LedgerView 
+          dealerId={currentUser?.uid}
+          userRole="dealer"
+        />
+      </TabsContent>
+
+      <TabsContent value="insights" className="space-y-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Business Insights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-center py-8">
+              <TrendingUp className="w-16 h-16 text-gray-400 mx-auto mb-4" />
+              <h3 className="text-lg font-medium text-gray-900 mb-2">Business Analytics</h3>
+              <p className="text-gray-600">Advanced business insights and analytics coming soon!</p>
+            </div>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      </Tabs>
 
       {/* Add Feed Modal */}
       <Dialog open={showAddFeedModal} onOpenChange={setShowAddFeedModal}>

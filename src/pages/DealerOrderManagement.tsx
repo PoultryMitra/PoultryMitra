@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useDashboardStability } from '@/hooks/useDashboardStability';
 import { 
   orderService,
   type OrderRequest,
@@ -20,6 +21,7 @@ import {
   getDealerFarmers,
   type DealerFarmerData
 } from '@/services/connectionService';
+import { autoCalculationService } from '@/services/autoCalculationService';
 import { 
   ShoppingCart, 
   Clock,
@@ -41,6 +43,7 @@ import {
 export default function DealerOrderManagement() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { isStable, executeWithStability } = useDashboardStability();
 
   // State management
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
@@ -67,6 +70,10 @@ export default function DealerOrderManagement() {
     actualCost: '',
     deliveryDate: ''
   });
+
+  // Auto-calculation state
+  const [calculationSuggestion, setCalculationSuggestion] = useState<any>(null);
+  const [loadingCalculation, setLoadingCalculation] = useState(false);
 
   // Load data
   useEffect(() => {
@@ -127,11 +134,11 @@ export default function DealerOrderManagement() {
     return matchesStatus && matchesFarmer && matchesOrderType && matchesSearch && matchesDate;
   });
 
-  // Handle order response
+  // Handle order response with stability protection
   const handleOrderResponse = async () => {
     if (!currentUser || !selectedOrder) return;
     
-    try {
+    await executeWithStability(async () => {
       setLoading(true);
       
       const estimatedCost = responseForm.estimatedCost ? parseFloat(responseForm.estimatedCost) : undefined;
@@ -145,24 +152,54 @@ export default function DealerOrderManagement() {
         actualCost
       );
 
-      // Note: Transaction creation is now handled automatically by the orderService
-      // when order status is set to 'completed'
-      
       toast({
-        title: "Order Updated",
-        description: `Order ${responseForm.status} successfully`,
+        title: "Order Updated Successfully",
+        description: `Order ${responseForm.status} and farmer has been notified`,
       });
       
+      // Reset state after successful operation
       setShowResponseModal(false);
       resetResponseForm();
-    } catch (error) {
+      setLoading(false);
+    }, 'order response');
+  };
+
+  // Auto-calculate costs for order
+  const handleAutoCalculation = async (order: OrderRequest) => {
+    if (!currentUser?.uid) return;
+    
+    setLoadingCalculation(true);
+    try {
+      const suggestion = await autoCalculationService.getIntelligentCostSuggestion(
+        currentUser.uid,
+        order.orderType,
+        order.quantity,
+        order.unit || 'kg'
+      );
+      
+      setCalculationSuggestion(suggestion);
+      
+      // Auto-fill the estimated cost if calculation is successful
+      if (suggestion.suggestedCost) {
+        setResponseForm(prev => ({
+          ...prev,
+          estimatedCost: suggestion.suggestedCost.toString()
+        }));
+      }
+      
       toast({
-        title: "Error",
-        description: "Failed to update order",
+        title: "Cost Calculated",
+        description: `Suggested cost: ₹${suggestion.suggestedCost?.toLocaleString()} (${suggestion.confidence}% confidence)`,
+      });
+    } catch (error) {
+      console.error('Auto-calculation error:', error);
+      toast({
+        title: "Calculation Error",
+        description: "Could not auto-calculate cost. Please enter manually.",
         variant: "destructive",
       });
     } finally {
-      setLoading(false);
+      setLoadingCalculation(false);
     }
   };
 
@@ -176,6 +213,9 @@ export default function DealerOrderManagement() {
       actualCost: '',
       deliveryDate: ''
     });
+    
+    // Trigger auto-calculation
+    await handleAutoCalculation(order);
     setShowResponseModal(true);
   };
 
@@ -201,6 +241,7 @@ export default function DealerOrderManagement() {
       deliveryDate: ''
     });
     setSelectedOrder(null);
+    setCalculationSuggestion(null);
   };
 
   // Get farmer data by ID
@@ -240,11 +281,21 @@ export default function DealerOrderManagement() {
 
   return (
     <div className="space-y-6">
+      {/* Dashboard Stability Indicator */}
+      {!isStable && (
+        <Alert className="border-blue-200 bg-blue-50">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            Processing operation... Dashboard remains stable during updates.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Order Management</h1>
-          <p className="mt-2 text-gray-600">Manage farmer order requests</p>
+          <p className="mt-2 text-gray-600">Manage farmer order requests with auto-calculation</p>
         </div>
         <div className="flex gap-3 sm:gap-4 text-sm">
           <div className="text-center">
@@ -616,8 +667,20 @@ export default function DealerOrderManagement() {
             </div>
             
             {responseForm.status === 'approved' && (
-              <div>
-                <Label htmlFor="estimatedCost">Estimated Cost (₹)</Label>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="estimatedCost">Estimated Cost (₹)</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => selectedOrder && handleAutoCalculation(selectedOrder)}
+                    disabled={loadingCalculation}
+                    className="text-xs"
+                  >
+                    {loadingCalculation ? 'Calculating...' : '🤖 Auto-Calculate'}
+                  </Button>
+                </div>
                 <Input
                   id="estimatedCost"
                   type="number"
@@ -626,6 +689,31 @@ export default function DealerOrderManagement() {
                   onChange={(e) => setResponseForm({...responseForm, estimatedCost: e.target.value})}
                   placeholder="Enter estimated cost"
                 />
+                
+                {calculationSuggestion && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                    <div className="font-medium text-blue-900 mb-1">💡 Auto-Calculation Suggestion</div>
+                    <div className="text-blue-800">
+                      <div>Suggested Cost: ₹{calculationSuggestion.suggestedCost?.toLocaleString()}</div>
+                      <div>Confidence: {calculationSuggestion.confidence}%</div>
+                      {calculationSuggestion.reasoning && (
+                        <div className="mt-1 text-xs">{calculationSuggestion.reasoning}</div>
+                      )}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="link"
+                      size="sm"
+                      onClick={() => setResponseForm(prev => ({
+                        ...prev,
+                        estimatedCost: calculationSuggestion.suggestedCost.toString()
+                      }))}
+                      className="p-0 h-auto text-blue-600 text-xs"
+                    >
+                      Use this suggestion
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
 
