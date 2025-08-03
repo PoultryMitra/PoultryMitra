@@ -419,7 +419,7 @@ export default function InventoryManagement() {
                             setSelectedItem(product);
                             setProductForm({
                               productName: product.productName,
-                              category: product.category,
+                              category: product.category as 'Feed' | 'Medicine' | 'Chicks' | 'Equipment' | 'Other',
                               currentStock: product.currentStock.toString(),
                               minStockLevel: product.minStockLevel.toString(),
                               unit: product.unit,
@@ -864,7 +864,13 @@ export default function InventoryManagement() {
               {stockForm.type === 'add' ? 'Add Stock' : 'Remove Stock'}
             </DialogTitle>
             <DialogDescription>
-              {stockForm.type === 'add' ? 'Increase' : 'Decrease'} stock for {selectedItem?.productName || selectedItem?.name}
+              {stockForm.type === 'add' ? 'Increase' : 'Decrease'} stock for {
+                selectedItem && 'productName' in selectedItem 
+                  ? selectedItem.productName 
+                  : selectedItem && 'name' in selectedItem
+                  ? selectedItem.name
+                  : 'Unknown Item'
+              }
             </DialogDescription>
           </DialogHeader>
           

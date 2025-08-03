@@ -1,6 +1,7 @@
 import { Outlet, useLocation } from "react-router-dom";
 import { AppSidebar } from "./AppSidebar";
 import { TopBar } from "./TopBar";
+import { Breadcrumb } from "../navigation/Breadcrumb";
 import { useState } from "react";
 import { useIsMobile } from "@/hooks/use-mobile";
 
@@ -27,9 +28,15 @@ const getPageTitle = (pathname: string) => {
   }
 };
 
+const shouldShowBackButton = (pathname: string) => {
+  // Show back button for non-dashboard pages
+  return pathname !== "/farmer/dashboard";
+};
+
 export function FarmerLayout() {
   const location = useLocation();
   const title = getPageTitle(location.pathname);
+  const showBackButton = shouldShowBackButton(location.pathname);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const isMobile = useIsMobile();
 
@@ -56,7 +63,14 @@ export function FarmerLayout() {
           title={title} 
           onMenuClick={() => setSidebarOpen(true)}
           showMenuButton={isMobile}
+          showBackButton={showBackButton}
         />
+        
+        {/* Breadcrumb Navigation */}
+        <div className="px-4 lg:px-6 py-2 bg-white border-b border-gray-100">
+          <Breadcrumb />
+        </div>
+        
         <main className="flex-1 p-4 lg:p-6 overflow-auto">
           <Outlet />
         </main>
