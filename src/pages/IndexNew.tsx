@@ -1,11 +1,12 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target, Zap, Building } from "lucide-react";
+import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target, Zap, Building, Menu, X } from "lucide-react";
 
 const IndexNew = () => {
   const [language, setLanguage] = useState("hi");
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
   const content = {
     hi: {
@@ -182,6 +183,28 @@ const IndexNew = () => {
     setLanguage(language === "hi" ? "en" : "hi");
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false);
+  };
+
+  // Close mobile menu when clicking outside or on route change
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (isMobileMenuOpen) {
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    if (isMobileMenuOpen) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [isMobileMenuOpen]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-blue-50 to-orange-50">
       {/* Header */}
@@ -192,6 +215,8 @@ const IndexNew = () => {
               <Bird className="w-8 h-8 text-green-600" />
               <h1 className="text-2xl font-bold text-green-600">{t.header.title}</h1>
             </div>
+            
+            {/* Desktop Navigation */}
             <nav className="hidden md:flex space-x-8">
               <a href="#features" className="text-gray-600 hover:text-black-600 transition-colors">{t.header.services}</a>
               <Link to="/fcr-calculator" className="text-gray-600 hover:text-green-600 transition-colors">
@@ -207,7 +232,9 @@ const IndexNew = () => {
               <a href="#testimonials" className="text-gray-600 hover:text-black-600 transition-colors">Reviews</a>
               <Link to="/contact" className="text-gray-600 hover:text-green-600 transition-colors">{t.header.contact}</Link>
             </nav>
-            <div className="flex items-center space-x-3">
+            
+            {/* Desktop Actions */}
+            <div className="hidden md:flex items-center space-x-3">
               <Button
                 variant="outline"
                 size="sm"
@@ -224,7 +251,98 @@ const IndexNew = () => {
                 <Button className="bg-green-600 hover:bg-green-700" size="sm">{t.header.register}</Button>
               </Link>
             </div>
+
+            {/* Mobile Menu Button */}
+            <div className="md:hidden flex items-center space-x-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={toggleLanguage}
+                className="flex items-center gap-1"
+              >
+                <Globe size={14} />
+                {language === 'hi' ? 'EN' : 'हिं'}
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleMobileMenu}
+                className="p-2"
+              >
+                {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+              </Button>
+            </div>
           </div>
+
+          {/* Mobile Menu */}
+          {isMobileMenuOpen && (
+            <div 
+              className="md:hidden border-t bg-white/95 backdrop-blur-sm animate-in slide-in-from-top-2 duration-200"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="px-2 pt-2 pb-3 space-y-1">
+                <a 
+                  href="#features" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {t.header.services}
+                </a>
+                <Link 
+                  to="/fcr-calculator" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {language === 'hi' ? 'FCR कैलकुलेटर' : 'FCR Calculator'}
+                </Link>
+                <Link 
+                  to="/batch-management" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {language === 'hi' ? 'बैच मैनेजमेंट' : 'Batch Management'}
+                </Link>
+                <Link 
+                  to="/fcr-reports" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {language === 'hi' ? 'FCR रिपोर्ट्स' : 'FCR Reports'}
+                </Link>
+                <Link 
+                  to="/posts" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {t.header.guides}
+                </Link>
+                <a 
+                  href="#testimonials" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  Reviews
+                </a>
+                <Link 
+                  to="/contact" 
+                  className="block px-3 py-3 text-base font-medium text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-md transition-colors"
+                  onClick={closeMobileMenu}
+                >
+                  {t.header.contact}
+                </Link>
+                
+                {/* Mobile Action Buttons */}
+                <div className="border-t pt-4 space-y-3">
+                  <Link to="/login" onClick={closeMobileMenu}>
+                    <Button variant="outline" className="w-full justify-center py-3 text-base font-medium">{t.header.login}</Button>
+                  </Link>
+                  <Link to="/register" onClick={closeMobileMenu}>
+                    <Button className="w-full justify-center py-3 text-base font-medium bg-green-600 hover:bg-green-700">{t.header.register}</Button>
+                  </Link>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </header>
 
