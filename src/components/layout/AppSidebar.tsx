@@ -14,6 +14,9 @@ import {
   X,
   Building,
   Zap,
+  BookOpen,
+  ShoppingCart,
+  Archive,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -30,15 +33,28 @@ const navigationGroups = {
       { title: "FCR Calculator", url: "/farmer/fcr-calculator", icon: Calculator },
       { title: "Vaccine Reminders", url: "/farmer/vaccines", icon: Syringe },
     ],
+    "ORDERING": [
+      { title: "My Orders", url: "/farmer/orders", icon: ShoppingCart },
+    ],
     "ADVANCED TOOLS": [
       { title: "Poultry Calculators", url: "/farmer/calculators", icon: Zap },
       { title: "Shed Management", url: "/farmer/shed-management", icon: Building },
+    ],
+    "RESOURCES": [
+      { title: "Posts & Guides", url: "/farmer/posts", icon: BookOpen },
     ],
   },
   dealer: {
     DEALER: [
       { title: "Dashboard", url: "/dealer/dashboard", icon: Home },
       { title: "Feed Prices", url: "/dealer/feed-prices", icon: DollarSign },
+    ],
+    "INVENTORY & ORDERS": [
+      { title: "Inventory Management", url: "/dealer/inventory", icon: Archive },
+      { title: "Order Management", url: "/dealer/orders", icon: ShoppingCart },
+    ],
+    "RESOURCES": [
+      { title: "Posts & Guides", url: "/dealer/posts", icon: BookOpen },
     ],
   },
 };

@@ -848,6 +848,8 @@ export const subscribeToConnectedDealerProducts = (
   
   const dealersUnsubscribe = onSnapshot(dealersQuery, 
     (dealersSnapshot) => {
+      console.log('🔄 subscribeToConnectedDealerProducts - Dealers snapshot:', dealersSnapshot.docs.length);
+      
       // Clean up previous product subscriptions
       dealerUnsubscribes.forEach(unsub => unsub());
       dealerUnsubscribes = [];
@@ -857,9 +859,12 @@ export const subscribeToConnectedDealerProducts = (
       const totalDealers = dealersSnapshot.docs.length;
       
       if (totalDealers === 0) {
+        console.log('⚠️ subscribeToConnectedDealerProducts - No connected dealers found');
         callback([]);
         return;
       }
+      
+      console.log(`🔄 subscribeToConnectedDealerProducts - Subscribing to products from ${totalDealers} dealers`);
       
       // Subscribe to products from each connected dealer
       dealersSnapshot.forEach((dealerDoc) => {
@@ -867,11 +872,14 @@ export const subscribeToConnectedDealerProducts = (
         
         const productsQuery = query(
           collection(db, 'dealerProducts'),
-          where('dealerId', '==', dealerId),
-          orderBy('lastUpdated', 'desc')
+          where('dealerId', '==', dealerId)
+          // Temporarily removed orderBy to avoid index requirement until indexes are built
+          // orderBy('lastUpdated', 'desc')
         );
         
         const productUnsub = onSnapshot(productsQuery, (productsSnapshot) => {
+          console.log(`🔄 subscribeToConnectedDealerProducts - Products from dealer ${dealerId}:`, productsSnapshot.docs.length);
+          
           // Remove products from this dealer and add new ones
           const otherDealerProducts = allProducts.filter(p => p.dealerId !== dealerId);
           const thisDealerProducts: Product[] = [];

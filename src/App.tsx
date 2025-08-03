@@ -27,6 +27,9 @@ import Tasks from "./pages/Tasks";
 import Reports from "./pages/admin/Reports";
 import Customers from "./pages/Customers";
 import Products from "./pages/Products";
+import InventoryManagement from "./pages/InventoryManagement";
+import FarmerOrdering from "./pages/FarmerOrdering";
+import DealerOrderManagement from "./pages/DealerOrderManagement";
 import FarmerLogin from "./pages/FarmerLogin";
 import DealerLogin from "./pages/DealerLogin";
 import AdminLogin from "./pages/AdminLogin";
@@ -116,6 +119,7 @@ const App = () => (
             <Route path="vaccines" element={<VaccinesWorking />} />
             <Route path="calculators" element={<PoultryCalculators />} />
             <Route path="shed-management" element={<ShedManagement />} />
+            <Route path="orders" element={<FarmerOrdering />} />
             <Route path="posts" element={<PostsAndGuides />} />
           </Route>
           
@@ -127,6 +131,8 @@ const App = () => (
           }>
             <Route path="dashboard" element={<DealerDashboard />} />
             <Route path="feed-prices" element={<Rates />} />
+            <Route path="inventory" element={<InventoryManagement />} />
+            <Route path="orders" element={<DealerOrderManagement />} />
             <Route path="posts" element={<PostsAndGuides />} />
           </Route>
           

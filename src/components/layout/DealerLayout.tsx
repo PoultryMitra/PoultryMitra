@@ -9,7 +9,13 @@ const getPageTitle = (pathname: string) => {
     case "/dealer/dashboard":
       return "Dealer Dashboard";
     case "/dealer/feed-prices":
-      return "Feed Prices & Catalog";
+      return "Feed Prices & Market Rates";
+    case "/dealer/inventory":
+      return "Inventory Management";
+    case "/dealer/orders":
+      return "Order Management";
+    case "/dealer/posts":
+      return "Posts & Guides";
     default:
       return "Dealer Portal";
   }

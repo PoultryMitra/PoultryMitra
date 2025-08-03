@@ -18,6 +18,10 @@ const getPageTitle = (pathname: string) => {
       return "Advanced Poultry Calculators";
     case "/farmer/shed-management":
       return "Shed Design & Management";
+    case "/farmer/orders":
+      return "My Orders";
+    case "/farmer/posts":
+      return "Posts & Guides";
     default:
       return "Farmer Portal";
   }

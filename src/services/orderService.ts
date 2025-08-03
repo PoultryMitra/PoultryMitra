@@ -9,9 +9,28 @@ import {
   Timestamp,
   updateDoc,
   doc,
-  deleteDoc
+  deleteDoc,
+  getDoc
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
+
+// Notification interface for the ordering system
+export interface OrderNotification {
+  id: string;
+  userId: string; // The user who should receive the notification
+  userType: 'farmer' | 'dealer';
+  type: 'order_request' | 'order_approved' | 'order_rejected' | 'order_completed';
+  title: string;
+  message: string;
+  orderId: string;
+  farmerName?: string;
+  dealerName?: string;
+  orderType?: string;
+  quantity?: number;
+  unit?: string;
+  read: boolean;
+  createdAt: Timestamp;
+}
 
 export interface OrderRequest {
   id: string;
@@ -54,6 +73,80 @@ export interface FarmerAccountBalance {
   lastUpdated: Timestamp;
 }
 
+// Helper function to send order notifications
+const sendOrderNotification = async (
+  userId: string,
+  userType: 'farmer' | 'dealer',
+  type: OrderNotification['type'],
+  title: string,
+  message: string,
+  orderId: string,
+  additionalData?: {
+    farmerName?: string;
+    dealerName?: string;
+    orderType?: string;
+    quantity?: number;
+    unit?: string;
+  }
+): Promise<void> => {
+  try {
+    const notificationRef = collection(db, 'orderNotifications');
+    
+    await addDoc(notificationRef, {
+      userId,
+      userType,
+      type,
+      title,
+      message,
+      orderId,
+      ...additionalData,
+      read: false,
+      createdAt: Timestamp.now()
+    });
+    
+    console.log('📢 Order notification sent:', { userId, userType, type, title });
+  } catch (error) {
+    console.error('Error sending order notification:', error);
+  }
+};
+
+// Helper function to create accounting transaction when order is completed
+const createAccountingTransaction = async (
+  order: OrderRequest
+): Promise<void> => {
+  try {
+    if (!order.actualCost && !order.estimatedCost) {
+      console.warn('No cost specified for completed order, skipping accounting transaction');
+      return;
+    }
+
+    const amount = order.actualCost || order.estimatedCost || 0;
+    
+    // Create debit transaction (farmer owes dealer)
+    await addFarmerTransaction(
+      order.farmerId,
+      order.dealerId,
+      order.dealerName,
+      {
+        transactionType: 'debit',
+        amount: amount,
+        description: `Order completed: ${order.quantity} ${order.unit} ${order.orderType}`,
+        category: order.orderType,
+        orderRequestId: order.id
+      }
+    );
+    
+    console.log('💰 Accounting transaction created for completed order:', {
+      orderId: order.id,
+      amount,
+      farmerName: order.farmerName,
+      dealerName: order.dealerName
+    });
+  } catch (error) {
+    console.error('Error creating accounting transaction:', error);
+  }
+};
+
 // Submit order request from farmer to dealer
 export const submitOrderRequest = async (
   farmerId: string,
@@ -70,7 +163,7 @@ export const submitOrderRequest = async (
   try {
     const orderRef = collection(db, 'orderRequests');
     
-    await addDoc(orderRef, {
+    const docRef = await addDoc(orderRef, {
       farmerId,
       farmerName,
       dealerId,
@@ -78,6 +171,30 @@ export const submitOrderRequest = async (
       ...orderData,
       status: 'pending',
       requestDate: Timestamp.now()
+    });
+
+    // Send notification to dealer
+    await sendOrderNotification(
+      dealerId,
+      'dealer',
+      'order_request',
+      'New Order Request',
+      `${farmerName} has requested ${orderData.quantity} ${orderData.unit} of ${orderData.orderType}`,
+      docRef.id,
+      {
+        farmerName,
+        dealerName,
+        orderType: orderData.orderType,
+        quantity: orderData.quantity,
+        unit: orderData.unit
+      }
+    );
+
+    console.log('📦 Order request submitted with notification:', {
+      orderId: docRef.id,
+      farmerName,
+      dealerName,
+      orderType: orderData.orderType
     });
   } catch (error) {
     console.error('Error submitting order request:', error);
@@ -92,8 +209,9 @@ export const subscribeFarmerOrderRequests = (
 ): (() => void) => {
   const q = query(
     collection(db, 'orderRequests'),
-    where('farmerId', '==', farmerId),
-    orderBy('requestDate', 'desc')
+    where('farmerId', '==', farmerId)
+    // Temporarily removed orderBy to avoid index requirement until indexes are built
+    // orderBy('requestDate', 'desc')
   );
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -114,8 +232,9 @@ export const subscribeDealerOrderRequests = (
 ): (() => void) => {
   const q = query(
     collection(db, 'orderRequests'),
-    where('dealerId', '==', dealerId),
-    orderBy('requestDate', 'desc')
+    where('dealerId', '==', dealerId)
+    // Temporarily removed orderBy to avoid index requirement until indexes are built
+    // orderBy('requestDate', 'desc')
   );
 
   const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -140,12 +259,84 @@ export const updateOrderRequestStatus = async (
   try {
     const orderRef = doc(db, 'orderRequests', orderId);
     
+    // Get the current order data to access farmer info
+    const orderDoc = await getDoc(orderRef);
+    if (!orderDoc.exists()) {
+      throw new Error('Order not found');
+    }
+    
+    const orderData = orderDoc.data() as OrderRequest;
+    
+    // Update the order
     await updateDoc(orderRef, {
       status,
       responseDate: Timestamp.now(),
       ...(dealerNotes && { dealerNotes }),
       ...(estimatedCost && { estimatedCost }),
       ...(actualCost && { actualCost })
+    });
+
+    // Send notification to farmer based on status
+    let notificationTitle = '';
+    let notificationMessage = '';
+    
+    switch (status) {
+      case 'approved':
+        notificationTitle = 'Order Approved';
+        notificationMessage = `Your order for ${orderData.quantity} ${orderData.unit} of ${orderData.orderType} has been approved by ${orderData.dealerName}`;
+        if (estimatedCost) {
+          notificationMessage += `. Estimated cost: ₹${estimatedCost.toLocaleString()}`;
+        }
+        break;
+      case 'rejected':
+        notificationTitle = 'Order Rejected';
+        notificationMessage = `Your order for ${orderData.quantity} ${orderData.unit} of ${orderData.orderType} has been rejected by ${orderData.dealerName}`;
+        if (dealerNotes) {
+          notificationMessage += `. Reason: ${dealerNotes}`;
+        }
+        break;
+      case 'completed':
+        notificationTitle = 'Order Completed';
+        notificationMessage = `Your order for ${orderData.quantity} ${orderData.unit} of ${orderData.orderType} has been completed by ${orderData.dealerName}`;
+        if (actualCost) {
+          notificationMessage += `. Total cost: ₹${actualCost.toLocaleString()}`;
+        }
+        break;
+    }
+
+    await sendOrderNotification(
+      orderData.farmerId,
+      'farmer',
+      `order_${status}` as OrderNotification['type'],
+      notificationTitle,
+      notificationMessage,
+      orderId,
+      {
+        farmerName: orderData.farmerName,
+        dealerName: orderData.dealerName,
+        orderType: orderData.orderType,
+        quantity: orderData.quantity,
+        unit: orderData.unit
+      }
+    );
+
+    // If order is completed, create accounting transaction
+    if (status === 'completed') {
+      const updatedOrder = {
+        ...orderData,
+        status,
+        actualCost,
+        estimatedCost
+      } as OrderRequest;
+      
+      await createAccountingTransaction(updatedOrder);
+    }
+
+    console.log('📋 Order status updated with notification:', {
+      orderId,
+      status,
+      farmerName: orderData.farmerName,
+      dealerName: orderData.dealerName
     });
   } catch (error) {
     console.error('Error updating order request:', error);
@@ -190,16 +381,18 @@ export const subscribeFarmerTransactions = (
 ): (() => void) => {
   let q = query(
     collection(db, 'farmerTransactions'),
-    where('farmerId', '==', farmerId),
-    orderBy('date', 'desc')
+    where('farmerId', '==', farmerId)
+    // Temporarily removed orderBy to avoid index requirement until indexes are built
+    // orderBy('date', 'desc')
   );
 
   if (dealerId) {
     q = query(
       collection(db, 'farmerTransactions'),
       where('farmerId', '==', farmerId),
-      where('dealerId', '==', dealerId),
-      orderBy('date', 'desc')
+      where('dealerId', '==', dealerId)
+      // Temporarily removed orderBy to avoid index requirement until indexes are built
+      // orderBy('date', 'desc')
     );
   }
 
@@ -253,6 +446,58 @@ export const calculateFarmerBalances = (
   return Array.from(balanceMap.values());
 };
 
+// Subscribe to user's order notifications
+export const subscribeToOrderNotifications = (
+  userId: string,
+  callback: (notifications: OrderNotification[]) => void
+): (() => void) => {
+  const q = query(
+    collection(db, 'orderNotifications'),
+    where('userId', '==', userId),
+    orderBy('createdAt', 'desc')
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const notifications: OrderNotification[] = [];
+    snapshot.forEach((doc) => {
+      notifications.push({ id: doc.id, ...doc.data() } as OrderNotification);
+    });
+    callback(notifications);
+  });
+
+  return unsubscribe;
+};
+
+// Mark notification as read
+export const markNotificationAsRead = async (notificationId: string): Promise<void> => {
+  try {
+    const notificationRef = doc(db, 'orderNotifications', notificationId);
+    await updateDoc(notificationRef, {
+      read: true
+    });
+  } catch (error) {
+    console.error('Error marking notification as read:', error);
+    throw error;
+  }
+};
+
+// Get unread notification count
+export const getUnreadNotificationCount = async (userId: string): Promise<number> => {
+  try {
+    const q = query(
+      collection(db, 'orderNotifications'),
+      where('userId', '==', userId),
+      where('read', '==', false)
+    );
+    
+    const snapshot = await getDocs(q);
+    return snapshot.docs.length;
+  } catch (error) {
+    console.error('Error getting unread notification count:', error);
+    return 0;
+  }
+};
+
 // Export service object
 export const orderService = {
   submitOrderRequest,
@@ -261,5 +506,8 @@ export const orderService = {
   updateOrderRequestStatus,
   addFarmerTransaction,
   subscribeFarmerTransactions,
-  calculateFarmerBalances
+  calculateFarmerBalances,
+  subscribeToOrderNotifications,
+  markNotificationAsRead,
+  getUnreadNotificationCount
 };
