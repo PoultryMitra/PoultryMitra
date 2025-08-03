@@ -183,7 +183,8 @@ const IndexNew = () => {
     setLanguage(language === "hi" ? "en" : "hi");
   };
 
-  const toggleMobileMenu = () => {
+  const toggleMobileMenu = (e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
 
@@ -193,8 +194,16 @@ const IndexNew = () => {
 
   // Close mobile menu when clicking outside or on route change
   useEffect(() => {
-    const handleClickOutside = () => {
-      if (isMobileMenuOpen) {
+    const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Element;
+      const mobileMenuButton = document.querySelector('[data-mobile-menu-button]');
+      const mobileMenu = document.querySelector('[data-mobile-menu]');
+      
+      if (isMobileMenuOpen && 
+          mobileMenuButton && 
+          mobileMenu && 
+          !mobileMenuButton.contains(target) && 
+          !mobileMenu.contains(target)) {
         setIsMobileMenuOpen(false);
       }
     };
@@ -268,6 +277,7 @@ const IndexNew = () => {
                 size="sm"
                 onClick={toggleMobileMenu}
                 className="p-2"
+                data-mobile-menu-button
               >
                 {isMobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
               </Button>
@@ -279,6 +289,7 @@ const IndexNew = () => {
             <div 
               className="md:hidden border-t bg-white/95 backdrop-blur-sm animate-in slide-in-from-top-2 duration-200"
               onClick={(e) => e.stopPropagation()}
+              data-mobile-menu
             >
               <div className="px-2 pt-2 pb-3 space-y-1">
                 <a 
