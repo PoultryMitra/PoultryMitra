@@ -302,7 +302,9 @@ export const connectFarmerToDealer = async (
     });
 
     // Validate that we have real dealer data, not placeholders
-    if (dealerEmail === 'dealer@example.com' || dealerName === 'Dealer') {
+    if (dealerEmail === 'dealer@example.com' || 
+        dealerEmail === 'test@example.com' || 
+        (dealerName === 'Dealer' && dealerEmail.includes('example.com'))) {
       console.error('❌ Placeholder dealer data detected! Cannot create connection.');
       throw new Error('Invalid dealer information. Please try again or contact support.');
     }
