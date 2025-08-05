@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
-import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target, Zap, Building, Menu, X } from "lucide-react";
+import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, BarChart3, DollarSign, Heart, Target, Zap, Building, Menu, X, Activity } from "lucide-react";
 
 const IndexNew = () => {
   const [language, setLanguage] = useState("hi");
@@ -432,7 +432,7 @@ const IndexNew = () => {
             </p>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
             <Link to="/fcr-calculator" className="block">
               <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1">
                 <CardContent className="p-6 text-center">
@@ -443,6 +443,23 @@ const IndexNew = () => {
                   <p className="text-sm text-gray-600">
                     {language === 'hi' ? 'फीड कन्वर्जन रेट' : 'Feed Conversion Rate'}
                   </p>
+                </CardContent>
+              </Card>
+            </Link>
+            
+            <Link to="/disease-risk-calculator" className="block">
+              <Card className="hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 border-red-200">
+                <CardContent className="p-6 text-center">
+                  <Activity className="w-12 h-12 text-red-600 mx-auto mb-3" />
+                  <h3 className="font-semibold text-gray-800 mb-2">
+                    {language === 'hi' ? 'रोग जोखिम कैलकुलेटर' : 'Disease Risk Calculator'}
+                  </h3>
+                  <p className="text-sm text-gray-600">
+                    {language === 'hi' ? 'स्वास्थ्य मूल्यांकन' : 'Health Assessment'}
+                  </p>
+                  <span className="inline-block mt-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded-full">
+                    {language === 'hi' ? 'नया' : 'NEW'}
+                  </span>
                 </CardContent>
               </Card>
             </Link>

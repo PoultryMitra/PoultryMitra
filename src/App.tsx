@@ -53,6 +53,7 @@ import ShedManagement from "./pages/ShedManagement";
 import AdminPostsManagement from "./pages/AdminPostsManagement";
 import PostsAndGuides from "./pages/PostsAndGuides";
 import PostDetail from "./pages/PostDetail";
+import DiseaseRiskCalculator from "./pages/DiseaseRiskCalculator";
 
 // Layouts
 import { FarmerLayout } from "./components/layout/FarmerLayout";
@@ -102,6 +103,7 @@ const App = () => (
           <Route path="/client-demo" element={<ClientRequirementsDemo />} />
           <Route path="/ledger-test" element={<LedgerTest />} />
           <Route path="/poultry-calculators" element={<PoultryCalculators />} />
+          <Route path="/disease-risk-calculator" element={<DiseaseRiskCalculator />} />
           <Route path="/shed-management" element={<ShedManagement />} />
           <Route path="/posts" element={<PostsAndGuides />} />
           <Route path="/posts/:postId" element={<PostDetail />} />
@@ -123,6 +125,7 @@ const App = () => (
             <Route path="fcr-calculator" element={<FCRCalculator />} />
             <Route path="vaccines" element={<VaccinesWorking />} />
             <Route path="calculators" element={<PoultryCalculators />} />
+            <Route path="disease-risk" element={<DiseaseRiskCalculator />} />
             <Route path="shed-management" element={<ShedManagement />} />
             <Route path="orders" element={<FarmerOrdering />} />
             <Route path="posts" element={<PostsAndGuides />} />

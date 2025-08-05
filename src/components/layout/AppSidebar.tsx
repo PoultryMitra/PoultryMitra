@@ -17,6 +17,7 @@ import {
   BookOpen,
   ShoppingCart,
   Archive,
+  Activity,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -37,6 +38,7 @@ const navigationGroups = {
       { title: "My Orders", url: "/farmer/orders", icon: ShoppingCart },
     ],
     "ADVANCED TOOLS": [
+      { title: "Disease Risk Calculator", url: "/farmer/disease-risk", icon: Activity },
       { title: "Poultry Calculators", url: "/farmer/calculators", icon: Zap },
       { title: "Shed Management", url: "/farmer/shed-management", icon: Building },
     ],
