@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Balance Migration</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            getDocs, 
+            doc, 
+            setDoc,
+            Timestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Use your actual Firebase config here
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3tc1EKESzh4ITdCbM3a5NSlZa4vDnVBY",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "321937432406",
+            appId: "1:321937432406:web:14469a9f3f45a6315380f7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        async function migrateBalances() {
+            const statusEl = document.getElementById('status');
+            
+            try {
+                statusEl.innerHTML = '🔄 Starting balance migration...';
+                
+                // Get all farmer transactions
+                const transactionsSnapshot = await getDocs(collection(db, 'farmerTransactions'));
+                
+                // Group transactions by farmer-dealer pairs
+                const balanceMap = new Map();
+                
+                transactionsSnapshot.forEach((doc) => {
+                    const transaction = doc.data();
+                    const key = `${transaction.farmerId}_${transaction.dealerId}`;
+                    
+                    if (!balanceMap.has(key)) {
+                        balanceMap.set(key, {
+                            farmerId: transaction.farmerId,
+                            dealerId: transaction.dealerId,
+                            dealerName: transaction.dealerName,
+                            creditBalance: 0,
+                            debitBalance: 0,
+                            netBalance: 0,
+                            lastUpdated: transaction.date || Timestamp.now()
+                        });
+                    }
+                    
+                    const balance = balanceMap.get(key);
+                    
+                    if (transaction.transactionType === 'credit') {
+                        balance.debitBalance += transaction.amount; // Dealer owes farmer
+                    } else {
+                        balance.creditBalance += transaction.amount; // Farmer owes dealer
+                    }
+                    
+                    balance.netBalance = balance.creditBalance - balance.debitBalance;
+                    
+                    // Update last updated time
+                    if (transaction.date && transaction.date.toMillis() > balance.lastUpdated.toMillis()) {
+                        balance.lastUpdated = transaction.date;
+                    }
+                });
+                
+                statusEl.innerHTML += `<br>📊 Found ${balanceMap.size} farmer-dealer balance pairs<br>`;
+                
+                // Write balances to farmerBalances collection
+                const promises = [];
+                for (const [key, balance] of balanceMap.entries()) {
+                    const balanceRef = doc(db, 'farmerBalances', key);
+                    promises.push(setDoc(balanceRef, balance));
+                }
+                
+                await Promise.all(promises);
+                
+                statusEl.innerHTML += `<br>✅ Balance migration completed successfully!<br>`;
+                statusEl.innerHTML += `📝 Created ${balanceMap.size} balance documents in farmerBalances collection`;
+                
+            } catch (error) {
+                statusEl.innerHTML += `<br>❌ Error migrating balances: ${error.message}`;
+                console.error('Error migrating balances:', error);
+            }
+        }
+
+        // Make function available globally
+        window.migrateBalances = migrateBalances;
+    </script>
+</head>
+<body>
+    <h1>Farmer Balance Migration Tool</h1>
+    <p>This tool will create the farmerBalances collection by calculating balances from existing farmerTransactions.</p>
+    
+    <button onclick="migrateBalances()" style="padding: 10px 20px; font-size: 16px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">
+        Start Migration
+    </button>
+    
+    <div id="status" style="margin-top: 20px; padding: 10px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-family: monospace; white-space: pre-wrap;"></div>
+    
+    <h2>Instructions:</h2>
+    <ol>
+        <li>Update the Firebase config in the script above with your actual project details</li>
+        <li>Open this file in a browser</li>
+        <li>Click "Start Migration" to populate the farmerBalances collection</li>
+        <li>Check your Firestore console to verify the new collection was created</li>
+    </ol>
+</body>
+</html>

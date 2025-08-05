@@ -346,23 +346,30 @@ function FarmerDashboard() {
         { showErrorToast: true }
       );
 
-      // Load transactions
+      // Load transactions and balances
       await executeWithStability(
         async () => {
           return new Promise<void>((resolve) => {
-            const unsubscribe = orderService.subscribeFarmerTransactions(
+            const unsubscribeTransactions = orderService.subscribeFarmerTransactions(
               currentUser.uid,
               (transactions) => {
                 setFarmerTransactions(transactions);
-                const balances = orderService.calculateFarmerBalances(transactions);
-                setFarmerBalances(balances);
-                resolve();
               }
             );
-            (window as any)._farmerTransactionsUnsubscribe = unsubscribe;
+            
+            const unsubscribeBalances = orderService.subscribeFarmerBalances(
+              currentUser.uid,
+              (balances) => {
+                setFarmerBalances(balances);
+              }
+            );
+            
+            (window as any)._farmerTransactionsUnsubscribe = unsubscribeTransactions;
+            (window as any)._farmerBalancesUnsubscribe = unsubscribeBalances;
+            resolve();
           });
         },
-        'Load Farmer Transactions',
+        'Load Farmer Transactions and Balances',
         { showErrorToast: true }
       );
     };
@@ -375,6 +382,9 @@ function FarmerDashboard() {
       }
       if ((window as any)._farmerTransactionsUnsubscribe) {
         (window as any)._farmerTransactionsUnsubscribe();
+      }
+      if ((window as any)._farmerBalancesUnsubscribe) {
+        (window as any)._farmerBalancesUnsubscribe();
       }
     };
   }, [currentUser?.uid, executeWithStability]);
@@ -555,74 +565,136 @@ function FarmerDashboard() {
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="orders">My Orders</TabsTrigger>
-          <TabsTrigger value="account">My Account</TabsTrigger>
-          <TabsTrigger value="finance">Finance</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
+
           {/* Key Metrics */}
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected Dealers</CardTitle>
-            <Users className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{connectedDealers.length}</div>
-            <p className="text-xs text-muted-foreground">
-              Dealers available for feed prices
-            </p>
-            <p className="text-xs text-green-600 mt-1">
-              Call directly to place orders
-            </p>
-          </CardContent>
-        </Card>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Connected Dealers</CardTitle>
+                <Users className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
+                <div className="text-2xl font-bold">{connectedDealers.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Dealers available for feed prices
+                </p>
+                <p className="text-xs text-green-600 mt-1">
+                  Call directly to place orders
+                </p>
+              </CardContent>
+            </Card>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Today's Weather</CardTitle>
-            {getWeatherIcon()}
-          </CardHeader>
-          <CardContent>
-            {weather.isLoading ? (
-              <div className="text-sm text-muted-foreground">Loading weather...</div>
-            ) : weather.error ? (
-              <div className="text-sm text-red-600">{weather.error}</div>
-            ) : (
-              <>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Today's Weather</CardTitle>
+                {getWeatherIcon()}
+              </CardHeader>
+              <CardContent>
+                {weather.isLoading ? (
+                  <div className="text-sm text-muted-foreground">Loading weather...</div>
+                ) : weather.error ? (
+                  <div className="text-sm text-red-600">{weather.error}</div>
+                ) : (
+                  <>
+                    <div className="text-2xl font-bold">
+                      {weather.temperature}
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {weather.forecast}
+                    </p>
+                    <div className="flex gap-3 mt-1 text-xs">
+                      <span className="text-blue-600">Humidity: {weather.humidity}</span>
+                      <span className="text-green-600">Rainfall: {weather.rainfall}</span>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                <CardTitle className="text-sm font-medium">Active Batches</CardTitle>
+                <Package className="h-4 w-4 text-muted-foreground" />
+              </CardHeader>
+              <CardContent>
                 <div className="text-2xl font-bold">
-                  {weather.temperature}
+                  {activeBatches}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  {weather.forecast}
+                  Total Active Batches
                 </p>
-                <div className="flex gap-3 mt-1 text-xs">
-                  <span className="text-blue-600">Humidity: {weather.humidity}</span>
-                  <span className="text-green-600">Rainfall: {weather.rainfall}</span>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
+                <p className="text-xs text-green-600 mt-1">
+                  {totalBirds} birds total
+                </p>
+              </CardContent>
+            </Card>
+          </div>
 
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Batches</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {activeBatches}
-            </div>
-            <p className="text-xs text-muted-foreground">
-              Total Active Batches
-            </p>
-            <p className="text-xs text-green-600 mt-1">
-              {totalBirds} birds total
-            </p>
-          </CardContent>
-        </Card>
-      </div>
+          {/* Dealer Account Balances Section */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg sm:text-xl">Dealer Account Balances</CardTitle>
+              <p className="text-sm text-muted-foreground">Your running balance with each connected dealer</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                {connectedDealers.map(dealer => {
+                  const balance = farmerBalances.find(b => b.dealerId === dealer.dealerId);
+                  return (
+                    <Card key={dealer.dealerId} className="border">
+                      <CardHeader>
+                        <CardTitle className="text-base">{dealer.dealerName}</CardTitle>
+                        <p className="text-xs text-gray-500">{dealer.dealerEmail}</p>
+                      </CardHeader>
+                      <CardContent>
+                        {balance ? (
+                          <div className="space-y-2">
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Your Available Balance:</span>
+                              <span className="text-sm font-medium text-green-600">₹{balance.netBalance}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Total Deposited:</span>
+                              <span className="text-sm font-medium text-blue-600">₹{balance.creditBalance}</span>
+                            </div>
+                            <hr />
+                            <div className="flex justify-between">
+                              <span className="font-medium">Available for Orders:</span>
+                              <span className={`font-medium ${balance.netBalance > 0 ? 'text-green-600' : balance.netBalance < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                                ₹{balance.netBalance}
+                              </span>
+                            </div>
+                            <div className="text-xs text-gray-500">Last updated: {balance.lastUpdated.toDate().toLocaleDateString()}</div>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="text-sm text-gray-500 mb-2">No transactions yet</div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">You owe dealer:</span>
+                              <span className="text-sm font-medium text-red-600">₹0</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-sm text-muted-foreground">Dealer owes you:</span>
+                              <span className="text-sm font-medium text-green-600">₹0</span>
+                            </div>
+                            <hr />
+                            <div className="flex justify-between">
+                              <span className="font-medium">Net Balance:</span>
+                              <span className="font-medium text-gray-600">₹0</span>
+                            </div>
+                            <div className="text-xs text-gray-500">No transactions yet</div>
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </CardContent>
+          </Card>
 
       <div className="grid gap-6 md:grid-cols-2">
         {/* Batch Management */}
@@ -1239,140 +1311,7 @@ function FarmerDashboard() {
           </Card>
         </TabsContent>
         
-        <TabsContent value="account" className="space-y-6">
-          {/* Account Balance Cards */}
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {farmerBalances.map((balance) => (
-              <Card key={balance.dealerId}>
-                <CardHeader>
-                  <CardTitle className="text-lg">{balance.dealerName}</CardTitle>
-                  <p className="text-sm text-muted-foreground">Account Balance</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">You owe:</span>
-                      <span className="text-sm font-medium text-red-600">₹{balance.creditBalance}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-sm text-muted-foreground">They owe:</span>
-                      <span className="text-sm font-medium text-green-600">₹{balance.debitBalance}</span>
-                    </div>
-                    <hr />
-                    <div className="flex justify-between">
-                      <span className="font-medium">Net Balance:</span>
-                      <span className={`font-medium ${balance.netBalance > 0 ? 'text-red-600' : balance.netBalance < 0 ? 'text-green-600' : 'text-gray-600'}`}>
-                        {balance.netBalance > 0 && '+'}₹{balance.netBalance}
-                      </span>
-                    </div>
-                  </div>
-                  <Button 
-                    variant="outline" 
-                    className="w-full mt-4"
-                    onClick={() => setSelectedDealerForAccount(balance.dealerId)}
-                  >
-                    <History className="w-4 h-4 mr-2" />
-                    View History
-                  </Button>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {/* Transaction History */}
-          <Card>
-            <CardHeader>
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle>Transaction History</CardTitle>
-                  <p className="text-sm text-muted-foreground">
-                    Your transaction history with dealers
-                  </p>
-                </div>
-                <Select value={selectedDealerForAccount} onValueChange={setSelectedDealerForAccount}>
-                  <SelectTrigger className="w-48">
-                    <SelectValue placeholder="All dealers" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">All dealers</SelectItem>
-                    {connectedDealers.map((dealer) => (
-                      <SelectItem key={dealer.dealerId} value={dealer.dealerId}>
-                        {dealer.dealerName}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </CardHeader>
-            <CardContent>
-              {farmerTransactions.length === 0 ? (
-                <div className="text-center py-8">
-                  <CreditCard className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No transactions yet</h3>
-                  <p className="text-gray-600">Your transaction history will appear here.</p>
-                </div>
-              ) : (
-                <div className="space-y-3">
-                  {farmerTransactions
-                    .filter(t => !selectedDealerForAccount || t.dealerId === selectedDealerForAccount)
-                    .map((transaction) => (
-                    <div key={transaction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex items-center gap-3">
-                        {transaction.transactionType === 'credit' ? (
-                          <ArrowUpCircle className="w-5 h-5 text-red-500" />
-                        ) : (
-                          <ArrowDownCircle className="w-5 h-5 text-green-500" />
-                        )}
-                        <div>
-                          <p className="font-medium">{transaction.description}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {transaction.dealerName} • {transaction.date.toDate().toLocaleDateString()}
-                          </p>
-                          <Badge variant="outline" className="text-xs">
-                            {transaction.category}
-                          </Badge>
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <p className={`font-medium ${transaction.transactionType === 'credit' ? 'text-red-600' : 'text-green-600'}`}>
-                          {transaction.transactionType === 'credit' ? '+' : '-'}₹{transaction.amount}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="finance" className="space-y-6">
-          {!isStable ? (
-            <Card>
-              <CardContent className="flex items-center justify-center py-8">
-                <div className="text-center">
-                  <AlertCircle className="h-8 w-8 text-yellow-600 mx-auto mb-2" />
-                  <p className="text-gray-600">Financial system is temporarily unavailable</p>
-                  <p className="text-sm text-gray-500 mt-1">Please wait for the system to stabilize</p>
-                  <div className="mt-4 space-x-2">
-                    <Button variant="outline" size="sm" onClick={resetStability}>
-                      Reset System
-                    </Button>
-                    <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                      Refresh Page
-                    </Button>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : (
-            <CreditDebitNoteManager 
-              userRole="farmer"
-              targetUserId={undefined}
-              targetUserName={undefined}
-            />
-          )}
-        </TabsContent>
+        // ...existing code...
       </Tabs>
 
       {/* Order Request Modal */}

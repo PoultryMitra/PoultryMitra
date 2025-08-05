@@ -10,7 +10,9 @@ import {
   updateDoc,
   doc,
   deleteDoc,
-  getDoc
+  getDoc,
+  setDoc,
+  runTransaction
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
@@ -115,14 +117,33 @@ const createAccountingTransaction = async (
   order: OrderRequest
 ): Promise<void> => {
   try {
+    console.log('🏦 Creating accounting transaction for order:', {
+      orderId: order.id,
+      farmerId: order.farmerId,
+      dealerId: order.dealerId,
+      actualCost: order.actualCost,
+      estimatedCost: order.estimatedCost
+    });
+
     if (!order.actualCost && !order.estimatedCost) {
-      console.warn('No cost specified for completed order, skipping accounting transaction');
+      console.warn('❌ No cost specified for completed order, skipping accounting transaction');
       return;
     }
 
     const amount = order.actualCost || order.estimatedCost || 0;
+    console.log(`💰 Processing debit transaction: ₹${amount}`);
     
-    // Create debit transaction (farmer owes dealer)
+    // Check if farmer has sufficient balance
+    const balanceCheck = await checkFarmerBalance(order.farmerId, order.dealerId, amount);
+    console.log('🔍 Balance check result:', balanceCheck);
+    
+    if (!balanceCheck.hasSufficientBalance) {
+      console.warn(`⚠️ Insufficient balance for order ${order.id}. Required: ₹${amount}, Available: ₹${balanceCheck.currentBalance}, Shortfall: ₹${balanceCheck.shortfall}`);
+      // Still create the transaction but with a warning
+    }
+    
+    // Create debit transaction (farmer account is charged)
+    console.log('📝 Adding farmer transaction...');
     await addFarmerTransaction(
       order.farmerId,
       order.dealerId,
@@ -136,14 +157,16 @@ const createAccountingTransaction = async (
       }
     );
     
-    console.log('💰 Accounting transaction created for completed order:', {
+    console.log('✅ Accounting transaction created successfully for completed order:', {
       orderId: order.id,
       amount,
       farmerName: order.farmerName,
-      dealerName: order.dealerName
+      dealerName: order.dealerName,
+      balanceAfter: balanceCheck.currentBalance - amount
     });
   } catch (error) {
-    console.error('Error creating accounting transaction:', error);
+    console.error('❌ Error creating accounting transaction:', error);
+    throw error; // Re-throw to surface the error
   }
 };
 
@@ -344,7 +367,7 @@ export const updateOrderRequestStatus = async (
   }
 };
 
-// Add transaction to farmer's account
+// Add transaction to farmer's account and update balance
 export const addFarmerTransaction = async (
   farmerId: string,
   dealerId: string,
@@ -357,18 +380,112 @@ export const addFarmerTransaction = async (
     orderRequestId?: string;
   }
 ): Promise<void> => {
+  console.log('🔄 Starting addFarmerTransaction:', {
+    farmerId,
+    dealerId,
+    dealerName,
+    transactionData
+  });
+
   try {
-    const transactionRef = collection(db, 'farmerTransactions');
+    // Use a transaction to ensure atomic updates
+    await runTransaction(db, async (transaction) => {
+      console.log('🔒 Inside Firestore transaction...');
+      
+      // IMPORTANT: Do ALL reads first, before any writes
+      const balanceId = `${farmerId}_${dealerId}`;
+      const balanceRef = doc(db, 'farmerBalances', balanceId);
+      
+      console.log(`🔍 Getting existing balance for: ${balanceId}`);
+      // Get existing balance (READ operation - must come first)
+      const balanceDoc = await transaction.get(balanceRef);
+      
+      let creditBalance = 0;
+      let debitBalance = 0;
+      
+      if (balanceDoc.exists()) {
+        const existingBalance = balanceDoc.data();
+        creditBalance = existingBalance.creditBalance || 0;
+        debitBalance = existingBalance.debitBalance || 0;
+        console.log('📊 Existing balance found:', { creditBalance, debitBalance });
+      } else {
+        console.log('📊 No existing balance found, starting from zero');
+      }
+      
+      // Update balance based on transaction type
+      // FIXED LOGIC: Simple deposit/withdrawal system
+      if (transactionData.transactionType === 'credit') {
+        // Farmer deposits money - increase available balance
+        creditBalance += transactionData.amount;
+        console.log(`💵 Deposit: Available balance increased by ₹${transactionData.amount}`);
+      } else {
+        // Order/withdrawal - decrease available balance  
+        creditBalance -= transactionData.amount;
+        console.log(`💳 Order deduction: Available balance reduced by ₹${transactionData.amount}`);
+      }
+      
+      // Reset debitBalance to 0 since we're not using dual-entry accounting
+      debitBalance = 0;
+      
+      // Net balance is simply the available credit (what farmer has deposited minus what they've spent)
+      const netBalance = creditBalance;
+      
+      if (netBalance < 0) {
+        console.warn(`⚠️ Balance went negative: ₹${netBalance} (farmer has insufficient deposits)`);
+      }
+      console.log('🧮 New balance calculation:', {
+        previousCreditBalance: balanceDoc.exists() ? balanceDoc.data().creditBalance : 0,
+        transactionAmount: transactionData.amount,
+        transactionType: transactionData.transactionType,
+        newCreditBalance: creditBalance,
+        netBalance: netBalance
+      });
+      
+      // Now do ALL writes after all reads are complete
+      
+      // 1. Add the transaction record (WRITE operation)  
+      const transactionRef = doc(collection(db, 'farmerTransactions'));
+      
+      // Filter out undefined values to avoid Firestore errors
+      const cleanTransactionData = Object.fromEntries(
+        Object.entries(transactionData).filter(([_, value]) => value !== undefined)
+      );
+      
+      const transactionRecord = {
+        farmerId,
+        dealerId,
+        dealerName,
+        ...cleanTransactionData,
+        date: Timestamp.now()
+      };
+      
+      console.log('📝 Creating transaction record:', transactionRecord);
+      transaction.set(transactionRef, transactionRecord);
+
+      // 2. Set/update the balance document (WRITE operation)
+      const balanceRecord = {
+        farmerId,
+        dealerId,
+        dealerName,
+        creditBalance,
+        debitBalance,
+        netBalance,
+        lastUpdated: Timestamp.now()
+      };
+      
+      console.log('💾 Setting balance record:', balanceRecord);
+      transaction.set(balanceRef, balanceRecord);
+    });
     
-    await addDoc(transactionRef, {
+    console.log('✅ Transaction and balance updated successfully:', {
       farmerId,
       dealerId,
-      dealerName,
-      ...transactionData,
-      date: Timestamp.now()
+      type: transactionData.transactionType,
+      amount: transactionData.amount
     });
+    
   } catch (error) {
-    console.error('Error adding farmer transaction:', error);
+    console.error('❌ Error adding farmer transaction:', error);
     throw error;
   }
 };
@@ -430,13 +547,20 @@ export const calculateFarmerBalances = (
 
     const balance = balanceMap.get(key)!;
     
+    // FIXED: Use simple deposit/withdrawal logic
     if (transaction.transactionType === 'credit') {
+      // Farmer deposit - increase available balance
       balance.creditBalance += transaction.amount;
     } else {
-      balance.debitBalance += transaction.amount;
+      // Order/withdrawal - decrease available balance
+      balance.creditBalance -= transaction.amount;
     }
     
-    balance.netBalance = balance.creditBalance - balance.debitBalance;
+    // Reset debit balance (not used in simple model)
+    balance.debitBalance = 0;
+    
+    // Net balance is simply the available balance
+    balance.netBalance = balance.creditBalance;
     
     if (transaction.date.toMillis() > balance.lastUpdated.toMillis()) {
       balance.lastUpdated = transaction.date;
@@ -444,6 +568,69 @@ export const calculateFarmerBalances = (
   });
 
   return Array.from(balanceMap.values());
+};
+
+// Subscribe to farmer balances from Firestore (real-time)
+export const subscribeFarmerBalances = (
+  farmerId: string,
+  callback: (balances: FarmerAccountBalance[]) => void
+): (() => void) => {
+  const q = query(
+    collection(db, 'farmerBalances'),
+    where('farmerId', '==', farmerId)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const balances: FarmerAccountBalance[] = [];
+    snapshot.forEach((doc) => {
+      balances.push({ ...doc.data() } as FarmerAccountBalance);
+    });
+    callback(balances);
+  });
+
+  return unsubscribe;
+};
+
+// Subscribe to dealer balances from Firestore (real-time)
+export const subscribeDealerBalances = (
+  dealerId: string,
+  callback: (balances: FarmerAccountBalance[]) => void
+): (() => void) => {
+  const q = query(
+    collection(db, 'farmerBalances'),
+    where('dealerId', '==', dealerId)
+  );
+
+  const unsubscribe = onSnapshot(q, (snapshot) => {
+    const balances: FarmerAccountBalance[] = [];
+    snapshot.forEach((doc) => {
+      balances.push({ ...doc.data() } as FarmerAccountBalance);
+    });
+    callback(balances);
+  });
+
+  return unsubscribe;
+};
+
+// Get a specific balance between farmer and dealer
+export const getFarmerDealerBalance = async (
+  farmerId: string,
+  dealerId: string
+): Promise<FarmerAccountBalance | null> => {
+  try {
+    const balanceId = `${farmerId}_${dealerId}`;
+    const balanceRef = doc(db, 'farmerBalances', balanceId);
+    const balanceDoc = await getDoc(balanceRef);
+    
+    if (balanceDoc.exists()) {
+      return { ...balanceDoc.data() } as FarmerAccountBalance;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting farmer-dealer balance:', error);
+    return null;
+  }
 };
 
 // Subscribe to user's order notifications
@@ -498,6 +685,56 @@ export const getUnreadNotificationCount = async (userId: string): Promise<number
   }
 };
 
+// Record farmer deposit/payment to dealer account (convenience function)
+export const depositToFarmerAccount = async (
+  farmerId: string,
+  dealerId: string,
+  dealerName: string,
+  amount: number,
+  description?: string
+): Promise<void> => {
+  if (amount <= 0) {
+    throw new Error('Deposit amount must be greater than 0');
+  }
+
+  return addFarmerTransaction(
+    farmerId,
+    dealerId,
+    dealerName,
+    {
+      transactionType: 'credit',
+      amount: amount,
+      description: description || `Farmer deposit recorded by ${dealerName}`,
+      category: 'Payment'
+    }
+  );
+};
+
+// Check if farmer has sufficient balance for an order
+export const checkFarmerBalance = async (
+  farmerId: string,
+  dealerId: string,
+  requiredAmount: number
+): Promise<{ hasSufficientBalance: boolean; currentBalance: number; shortfall: number }> => {
+  try {
+    const balance = await getFarmerDealerBalance(farmerId, dealerId);
+    const currentBalance = balance ? balance.netBalance : 0; // Net balance is now the available credit
+    
+    return {
+      hasSufficientBalance: currentBalance >= requiredAmount,
+      currentBalance: currentBalance,
+      shortfall: Math.max(0, requiredAmount - currentBalance)
+    };
+  } catch (error) {
+    console.error('Error checking farmer balance:', error);
+    return {
+      hasSufficientBalance: false,
+      currentBalance: 0,
+      shortfall: requiredAmount
+    };
+  }
+};
+
 // Export service object
 export const orderService = {
   submitOrderRequest,
@@ -505,7 +742,12 @@ export const orderService = {
   subscribeDealerOrderRequests,
   updateOrderRequestStatus,
   addFarmerTransaction,
+  depositToFarmerAccount,
+  checkFarmerBalance,
   subscribeFarmerTransactions,
+  subscribeFarmerBalances,
+  subscribeDealerBalances,
+  getFarmerDealerBalance,
   calculateFarmerBalances,
   subscribeToOrderNotifications,
   markNotificationAsRead,

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Account Ledger Test Script</title>
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            query,
+            where,
+            onSnapshot,
+            doc,
+            getDoc,
+            getDocs,
+            addDoc,
+            updateDoc,
+            Timestamp 
+        } from 'https://www.gstatic.com/firebasejs/10.7.0/firebase-firestore.js';
+
+        // Firebase config
+        const firebaseConfig = {
+            apiKey: "AIzaSyD3tc1EKESzh4ITdCbM3a5NSlZa4vDnVBY",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "321937432406",
+            appId: "1:321937432406:web:14469a9f3f45a6315380f7"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        let statusDiv;
+        let balanceSubscriber = null;
+        let transactionSubscriber = null;
+        let orderSubscriber = null;
+
+        window.onload = function() {
+            statusDiv = document.getElementById('status');
+            log('🔥 Firebase connected. Test script ready!');
+        };
+
+        function log(message) {
+            console.log(message);
+            if (statusDiv) {
+                statusDiv.innerHTML += message + '<br>';
+                statusDiv.scrollTop = statusDiv.scrollHeight;
+            }
+        }
+
+        // Test 1: Check if farmerBalances collection exists and has data
+        window.testBalancesCollection = async function() {
+            try {
+                log('🔍 Testing farmerBalances collection...');
+                
+                const balancesSnapshot = await getDocs(collection(db, 'farmerBalances'));
+                log(`📊 Found ${balancesSnapshot.docs.length} balance records`);
+                
+                balancesSnapshot.forEach((doc) => {
+                    const balance = doc.data();
+                    log(`  Balance ID: ${doc.id}`);
+                    log(`  Farmer: ${balance.farmerId}, Dealer: ${balance.dealerId}`);
+                    log(`  Net Balance: ₹${balance.netBalance} (Credit: ₹${balance.creditBalance}, Debit: ₹${balance.debitBalance})`);
+                    log('  ---');
+                });
+                
+                if (balancesSnapshot.docs.length === 0) {
+                    log('❌ No balance records found! Run migration first.');
+                } else {
+                    log('✅ Balance collection exists and has data');
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking balances: ${error.message}`);
+            }
+        };
+
+        // Test 2: Check transactions collection
+        window.testTransactionsCollection = async function() {
+            try {
+                log('🔍 Testing farmerTransactions collection...');
+                
+                const transactionsSnapshot = await getDocs(collection(db, 'farmerTransactions'));
+                log(`📊 Found ${transactionsSnapshot.docs.length} transaction records`);
+                
+                transactionsSnapshot.docs.slice(0, 5).forEach((doc) => {
+                    const transaction = doc.data();
+                    log(`  Transaction ID: ${doc.id}`);
+                    log(`  Type: ${transaction.transactionType}, Amount: ₹${transaction.amount}`);
+                    log(`  Description: ${transaction.description}`);
+                    log(`  Date: ${transaction.date?.toDate?.()?.toLocaleString() || 'Unknown'}`);
+                    log('  ---');
+                });
+                
+            } catch (error) {
+                log(`❌ Error checking transactions: ${error.message}`);
+            }
+        };
+
+        // Test 3: Monitor real-time balance changes
+        window.monitorBalanceChanges = function(farmerId = null, dealerId = null) {
+            try {
+                log('👀 Starting real-time balance monitoring...');
+                
+                if (balanceSubscriber) {
+                    balanceSubscriber();
+                }
+                
+                let q = collection(db, 'farmerBalances');
+                if (farmerId && dealerId) {
+                    const balanceId = `${farmerId}_${dealerId}`;
+                    q = doc(db, 'farmerBalances', balanceId);
+                    
+                    balanceSubscriber = onSnapshot(q, (doc) => {
+                        if (doc.exists()) {
+                            const balance = doc.data();
+                            log(`🔄 Balance UPDATE - ${balance.farmerId}_${balance.dealerId}: ₹${balance.netBalance}`);
+                        } else {
+                            log(`❌ Balance document doesn't exist: ${balanceId}`);
+                        }
+                    });
+                } else {
+                    balanceSubscriber = onSnapshot(q, (snapshot) => {
+                        log(`🔄 Balance collection changed - ${snapshot.docs.length} records`);
+                        snapshot.docChanges().forEach((change) => {
+                            const balance = change.doc.data();
+                            log(`  ${change.type.toUpperCase()}: ${balance.farmerId}_${balance.dealerId} = ₹${balance.netBalance}`);
+                        });
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ Error monitoring balances: ${error.message}`);
+            }
+        };
+
+        // Test 4: Monitor transaction changes
+        window.monitorTransactionChanges = function(farmerId = null) {
+            try {
+                log('👀 Starting real-time transaction monitoring...');
+                
+                if (transactionSubscriber) {
+                    transactionSubscriber();
+                }
+                
+                let q = collection(db, 'farmerTransactions');
+                if (farmerId) {
+                    q = query(q, where('farmerId', '==', farmerId));
+                }
+                
+                transactionSubscriber = onSnapshot(q, (snapshot) => {
+                    log(`🔄 Transaction collection changed - ${snapshot.docs.length} records`);
+                    snapshot.docChanges().forEach((change) => {
+                        const transaction = change.doc.data();
+                        log(`  ${change.type.toUpperCase()}: ${transaction.transactionType} ₹${transaction.amount} - ${transaction.description}`);
+                    });
+                });
+                
+            } catch (error) {
+                log(`❌ Error monitoring transactions: ${error.message}`);
+            }
+        };
+
+        // Test 5: Monitor order changes
+        window.monitorOrderChanges = function() {
+            try {
+                log('👀 Starting real-time order monitoring...');
+                
+                if (orderSubscriber) {
+                    orderSubscriber();
+                }
+                
+                const q = collection(db, 'orderRequests');
+                
+                orderSubscriber = onSnapshot(q, (snapshot) => {
+                    log(`🔄 Order collection changed - ${snapshot.docs.length} records`);
+                    snapshot.docChanges().forEach((change) => {
+                        const order = change.doc.data();
+                        log(`  ${change.type.toUpperCase()}: Order ${order.id || change.doc.id}`);
+                        log(`    Status: ${order.status}, Cost: ₹${order.actualCost || order.estimatedCost || 'Not set'}`);
+                        log(`    Farmer: ${order.farmerId}, Dealer: ${order.dealerId}`);
+                    });
+                });
+                
+            } catch (error) {
+                log(`❌ Error monitoring orders: ${error.message}`);
+            }
+        };
+
+        // Test 6: Create test transaction manually
+        window.createTestTransaction = async function() {
+            try {
+                log('🧪 Creating test transaction...');
+                
+                const testFarmerId = 'test-farmer-' + Date.now();
+                const testDealerId = 'test-dealer-' + Date.now();
+                
+                // First create a credit transaction (deposit)
+                const creditDoc = await addDoc(collection(db, 'farmerTransactions'), {
+                    farmerId: testFarmerId,
+                    dealerId: testDealerId,
+                    dealerName: 'Test Dealer',
+                    transactionType: 'credit',
+                    amount: 5000,
+                    description: 'Test deposit',
+                    category: 'Payment',
+                    date: Timestamp.now()
+                });
+                
+                log(`✅ Created credit transaction: ${creditDoc.id}`);
+                
+                // Then create a debit transaction (order)
+                const debitDoc = await addDoc(collection(db, 'farmerTransactions'), {
+                    farmerId: testFarmerId,
+                    dealerId: testDealerId,
+                    dealerName: 'Test Dealer',
+                    transactionType: 'debit',
+                    amount: 2000,
+                    description: 'Test order completion',
+                    category: 'Feed',
+                    date: Timestamp.now()
+                });
+                
+                log(`✅ Created debit transaction: ${debitDoc.id}`);
+                log('✅ Test transactions created successfully');
+                
+            } catch (error) {
+                log(`❌ Error creating test transaction: ${error.message}`);
+            }
+        };
+
+        // Test 7: Stop all monitoring
+        window.stopMonitoring = function() {
+            if (balanceSubscriber) {
+                balanceSubscriber();
+                balanceSubscriber = null;
+                log('🛑 Stopped balance monitoring');
+            }
+            if (transactionSubscriber) {
+                transactionSubscriber();
+                transactionSubscriber = null;
+                log('🛑 Stopped transaction monitoring');
+            }
+            if (orderSubscriber) {
+                orderSubscriber();
+                orderSubscriber = null;
+                log('🛑 Stopped order monitoring');
+            }
+        };
+
+        // Test 8: Check specific farmer-dealer balance
+        window.checkSpecificBalance = async function(farmerId, dealerId) {
+            try {
+                if (!farmerId || !dealerId) {
+                    log('❌ Please provide both farmerId and dealerId');
+                    return;
+                }
+                
+                const balanceId = `${farmerId}_${dealerId}`;
+                log(`🔍 Checking balance for: ${balanceId}`);
+                
+                const balanceDoc = await getDoc(doc(db, 'farmerBalances', balanceId));
+                
+                if (balanceDoc.exists()) {
+                    const balance = balanceDoc.data();
+                    log(`✅ Balance found:`);
+                    log(`  Credit Balance: ₹${balance.creditBalance}`);
+                    log(`  Debit Balance: ₹${balance.debitBalance}`);
+                    log(`  Net Balance: ₹${balance.netBalance}`);
+                    log(`  Last Updated: ${balance.lastUpdated?.toDate?.()?.toLocaleString()}`);
+                } else {
+                    log(`❌ No balance found for: ${balanceId}`);
+                }
+                
+            } catch (error) {
+                log(`❌ Error checking specific balance: ${error.message}`);
+            }
+        };
+
+        window.clearLog = function() {
+            if (statusDiv) {
+                statusDiv.innerHTML = '';
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>🧪 Account Ledger Test Script</h1>
+    <p>This script helps debug the account ledger system and monitor real-time changes.</p>
+    
+    <div style="margin: 20px 0;">
+        <h3>Quick Tests:</h3>
+        <button onclick="testBalancesCollection()" style="margin: 5px; padding: 10px;">1. Test Balances Collection</button>
+        <button onclick="testTransactionsCollection()" style="margin: 5px; padding: 10px;">2. Test Transactions Collection</button>
+        <button onclick="createTestTransaction()" style="margin: 5px; padding: 10px;">3. Create Test Transaction</button>
+        <button onclick="clearLog()" style="margin: 5px; padding: 10px; background: #f44336; color: white;">Clear Log</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h3>Real-time Monitoring:</h3>
+        <button onclick="monitorBalanceChanges()" style="margin: 5px; padding: 10px; background: #4CAF50; color: white;">Monitor All Balances</button>
+        <button onclick="monitorTransactionChanges()" style="margin: 5px; padding: 10px; background: #2196F3; color: white;">Monitor All Transactions</button>
+        <button onclick="monitorOrderChanges()" style="margin: 5px; padding: 10px; background: #FF9800; color: white;">Monitor Orders</button>
+        <button onclick="stopMonitoring()" style="margin: 5px; padding: 10px; background: #9E9E9E; color: white;">Stop All Monitoring</button>
+    </div>
+    
+    <div style="margin: 20px 0;">
+        <h3>Specific Checks:</h3>
+        <input type="text" id="farmerId" placeholder="Farmer ID" style="margin: 5px; padding: 8px;">
+        <input type="text" id="dealerId" placeholder="Dealer ID" style="margin: 5px; padding: 8px;">
+        <button onclick="checkSpecificBalance(document.getElementById('farmerId').value, document.getElementById('dealerId').value)" style="margin: 5px; padding: 10px;">Check Specific Balance</button>
+        <button onclick="monitorBalanceChanges(document.getElementById('farmerId').value, document.getElementById('dealerId').value)" style="margin: 5px; padding: 10px;">Monitor Specific Balance</button>
+    </div>
+    
+    <div id="status" style="margin-top: 20px; padding: 15px; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; font-family: monospace; white-space: pre-wrap; height: 400px; overflow-y: scroll; font-size: 12px;"></div>
+    
+    <div style="margin-top: 20px; padding: 15px; background: #e7f3ff; border: 1px solid #b3d9ff; border-radius: 4px;">
+        <h3>How to Use:</h3>
+        <ol>
+            <li><strong>Test Collections:</strong> Click buttons 1-2 to check if migration ran successfully</li>
+            <li><strong>Start Monitoring:</strong> Click monitoring buttons to watch real-time changes</li>
+            <li><strong>Test Order Flow:</strong> 
+                <ol>
+                    <li>Start monitoring in this tab</li>
+                    <li>Go to dealer dashboard and approve an order</li>
+                    <li>Watch for balance/transaction changes in this tab</li>
+                </ol>
+            </li>
+            <li><strong>Debug Specific Issues:</strong> Enter farmer/dealer IDs to check specific balances</li>
+        </ol>
+        
+        <p><strong>Expected Behavior:</strong> When dealer approves order → Should see new transaction + balance update in real-time</p>
+    </div>
+</body>
+</html>

@@ -15,7 +15,8 @@ import { useDashboardStability } from '@/hooks/useDashboardStability';
 import { 
   orderService,
   type OrderRequest,
-  type FarmerAccountTransaction
+  type FarmerAccountTransaction,
+  type FarmerAccountBalance
 } from '@/services/orderService';
 import { 
   getDealerFarmers,
@@ -39,6 +40,8 @@ import {
   Download,
   Eye
 } from 'lucide-react';
+import { db } from '@/lib/firebase';
+import { collection, query as firestoreQuery, where, onSnapshot } from 'firebase/firestore';
 
 export default function DealerOrderManagement() {
   const { toast } = useToast();
@@ -49,6 +52,75 @@ export default function DealerOrderManagement() {
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
   const [connectedFarmers, setConnectedFarmers] = useState<DealerFarmerData[]>([]);
   const [loading, setLoading] = useState(false);
+  // Payment modal state
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedFarmer, setSelectedFarmer] = useState<DealerFarmerData | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ amount: '', note: '' });
+
+  // Farmer balances state
+  const [farmerBalances, setFarmerBalances] = useState<FarmerAccountBalance[]>([]);
+
+  // Subscribe to all farmer balances for this dealer from Firestore
+  useEffect(() => {
+    if (!currentUser) return;
+    
+    const unsubscribe = orderService.subscribeDealerBalances(
+      currentUser.uid,
+      (balances) => {
+        setFarmerBalances(balances);
+      }
+    );
+    
+    return () => unsubscribe();
+  }, [currentUser]);
+  // Helper: get balance for a farmer
+  const getFarmerBalance = (farmerId: string) => {
+    return farmerBalances.find(b => b.farmerId === farmerId && b.dealerId === currentUser?.uid);
+  };
+
+  // Handle manual payment (credit) from dealer to farmer
+  const handleRecordPayment = async () => {
+    if (!currentUser || !selectedFarmer || !paymentForm.amount) return;
+    
+    const amount = parseFloat(paymentForm.amount);
+    if (amount <= 0) {
+      toast({
+        title: "Invalid Amount",
+        description: "Please enter a valid amount greater than 0",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      await orderService.depositToFarmerAccount(
+        selectedFarmer.farmerId,
+        currentUser.uid,
+        currentUser.displayName || currentUser.email || 'Dealer',
+        amount,
+        paymentForm.note || `Deposit to ${selectedFarmer.farmerName}`
+      );
+      
+      setShowPaymentModal(false);
+      setPaymentForm({ amount: '', note: '' });
+      setSelectedFarmer(null);
+      
+      toast({
+        title: "Payment Recorded Successfully",
+        description: `₹${amount.toLocaleString()} deposited to ${selectedFarmer.farmerName}'s account`,
+      });
+    } catch (error) {
+      console.error('Payment recording error:', error);
+      toast({
+        title: "Payment Recording Failed",
+        description: error instanceof Error ? error.message : "Failed to record payment",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter states
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -137,30 +209,57 @@ export default function DealerOrderManagement() {
   // Handle order response with stability protection
   const handleOrderResponse = async () => {
     if (!currentUser || !selectedOrder) return;
-    
+
     await executeWithStability(async () => {
       setLoading(true);
-      
       const estimatedCost = responseForm.estimatedCost ? parseFloat(responseForm.estimatedCost) : undefined;
-      const actualCost = responseForm.actualCost ? parseFloat(responseForm.actualCost) : undefined;
-      
-      await orderService.updateOrderRequestStatus(
-        selectedOrder.id,
-        responseForm.status,
-        responseForm.dealerNotes,
-        estimatedCost,
-        actualCost
-      );
+      const actualCost = responseForm.actualCost ? parseFloat(responseForm.actualCost) : estimatedCost;
 
-      toast({
-        title: "Order Updated Successfully",
-        description: `Order ${responseForm.status} and farmer has been notified`,
-      });
-      
-      // Reset state after successful operation
-      setShowResponseModal(false);
-      resetResponseForm();
-      setLoading(false);
+      try {
+        if (responseForm.status === 'approved') {
+          // For approved orders, go directly to completed to trigger balance deduction
+          await orderService.updateOrderRequestStatus(
+            selectedOrder.id,
+            'completed',
+            responseForm.dealerNotes,
+            estimatedCost,
+            actualCost || estimatedCost // Use estimatedCost as actualCost if not provided
+          );
+          
+          toast({
+            title: "Order Approved & Completed",
+            description: `Order approved, completed, and ₹${(actualCost || estimatedCost || 0).toLocaleString()} deducted from farmer balance.`,
+          });
+        } else {
+          // For rejected or manually completed orders
+          await orderService.updateOrderRequestStatus(
+            selectedOrder.id,
+            responseForm.status,
+            responseForm.dealerNotes,
+            estimatedCost,
+            actualCost
+          );
+          
+          toast({
+            title: "Order Updated Successfully",
+            description: `Order ${responseForm.status} and farmer has been notified`,
+          });
+        }
+        
+        // Reset form and close modal
+        setShowResponseModal(false);
+        resetResponseForm();
+        
+      } catch (error) {
+        console.error('Order response error:', error);
+        toast({
+          title: "Error Updating Order",
+          description: error instanceof Error ? error.message : "Failed to update order",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
     }, 'order response');
   };
 
@@ -314,6 +413,91 @@ export default function DealerOrderManagement() {
       </div>
 
       {/* Quick Stats */}
+      {/* Farmer Balances Summary */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg sm:text-xl">Farmer Account Balances</CardTitle>
+          <CardDescription>Running balance for each connected farmer</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+            {connectedFarmers.map(farmer => {
+              // Find balance for this farmer, if any
+              const balance = farmerBalances.find(b => b.farmerId === farmer.farmerId && b.dealerId === currentUser?.uid);
+              return (
+                <Card key={farmer.farmerId} className="border">
+                  <CardHeader>
+                    <CardTitle className="text-base">{farmer.farmerName}</CardTitle>
+                    <CardDescription>{farmer.farmerEmail}</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {balance ? (
+                      <div className="space-y-2">
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Farmer's Available Balance:</span>
+                          <span className="text-sm font-medium text-green-600">₹{balance.netBalance}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Total Deposited:</span>
+                          <span className="text-sm font-medium text-blue-600">₹{balance.creditBalance}</span>
+                        </div>
+                        <hr />
+                        <div className="flex justify-between">
+                          <span className="font-medium">Available for Orders:</span>
+                          <span className={`font-medium ${balance.netBalance > 0 ? 'text-green-600' : balance.netBalance < 0 ? 'text-red-600' : 'text-gray-600'}`}>
+                            ₹{balance.netBalance}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-500">Last updated: {balance.lastUpdated.toDate().toLocaleDateString()}</div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 text-xs"
+                          onClick={() => {
+                            setSelectedFarmer(farmer);
+                            setShowPaymentModal(true);
+                          }}
+                        >
+                          Record Payment
+                        </Button>
+                      </div>
+                    ) : (
+                      <div>
+                        <div className="text-sm text-gray-500 mb-2">No transactions yet</div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">Farmer owes you:</span>
+                          <span className="text-sm font-medium text-red-600">₹0</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-sm text-muted-foreground">You owe farmer:</span>
+                          <span className="text-sm font-medium text-green-600">₹0</span>
+                        </div>
+                        <hr />
+                        <div className="flex justify-between">
+                          <span className="font-medium">Net Balance:</span>
+                          <span className="font-medium text-gray-600">₹0</span>
+                        </div>
+                        <div className="text-xs text-gray-500">No transactions yet</div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="mt-2 text-xs"
+                          onClick={() => {
+                            setSelectedFarmer(farmer);
+                            setShowPaymentModal(true);
+                          }}
+                        >
+                          Record Payment
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              );
+            })}
+          </div>
+        </CardContent>
+      </Card>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
         <Card>
           <CardContent className="pt-4 sm:pt-6">
@@ -459,6 +643,47 @@ export default function DealerOrderManagement() {
         </CardContent>
       </Card>
 
+      {/* Manual Payment Modal */}
+      <Dialog open={showPaymentModal} onOpenChange={setShowPaymentModal}>
+        <DialogContent className="w-[95vw] max-w-md mx-4">
+          <DialogHeader>
+            <DialogTitle>Record Payment from Farmer</DialogTitle>
+            <DialogDescription>
+              Enter payment amount received from <b>{selectedFarmer?.farmerName}</b>.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="paymentAmount">Amount (₹)</Label>
+              <Input
+                id="paymentAmount"
+                type="number"
+                min="1"
+                value={paymentForm.amount}
+                onChange={e => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+                placeholder="Enter amount received"
+              />
+            </div>
+            <div>
+              <Label htmlFor="paymentNote">Note (optional)</Label>
+              <Textarea
+                id="paymentNote"
+                value={paymentForm.note}
+                onChange={e => setPaymentForm({ ...paymentForm, note: e.target.value })}
+                placeholder="E.g. Cash payment, UPI, etc."
+                rows={2}
+              />
+            </div>
+          </div>
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" onClick={() => setShowPaymentModal(false)}>Cancel</Button>
+            <Button onClick={handleRecordPayment} disabled={loading || !paymentForm.amount} className="bg-green-600 hover:bg-green-700">
+              {loading ? 'Recording...' : 'Record Payment'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Orders List */}
       <Card>
         <CardHeader>
@@ -473,6 +698,26 @@ export default function DealerOrderManagement() {
           </div>
         </CardHeader>
         <CardContent>
+          {/* Manual Payment Button for each farmer */}
+          <div className="mb-4">
+            <Label className="text-sm mb-2 block">Record Payment from Farmer</Label>
+            <div className="flex flex-wrap gap-2">
+              {connectedFarmers.map(farmer => (
+                <Button
+                  key={farmer.farmerId}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs"
+                  onClick={() => {
+                    setSelectedFarmer(farmer);
+                    setShowPaymentModal(true);
+                  }}
+                >
+                  {farmer.farmerName}
+                </Button>
+              ))}
+            </div>
+          </div>
           {filteredOrders.length === 0 ? (
             <div className="text-center py-8">
               <ShoppingCart className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mx-auto mb-4" />
@@ -689,6 +934,39 @@ export default function DealerOrderManagement() {
                   onChange={(e) => setResponseForm({...responseForm, estimatedCost: e.target.value})}
                   placeholder="Enter estimated cost"
                 />
+                
+                {/* Balance Check Display */}
+                {responseForm.estimatedCost && selectedOrder && (
+                  (() => {
+                    const cost = parseFloat(responseForm.estimatedCost);
+                    const balance = getFarmerBalance(selectedOrder.farmerId);
+                    const availableBalance = balance ? balance.netBalance : 0; // Net balance is now directly the available amount
+                    const sufficient = availableBalance >= cost;
+                    const shortfall = Math.max(0, cost - availableBalance);
+                    
+                    return (
+                      <div className={`p-3 border rounded-lg text-sm ${sufficient ? 'bg-green-50 border-green-200' : 'bg-yellow-50 border-yellow-200'}`}>
+                        <div className="font-medium mb-1">
+                          {sufficient ? '✅ Balance Check' : '⚠️ Balance Check'}
+                        </div>
+                        <div className="space-y-1">
+                          <div>Farmer's Available Balance: ₹{availableBalance.toLocaleString()}</div>
+                          <div>Order Cost: ₹{cost.toLocaleString()}</div>
+                          {sufficient ? (
+                            <div className="text-green-700 font-medium">
+                              ✅ Sufficient balance (₹{(availableBalance - cost).toLocaleString()} remaining)
+                            </div>
+                          ) : (
+                            <div className="text-yellow-700">
+                              ⚠️ Insufficient balance (₹{shortfall.toLocaleString()} shortfall)
+                              <div className="text-xs mt-1">Order will still be processed but farmer account will go negative</div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+                )}
                 
                 {calculationSuggestion && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm">

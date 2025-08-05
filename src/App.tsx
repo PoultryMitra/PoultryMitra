@@ -22,6 +22,7 @@ import Vaccines from "./pages/Vaccines";
 import VaccinesWorking from "./pages/VaccinesWorking";
 import Rates from "./pages/Rates";
 import NotFound from "./pages/NotFound";
+import LedgerTest from "./pages/LedgerTest";
 import Crops from "./pages/Crops";
 import Tasks from "./pages/Tasks";
 import Reports from "./pages/admin/Reports";
@@ -99,6 +100,7 @@ const App = () => (
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/fcr-calculator-pro" element={<FCRCalculator />} />
           <Route path="/client-demo" element={<ClientRequirementsDemo />} />
+          <Route path="/ledger-test" element={<LedgerTest />} />
           <Route path="/poultry-calculators" element={<PoultryCalculators />} />
           <Route path="/shed-management" element={<ShedManagement />} />
           <Route path="/posts" element={<PostsAndGuides />} />

@@ -324,7 +324,7 @@ export default function FarmerOrdering() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Dealers</SelectItem>
-                  {connectedDealers.map((dealer) => (
+                  {connectedDealers.filter(dealer => dealer.dealerId && dealer.dealerId !== '').map((dealer) => (
                     <SelectItem key={dealer.dealerId} value={dealer.dealerId}>
                       {dealer.dealerName}
                     </SelectItem>

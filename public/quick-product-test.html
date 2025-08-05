@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quick Product Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .result { margin: 10px 0; padding: 10px; border-left: 4px solid #007cba; background: #f9f9f9; }
+        .error { border-left-color: #dc3545; background: #f8d7da; }
+        .success { border-left-color: #28a745; background: #d4edda; }
+        button { margin: 5px; padding: 10px 15px; font-size: 16px; }
+    </style>
+</head>
+<body>
+    <h1>🐔 Quick Product Display Test</h1>
+    
+    <p>This will test if both BKND and BKND1 dealers show their products correctly.</p>
+    
+    <button onclick="testProducts()" style="background: #007cba; color: white; border: none; padding: 15px 25px;">
+        🧪 Test Product Display
+    </button>
+    
+    <div id="results"></div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            where, 
+            getDocs 
+        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDSP7jA4GN0VWsJpIaZzUw8xOJWJsP1aUA",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "100656602084",
+            appId: "1:100656602084:web:c8b97fb4a832e5ac96bb32"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        window.testProducts = async function() {
+            const results = document.getElementById('results');
+            results.innerHTML = '<div class="result">🔄 Testing...</div>';
+
+            try {
+                const dealers = [
+                    { name: 'BKND', id: 'D7kN1YCiRNRPXMoSJLmsUTCmJNv1', expected: 2 },
+                    { name: 'BKND1', id: 'TwdLGZtF9ANuV1c1hnLHhT3itd43', expected: 2 }
+                ];
+
+                let resultsHTML = '';
+
+                for (const dealer of dealers) {
+                    console.log(`Testing ${dealer.name} (${dealer.id})`);
+                    
+                    const productsQuery = query(
+                        collection(db, 'dealerProducts'), 
+                        where('dealerId', '==', dealer.id)
+                    );
+                    const productsSnapshot = await getDocs(productsQuery);
+                    
+                    const totalProducts = productsSnapshot.size;
+                    const inStockProducts = [];
+                    
+                    productsSnapshot.forEach(doc => {
+                        const product = doc.data();
+                        if (product.currentStock > 0) {
+                            inStockProducts.push(product);
+                        }
+                    });
+
+                    const inStockCount = inStockProducts.length;
+                    const isCorrect = inStockCount === dealer.expected;
+
+                    resultsHTML += `
+                        <div class="result ${isCorrect ? 'success' : 'error'}">
+                            <h3>${dealer.name} ${isCorrect ? '✅' : '❌'}</h3>
+                            <p><strong>Total Products:</strong> ${totalProducts}</p>
+                            <p><strong>In Stock Products:</strong> ${inStockCount}</p>
+                            <p><strong>Expected:</strong> ${dealer.expected}</p>
+                            <p><strong>Status:</strong> ${isCorrect ? 'CORRECT - Will show products' : 'ISSUE - May show 0 products'}</p>
+                            ${inStockProducts.length > 0 ? `
+                                <details>
+                                    <summary>Products List</summary>
+                                    ${inStockProducts.map(p => `
+                                        <div style="margin: 5px 0; padding: 5px; background: white;">
+                                            • ${p.productName} (${p.category})<br>
+                                            &nbsp;&nbsp;Stock: ${p.currentStock} ${p.unit}<br>
+                                            &nbsp;&nbsp;Price: ₹${p.pricePerUnit}/${p.unit}
+                                        </div>
+                                    `).join('')}
+                                </details>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                // Overall result
+                const allCorrect = dealers.every(d => {
+                    // We need to check the actual results, but this is a simplified check
+                    return true; // Will be determined by the individual results above
+                });
+
+                resultsHTML += `
+                    <div class="result" style="border-left-color: #007cba; background: #e7f3ff; margin-top: 20px;">
+                        <h3>📊 Summary</h3>
+                        <p>Both dealers should show their products correctly in the farmer orders page.</p>
+                        <p><strong>Next Step:</strong> Go to your farmer orders page and verify both dealers show product counts.</p>
+                    </div>
+                `;
+
+                results.innerHTML = resultsHTML;
+
+            } catch (error) {
+                console.error('Test error:', error);
+                results.innerHTML = `
+                    <div class="result error">
+                        <h3>❌ Test Failed</h3>
+                        <p><strong>Error:</strong> ${error.message}</p>
+                        <p>This might be a permissions issue or network problem.</p>
+                    </div>
+                `;
+            }
+        };
+    </script>
+</body>
+</html>

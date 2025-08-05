@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug Dealer Products</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .debug-section { margin-bottom: 20px; padding: 15px; border: 1px solid #ddd; }
+        .dealer { background: #f9f9f9; margin: 10px 0; padding: 10px; }
+        .products { margin-left: 20px; }
+        .product { background: white; margin: 5px 0; padding: 8px; border-left: 3px solid #007cba; }
+        button { margin: 5px; padding: 10px 15px; }
+        .log { background: #f0f0f0; padding: 10px; font-family: monospace; white-space: pre-wrap; max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🐔 Debug Dealer Products Issue</h1>
+    
+    <div class="debug-section">
+        <h2>🔍 Dealer Products Debug</h2>
+        <button onclick="testAllDealers()">Test All Dealers</button>
+        <button onclick="testSpecificDealers()">Test BKND vs BKND1</button>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <div id="results"></div>
+        <div class="log" id="logs"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-app.js';
+        import { 
+            getFirestore, 
+            collection, 
+            query, 
+            where, 
+            getDocs, 
+            onSnapshot 
+        } from 'https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore.js';
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDSP7jA4GN0VWsJpIaZzUw8xOJWJsP1aUA",
+            authDomain: "soullink-96d4b.firebaseapp.com",
+            projectId: "soullink-96d4b",
+            storageBucket: "soullink-96d4b.firebasestorage.app",
+            messagingSenderId: "100656602084",
+            appId: "1:100656602084:web:c8b97fb4a832e5ac96bb32"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        function log(message) {
+            const logs = document.getElementById('logs');
+            logs.textContent += new Date().toLocaleTimeString() + ': ' + message + '\n';
+            logs.scrollTop = logs.scrollHeight;
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').textContent = '';
+            document.getElementById('results').innerHTML = '';
+        }
+
+        async function testAllDealers() {
+            log('🔍 Testing all dealers and their products...');
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Loading dealers...</h3>';
+
+            try {
+                // Get all dealers
+                const usersQuery = query(collection(db, 'users'), where('role', '==', 'dealer'));
+                const usersSnapshot = await getDocs(usersQuery);
+                
+                log(`Found ${usersSnapshot.size} dealers`);
+                let resultsHTML = '<h3>All Dealers and Products:</h3>';
+
+                for (const userDoc of usersSnapshot.docs) {
+                    const userData = userDoc.data();
+                    const dealerId = userDoc.id;
+                    
+                    log(`Checking dealer: ${userData.displayName || userData.email} (${dealerId})`);
+                    
+                    // Get products for this dealer
+                    const productsQuery = query(
+                        collection(db, 'dealerProducts'), 
+                        where('dealerId', '==', dealerId)
+                    );
+                    const productsSnapshot = await getDocs(productsQuery);
+                    
+                    const productsWithStock = [];
+                    productsSnapshot.forEach(doc => {
+                        const productData = doc.data();
+                        if (productData.currentStock > 0) {
+                            productsWithStock.push(productData);
+                        }
+                    });
+
+                    log(`  Products: ${productsSnapshot.size} total, ${productsWithStock.length} in stock`);
+
+                    resultsHTML += `
+                        <div class="dealer">
+                            <strong>${userData.displayName || userData.email}</strong> 
+                            (${userData.businessName || 'No business name'})<br>
+                            <small>ID: ${dealerId}</small><br>
+                            <strong>Products: ${productsSnapshot.size} total, ${productsWithStock.length} in stock</strong>
+                            <div class="products">
+                    `;
+
+                    if (productsSnapshot.size === 0) {
+                        resultsHTML += '<div style="color: red;">❌ No products found</div>';
+                    } else {
+                        productsSnapshot.forEach(doc => {
+                            const productData = doc.data();
+                            const inStock = productData.currentStock > 0;
+                            resultsHTML += `
+                                <div class="product" style="border-left-color: ${inStock ? '#28a745' : '#dc3545'}">
+                                    ${productData.productName} (${productData.category})<br>
+                                    Stock: ${productData.currentStock} ${productData.unit} 
+                                    ${inStock ? '✅' : '❌ Out of stock'}<br>
+                                    Price: ₹${productData.pricePerUnit}/${productData.unit}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    resultsHTML += '</div></div>';
+                }
+
+                results.innerHTML = resultsHTML;
+                log('✅ All dealers tested');
+
+            } catch (error) {
+                log('❌ Error testing dealers: ' + error.message);
+                results.innerHTML = '<div style="color: red;">Error: ' + error.message + '</div>';
+            }
+        }
+
+        async function testSpecificDealers() {
+            log('🎯 Testing specific dealers: BKND vs BKND1');
+            const results = document.getElementById('results');
+            results.innerHTML = '<h3>Testing BKND vs BKND1...</h3>';
+
+            const targetDealers = [
+                { name: 'BKND', id: 'D7kN1YCiRNRPXMoSJLmsUTCmJNv1' },
+                { name: 'BKND1', id: 'TwdLGZtF9ANuV1c1hnLHhT3itd43' }
+            ];
+
+            let resultsHTML = '<h3>BKND vs BKND1 Comparison:</h3>';
+
+            for (const dealer of targetDealers) {
+                log(`\n🏪 Testing ${dealer.name} (${dealer.id})`);
+                
+                try {
+                    // Test direct query
+                    const productsQuery = query(
+                        collection(db, 'dealerProducts'), 
+                        where('dealerId', '==', dealer.id)
+                    );
+                    const productsSnapshot = await getDocs(productsQuery);
+                    
+                    log(`  Direct query result: ${productsSnapshot.size} products`);
+                    
+                    const products = [];
+                    const inStockProducts = [];
+                    
+                    productsSnapshot.forEach(doc => {
+                        const productData = { id: doc.id, ...doc.data() };
+                        products.push(productData);
+                        if (productData.currentStock > 0) {
+                            inStockProducts.push(productData);
+                        }
+                        log(`    - ${productData.productName}: ${productData.currentStock} ${productData.unit}`);
+                    });
+
+                    resultsHTML += `
+                        <div class="dealer" style="border: 2px solid ${inStockProducts.length > 0 ? '#28a745' : '#dc3545'}">
+                            <h4>${dealer.name} (${dealer.id})</h4>
+                            <strong>Total Products: ${products.length}</strong><br>
+                            <strong>In Stock Products: ${inStockProducts.length}</strong><br>
+                            ${inStockProducts.length > 0 ? '✅ Should show products' : '❌ Will show 0 products'}
+                            <div class="products">
+                    `;
+
+                    if (products.length === 0) {
+                        resultsHTML += '<div style="color: red;">❌ No products found in database</div>';
+                    } else {
+                        products.forEach(product => {
+                            const inStock = product.currentStock > 0;
+                            resultsHTML += `
+                                <div class="product" style="border-left-color: ${inStock ? '#28a745' : '#dc3545'}">
+                                    <strong>${product.productName}</strong> (${product.category})<br>
+                                    Stock: ${product.currentStock} ${product.unit} ${inStock ? '✅' : '❌'}<br>
+                                    Price: ₹${product.pricePerUnit}/${product.unit}<br>
+                                    Supplier: ${product.supplier || 'N/A'}
+                                </div>
+                            `;
+                        });
+                    }
+
+                    resultsHTML += '</div></div>';
+
+                } catch (error) {
+                    log(`❌ Error testing ${dealer.name}: ${error.message}`);
+                    resultsHTML += `
+                        <div class="dealer" style="border: 2px solid #dc3545">
+                            <h4>${dealer.name} - ERROR</h4>
+                            <div style="color: red;">Error: ${error.message}</div>
+                        </div>
+                    `;
+                }
+            }
+
+            results.innerHTML = resultsHTML;
+            log('✅ Specific dealer test completed');
+        }
+
+        // Test real-time subscription
+        async function testRealtimeSubscription() {
+            log('🔄 Testing real-time subscription to dealerProducts...');
+            
+            const unsubscribe = onSnapshot(
+                collection(db, 'dealerProducts'),
+                (snapshot) => {
+                    log(`📡 Real-time update: ${snapshot.docs.length} products received`);
+                    snapshot.docChanges().forEach((change) => {
+                        const data = change.doc.data();
+                        log(`  ${change.type}: ${data.productName} (${data.dealerId})`);
+                    });
+                },
+                (error) => {
+                    log(`❌ Real-time subscription error: ${error.message}`);
+                }
+            );
+
+            // Cleanup after 30 seconds
+            setTimeout(() => {
+                unsubscribe();
+                log('🔄 Real-time subscription stopped');
+            }, 30000);
+        }
+
+        // Make functions available globally
+        window.testAllDealers = testAllDealers;
+        window.testSpecificDealers = testSpecificDealers;
+        window.clearLogs = clearLogs;
+        window.testRealtimeSubscription = testRealtimeSubscription;
+
+        log('🚀 Debug tool loaded. Click buttons to test!');
+    </script>
+</body>
+</html>
