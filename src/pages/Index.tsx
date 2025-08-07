@@ -2,11 +2,13 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useEnhancedTranslation } from "@/contexts/EnhancedTranslationContext";
+import { LanguageToggle, TranslationStatus } from "@/components/TranslationComponents";
 import { Globe, Calculator, TrendingUp, Users, Shield, Award, Play, Bird, Feather, Star, CheckCircle, Youtube, ArrowRight } from "lucide-react";
 import * as adminContentService from "@/services/adminContentService";
 
 const Index = () => {
-  const [language, setLanguage] = useState("hi");
+  const { language, t, translateText } = useEnhancedTranslation();
   const [latestPosts, setLatestPosts] = useState<adminContentService.AdminPost[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -34,10 +36,6 @@ const Index = () => {
     };
   }, []);
   
-  const toggleLanguage = () => {
-    setLanguage(language === "hi" ? "en" : "hi");
-  };
-
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -201,13 +199,27 @@ const Index = () => {
 
   const currentContent = content[language as keyof typeof content];
   
-  // Translation function
-  const t = (key: string) => {
+  // Enhanced translation helper that uses Google Translate
+  const bt = (key: string) => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to static content if Google Translate doesn't have it
     const keys = key.split('.');
     let value: any = currentContent;
     
     for (const k of keys) {
       value = value?.[k];
+    }
+    
+    if (value) {
+      console.log(`📚 Static content used for: ${key} -> ${value}`);
+    } else {
+      console.log(`❌ No translation found for: ${key}`);
     }
     
     return value || key;
@@ -220,29 +232,22 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
-              <h1 className="text-2xl font-bold text-green-600">{t('header.title')}</h1>
+              <h1 className="text-2xl font-bold text-green-600">{bt('header.title')}</h1>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-500 hover:text-gray-900">{t('header.about')}</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t('header.services')}</Link>
-              <Link to="/posts" className="text-gray-500 hover:text-gray-900">{t('header.guides')}</Link>
-              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{t('header.contact')}</Link>
+              <Link to="/about" className="text-gray-500 hover:text-gray-900">{bt('header.about')}</Link>
+              <Link to="/services" className="text-gray-500 hover:text-gray-900">{bt('header.services')}</Link>
+              <Link to="/posts" className="text-gray-500 hover:text-gray-900">{bt('header.guides')}</Link>
+              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{bt('header.contact')}</Link>
             </nav>
             <div className="flex items-center space-x-4">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={toggleLanguage}
-                className="flex items-center gap-2"
-              >
-                <Globe size={16} />
-                {language === 'hi' ? 'EN' : 'हिं'}
-              </Button>
+              <LanguageToggle />
+              <TranslationStatus />
               <Link to="/login">
-                <Button variant="outline">{t('header.login')}</Button>
+                <Button variant="outline">{bt('header.login')}</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">{t('header.register')}</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{bt('header.register')}</Button>
               </Link>
             </div>
           </div>
@@ -253,27 +258,27 @@ const Index = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            {t('hero.title')}
+            {bt('hero.title')}
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            {t('hero.subtitle')}
+            {bt('hero.subtitle')}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link to="/farmer-login">
               <Button size="lg" className="bg-green-600 hover:bg-green-700">
-                {t('hero.farmerLogin')}
+                {bt('hero.farmerLogin')}
               </Button>
             </Link>
             <Link to="/dealer-login">
               <Button size="lg" className="bg-white text-green-600 hover:bg-gray-100">
-                {t('hero.dealerLogin')}
+                {bt('hero.dealerLogin')}
               </Button>
             </Link>
           </div>
           <div className="mt-6">
             <Link to="/fcr-calculator">
               <Button variant="outline" size="lg" className="text-green-600 border-green-600 hover:bg-green-50">
-                {t('hero.fcr')} - {t('hero.fcrFree')}
+                {bt('hero.fcr')} - {bt('hero.fcrFree')}
               </Button>
             </Link>
           </div>
@@ -284,22 +289,22 @@ const Index = () => {
       <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 mb-4">{t('features.title')}</h2>
-            <p className="text-lg text-gray-600">{t('services.subtitle')}</p>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">{bt('features.title')}</h2>
+            <p className="text-lg text-gray-600">{bt('services.subtitle')}</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.fcr.title')}</CardTitle>
-                <CardDescription>{t('features.fcr.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.fcr.title')}</CardTitle>
+                <CardDescription>{bt('features.fcr.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.fcr.desc')}</p>
+                <p>{bt('features.fcr.desc')}</p>
                 <div className="mt-4">
                   <Link to="/fcr-calculator">
                     <Button className="bg-green-600 hover:bg-green-700 text-white">
-                      {t('features.fcr.tryButton')}
+                      {bt('features.fcr.tryButton')}
                     </Button>
                   </Link>
                 </div>
@@ -308,51 +313,51 @@ const Index = () => {
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.expense.title')}</CardTitle>
-                <CardDescription>{t('features.expense.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.expense.title')}</CardTitle>
+                <CardDescription>{bt('features.expense.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.expense.desc')}</p>
+                <p>{bt('features.expense.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.health.title')}</CardTitle>
-                <CardDescription>{t('features.health.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.health.title')}</CardTitle>
+                <CardDescription>{bt('features.health.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.health.desc')}</p>
+                <p>{bt('features.health.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.feed.title')}</CardTitle>
-                <CardDescription>{t('features.feed.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.feed.title')}</CardTitle>
+                <CardDescription>{bt('features.feed.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.feed.desc')}</p>
+                <p>{bt('features.feed.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.rates.title')}</CardTitle>
-                <CardDescription>{t('features.rates.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.rates.title')}</CardTitle>
+                <CardDescription>{bt('features.rates.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.rates.desc')}</p>
+                <p>{bt('features.rates.desc')}</p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle>{t('features.batch.title')}</CardTitle>
-                <CardDescription>{t('features.batch.shortDesc')}</CardDescription>
+                <CardTitle>{bt('features.batch.title')}</CardTitle>
+                <CardDescription>{bt('features.batch.shortDesc')}</CardDescription>
               </CardHeader>
               <CardContent>
-                <p>{t('features.batch.desc')}</p>
+                <p>{bt('features.batch.desc')}</p>
               </CardContent>
             </Card>
           </div>
@@ -364,10 +369,10 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-12">
             <h2 className="text-3xl md:text-4xl font-bold text-gray-900 mb-4">
-              {t('guides.title')}
+              {bt('guides.title')}
             </h2>
             <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              {t('guides.subtitle')}
+              {bt('guides.subtitle')}
             </p>
           </div>
           
@@ -379,7 +384,7 @@ const Index = () => {
           ) : latestPosts.length === 0 ? (
             <div className="text-center py-12">
               <Youtube className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600 text-lg">{t('guides.noGuides')}</p>
+              <p className="text-gray-600 text-lg">{bt('guides.noGuides')}</p>
             </div>
           ) : (
             <>
@@ -430,7 +435,7 @@ const Index = () => {
               <div className="text-center">
                 <Link to="/posts">
                   <Button className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg inline-flex items-center gap-2">
-                    {t('guides.viewAll')}
+                    {bt('guides.viewAll')}
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                 </Link>
@@ -445,30 +450,30 @@ const Index = () => {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
             <div className="col-span-1 md:col-span-2">
-              <h3 className="text-2xl font-bold mb-4">{t('header.title')}</h3>
+              <h3 className="text-2xl font-bold mb-4">{bt('header.title')}</h3>
               <p className="text-gray-300 mb-4">
-                {t('footer.description')}
+                {bt('footer.description')}
               </p>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">{t('footer.quickLinks')}</h4>
+              <h4 className="text-lg font-semibold mb-4">{bt('footer.quickLinks')}</h4>
               <ul className="space-y-2">
-                <li><Link to="/about" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.about')}</Link></li>
-                <li><Link to="/services" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.services')}</Link></li>
-                <li><Link to="/contact" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('nav.contact')}</Link></li>
+                <li><Link to="/about" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('nav.about')}</Link></li>
+                <li><Link to="/services" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('nav.services')}</Link></li>
+                <li><Link to="/contact" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('nav.contact')}</Link></li>
               </ul>
             </div>
             <div>
-              <h4 className="text-lg font-semibold mb-4">{t('footer.support')}</h4>
+              <h4 className="text-lg font-semibold mb-4">{bt('footer.support')}</h4>
               <ul className="space-y-2">
-                <li><Link to="/help" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.help')}</Link></li>
-                <li><Link to="/privacy" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.privacy')}</Link></li>
-                <li><Link to="/terms" onClick={scrollToTop} className="text-gray-300 hover:text-white">{t('footer.terms')}</Link></li>
+                <li><Link to="/help" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('footer.help')}</Link></li>
+                <li><Link to="/privacy" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('footer.privacy')}</Link></li>
+                <li><Link to="/terms" onClick={scrollToTop} className="text-gray-300 hover:text-white">{bt('footer.terms')}</Link></li>
               </ul>
             </div>
           </div>
           <div className="border-t border-gray-800 mt-8 pt-8 text-center">
-            <p className="text-gray-300">{t('footer.copyright')}</p>
+            <p className="text-gray-300">{bt('footer.copyright')}</p>
           </div>
         </div>
       </footer>

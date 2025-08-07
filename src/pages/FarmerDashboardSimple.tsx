@@ -10,6 +10,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useEnhancedTranslation } from "@/contexts/EnhancedTranslationContext";
+import { LanguageToggle, TranslationStatus } from "@/components/TranslationComponents";
 
 // Enhanced imports for stability
 import { useFarmerDashboardStability } from '@/hooks/useFarmerDashboardStability';
@@ -56,12 +58,273 @@ import {
   XCircle,
   AlertCircle,
   RefreshCw,
-  Shield
+  Shield,
+  Globe
 } from "lucide-react";
 
 function FarmerDashboard() {
+  const [language, setLanguage] = useState("hi");
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { language: enhancedLang, t } = useEnhancedTranslation();
+
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for FarmerDashboard: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to local content
+    const keys = key.split('.');
+    let value: any = content[language as keyof typeof content];
+    
+    for (const k of keys) {
+      value = value?.[k];
+    }
+    
+    if (value) {
+      console.log(`📚 Static content used for FarmerDashboard: ${key} -> ${value}`);
+      return value;
+    }
+    
+    console.log(`❌ No translation found for FarmerDashboard: ${key}`);
+    return key;
+  };
+
+  // Update local language when Enhanced Translation language changes
+  useEffect(() => {
+    if (enhancedLang) {
+      setLanguage(enhancedLang);
+    }
+  }, [enhancedLang]);
+  
+  const content = {
+    hi: {
+      title: "किसान डैशबोर्ड",
+      subtitle: "फीड की कीमतें देखें, FCR की गणना करें, और अपने फार्म की वित्तीय व्यवस्था का प्रबंधन करें",
+      allSystemsOperational: "सभी सिस्टम चालू हैं",
+      overview: "सिंहावलोकन",
+      myOrders: "मेरे ऑर्डर",
+      connectedDealers: "जुड़े हुए डीलर",
+      dealersAvailable: "डीलर उपलब्ध हैं फीड की कीमतों के लिए",
+      callDirectly: "ऑर्डर देने के लिए सीधे कॉल करें",
+      todaysWeather: "आज का मौसम",
+      activeBatches: "सक्रिय बैच",
+      totalActiveBatches: "कुल सक्रिय बैच",
+      birdsTotal: "कुल पक्षी",
+      dealerAccountBalances: "डीलर खाता शेष",
+      runningBalance: "प्रत्येक जुड़े हुए डीलर के साथ आपका चालू शेष",
+      batchManagement: "बैच प्रबंधन",
+      manageBatches: "अपने पोल्ट्री बैच का प्रबंधन करें (अधिकतम 1-10)",
+      noActiveBatches: "कोई सक्रिय बैच नहीं",
+      startManaging: "अपना पहला बैच बनाकर पोल्ट्री का प्रबंधन शुरू करें",
+      createFirstBatch: "पहला बैच बनाएं",
+      financialSummary: "वित्तीय सारांश",
+      accountBalance: "डीलरों के साथ आपका खाता शेष",
+      noFinancialData: "कोई वित्तीय डेटा नहीं",
+      financialTransactions: "डीलरों के साथ व्यापार शुरू करने पर वित्तीय लेन-देन यहाँ दिखाई देगा",
+      totalCredit: "कुल क्रेडिट",
+      totalDebit: "कुल डेबिट",
+      stockOverview: "स्टॉक सिंहावलोकन",
+      currentInventory: "वर्तमान इन्वेंटरी स्थिति",
+      noStockData: "कोई स्टॉक डेटा नहीं",
+      inventoryAppear: "स्टॉक ट्रैक करना शुरू करने पर आपकी इन्वेंटरी यहाँ दिखाई देगी",
+      bags: "बोरे",
+      feed: "फीड",
+      birds: "पक्षी",
+      chicks: "चूजे",
+      items: "वस्तुएं",
+      medicine: "दवा",
+      weatherInformation: "मौसम की जानकारी",
+      currentWeather: "पोल्ट्री केयर के लिए वर्तमान मौसम की स्थिति",
+      temperature: "तापमान",
+      humidity: "नमी",
+      rainfall: "बारिश",
+      good: "अच्छा",
+      poultryConditions: "पोल्ट्री स्थितियां",
+      weatherForecast: "मौसम पूर्वानुमान",
+      poultryAdvice: "पक्षियों की नियमित निगरानी करें और आवास की स्थिति को इष्टतम बनाए रखें",
+      trustedSuppliers: "आपके विश्वसनीय फीड आपूर्तिकर्ता",
+      noConnectedDealers: "कोई जुड़े हुए डीलर नहीं",
+      connectDealers: "फीड की कीमतें देखने और ऑर्डर देने के लिए डीलरों से जुड़ें",
+      findDealers: "डीलर खोजें",
+      quickActions: "त्वरित कार्य",
+      viewFeedPrices: "फीड की कीमतें देखें",
+      compareDealerRates: "डीलर दरों की तुलना करें",
+      managePoultryBatches: "अपने मुर्गी पालन बैच का प्रबंधन करें",
+      callDealers: "डीलरों को कॉल करें",
+      placeOrders: "ऑर्डर दें",
+      weatherInfo: "मौसम की जानकारी", 
+      currentConditions: "वर्तमान स्थितियां",
+      freeToolsTitle: "मुफ्त फार्म प्रबंधन उपकरण",
+      multipleDealersAvailable: "कई डीलर उपलब्ध हैं",
+      multipleDealersDescription: "डीलरों के पास फोन नंबर हैं। व्यक्तिगत कॉल बटन का उपयोग करें।",
+      noPhoneNumbers: "कोई फोन नंबर उपलब्ध नहीं",
+      noPhoneDescription: "आपके जुड़े डीलरों ने फोन नंबर प्रदान नहीं किए हैं",
+      connectDealersFirst: "उनकी संपर्क जानकारी प्राप्त करने के लिए पहले डीलरों से जुड़ें",
+      weatherUnavailable: "मौसम डेटा उपलब्ध नहीं",
+      weatherLoading: "मौसम की जानकारी लोड हो रही है। कृपया एक पल प्रतीक्षा करें।",
+      freeTools: "मुफ्त फार्म प्रबंधन उपकरण",
+      allToolsFree: "सभी उपकरण बिल्कुल मुफ्त हैं! रिपोर्ट सेव करने और डाउनलोड करने के लिए केवल लॉगिन की आवश्यकता है।",
+      trackBatches: "कई बैच ट्रैक करें, फीडिंग शेड्यूल प्रबंधित करें, विकास दर की निगरानी करें",
+      freeToUse: "उपयोग के लिए मुफ्त",
+      loginToSave: "रिपोर्ट सेव करने के लिए लॉगिन करें",
+      fcrReports: "FCR रिपोर्ट्स",
+      detailedFCR: "विस्तृत FCR ट्रैकिंग, प्रदर्शन विश्लेषण, रूपांतरण रुझान",
+      batchManagementFull: "बैच प्रबंधन",
+      comprehensiveBatch: "फीड, चूजे और दवा प्रबंधन के साथ व्यापक बैच ट्रैकिंग",
+      fullFeatured: "पूर्ण सुविधा युक्त",
+      loginRequired: "लॉगिन आवश्यक",
+      yourAvailableBalance: "आपकी उपलब्ध शेष राशि:",
+      totalDeposited: "कुल जमा:",
+      availableForOrders: "ऑर्डर के लिए उपलब्ध:",
+      lastUpdated: "अंतिम अपडेट:",
+      noTransactionsYet: "अभी तक कोई लेन-देन नहीं",
+      youOweDealer: "आप पर डीलर का बकाया:",
+      dealerOwesYou: "डीलर पर आपका बकाया:",
+      netBalance: "शुद्ध शेष:",
+      viewAllBatches: "सभी बैच देखें",
+      addBatch: "बैच जोड़ें",
+      max: "(अधिकतम)",
+      days: "दिन",
+      active: "सक्रिय",
+      credit: "क्रेडिट",
+      debit: "डेबिट",
+      pending: "लंबित",
+      feedStock: "फीड स्टॉक",
+      activeBirds: "सक्रिय पक्षी",
+      medicines: "दवाइयां",
+      totalStockValue: "कुल स्टॉक मूल्य",
+      loadingWeatherData: "मौसम डेटा लोड हो रहा है...",
+      weatherDataUnavailable: "मौसम डेटा उपलब्ध नहीं",
+      weatherServiceRestored: "सेवा बहाल होने पर मौसम की जानकारी उपलब्ध होगी",
+      excellent: "उत्कृष्ट",
+      fair: "ठीक",
+      monitor: "निगरानी करें",
+      poultryAdviceRain: "बारिश की स्थिति - पक्षियों के लिए उचित जल निकासी और सूखा बिछावन सुनिश्चित करें",
+      poultryAdviceSunny: "साफ मौसम - पर्याप्त वेंटिलेशन और ताजे पानी की आपूर्ति बनाए रखें",
+      phoneNotAvailable: "फोन नंबर उपलब्ध नहीं",
+      hasntProvidedPhone: "ने फोन नंबर प्रदान नहीं किया है",
+      viewPrices: "कीमतें देखें",
+      featureComingSoon: "फीचर जल्द आ रहा है",
+      dealerDirectoryMessage: "हम डीलर डायरेक्टरी फीचर पर काम कर रहे हैं। अभी के लिए, आमंत्रण कोड के लिए मौजूदा डीलरों से पूछें।",
+      call: "कॉल"
+    },
+    en: {
+      title: "Farmer Dashboard",
+      subtitle: "View feed prices, calculate FCR, and manage your farm finances",
+      allSystemsOperational: "All Systems Operational",
+      overview: "Overview",
+      myOrders: "My Orders",
+      connectedDealers: "Connected Dealers",
+      dealersAvailable: "Dealers available for feed prices",
+      callDirectly: "Call directly to place orders",
+      todaysWeather: "Today's Weather",
+      activeBatches: "Active Batches",
+      totalActiveBatches: "Total Active Batches",
+      birdsTotal: "birds total",
+      dealerAccountBalances: "Dealer Account Balances",
+      runningBalance: "Your running balance with each connected dealer",
+      batchManagement: "Batch Management",
+      manageBatches: "Manage your poultry batches (1-10 max)",
+      noActiveBatches: "No Active Batches",
+      startManaging: "Start managing your poultry by creating your first batch",
+      createFirstBatch: "Create First Batch",
+      financialSummary: "Financial Summary",
+      accountBalance: "Your account balance with dealers",
+      noFinancialData: "No Financial Data",
+      financialTransactions: "Financial transactions will appear here once you start trading with dealers",
+      totalCredit: "Total Credit",
+      totalDebit: "Total Debit",
+      stockOverview: "Stock Overview",
+      currentInventory: "Current inventory status",
+      noStockData: "No Stock Data",
+      inventoryAppear: "Your inventory will appear here once you start tracking stock",
+      bags: "Bags",
+      feed: "Feed",
+      birds: "Birds",
+      chicks: "Chicks",
+      items: "Items",
+      medicine: "Medicine",
+      weatherInformation: "Weather Information",
+      currentWeather: "Current weather conditions for poultry care",
+      temperature: "Temperature",
+      humidity: "Humidity",
+      rainfall: "Rainfall",
+      good: "Good",
+      poultryConditions: "Poultry Conditions",
+      weatherForecast: "Weather Forecast",
+      poultryAdvice: "Monitor birds regularly and maintain optimal housing conditions",
+      trustedSuppliers: "Your trusted feed suppliers",
+      noConnectedDealers: "No Connected Dealers",
+      connectDealers: "Connect with dealers to view feed prices and place orders",
+      findDealers: "Find Dealers",
+      quickActions: "Quick Actions",
+      viewFeedPrices: "View Feed Prices",
+      compareDealerRates: "Compare dealer rates",
+      managePoultryBatches: "Manage your poultry batches",
+      callDealers: "Call Dealers",
+      placeOrders: "Place orders",
+      weatherInfo: "Weather Info",
+      currentConditions: "Current conditions",
+      freeToolsTitle: "Free Farm Management Tools",
+      multipleDealersAvailable: "Multiple dealers available",
+      multipleDealersDescription: "dealers have phone numbers. Use individual Call buttons.",
+      noPhoneNumbers: "No phone numbers available", 
+      noPhoneDescription: "Your connected dealers haven't provided phone numbers",
+      connectDealersFirst: "Connect with dealers first to get their contact information",
+      weatherUnavailable: "Weather Data Unavailable",
+      weatherLoading: "Weather information is loading. Please wait a moment.",
+      freeTools: "Free Farm Management Tools",
+      allToolsFree: "All tools are completely free to use! Login only required to save and download reports.",
+      trackBatches: "Track multiple batches, manage feeding schedules, monitor growth rates",
+      freeToUse: "Free to use",
+      loginToSave: "Login to save reports",
+      fcrReports: "FCR Reports",
+      detailedFCR: "Detailed FCR tracking, performance analytics, conversion trends",
+      batchManagementFull: "Batch Management",
+      comprehensiveBatch: "Comprehensive batch tracking with feed, chicks, and medicine management",
+      fullFeatured: "Full featured",
+      loginRequired: "Login required",
+      yourAvailableBalance: "Your Available Balance:",
+      totalDeposited: "Total Deposited:",
+      availableForOrders: "Available for Orders:",
+      lastUpdated: "Last updated:",
+      noTransactionsYet: "No transactions yet",
+      youOweDealer: "You owe dealer:",
+      dealerOwesYou: "Dealer owes you:",
+      netBalance: "Net Balance:",
+      viewAllBatches: "View All Batches",
+      addBatch: "Add Batch",
+      max: "(Max)",
+      days: "days",
+      active: "Active",
+      credit: "Credit",
+      debit: "Debit",
+      pending: "Pending",
+      feedStock: "Feed Stock",
+      activeBirds: "Active Birds",
+      medicines: "Medicines",
+      totalStockValue: "Total Stock Value",
+      loadingWeatherData: "Loading weather data...",
+      weatherDataUnavailable: "Weather Data Unavailable",
+      weatherServiceRestored: "Weather information will be available once the service is restored",
+      excellent: "Excellent",
+      fair: "Fair",
+      monitor: "Monitor",
+      poultryAdviceRain: "Rainy conditions - ensure proper drainage and dry bedding for birds",
+      poultryAdviceSunny: "Clear weather - maintain adequate ventilation and fresh water supply",
+      phoneNotAvailable: "Phone number not available",
+      hasntProvidedPhone: "hasn't provided a phone number",
+      viewPrices: "View Prices",
+      featureComingSoon: "Feature Coming Soon",
+      dealerDirectoryMessage: "We're working on a dealer directory feature. For now, ask existing dealers for invitation codes.",
+      call: "Call"
+    }
+  };
   
   // Enhanced stability hook
   const { 
@@ -506,12 +769,12 @@ function FarmerDashboard() {
   return (
     <FarmerDashboardErrorBoundary>
       <div className="p-6 space-y-6">
-        {/* Enhanced Header with Stability */}
+        {/* Enhanced Header with Stability and Translation */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold">Farmer Dashboard</h1>
+            <h1 className="text-3xl font-bold">{bt('title')}</h1>
             <p className="text-muted-foreground">
-              View feed prices, calculate FCR, and manage your farm finances
+              {bt('subtitle')}
             </p>
             <div className="flex items-center gap-2 mt-2">
               {!isStable && isNetworkBlocked ? (
@@ -532,7 +795,7 @@ function FarmerDashboard() {
               ) : (
                 <Badge className="bg-green-100 text-green-800">
                   <CheckCircle className="w-3 h-3 mr-1" />
-                  All Systems Operational
+                  {bt('allSystemsOperational')}
                 </Badge>
               )}
               {isNetworkBlocked && (
@@ -546,25 +809,30 @@ function FarmerDashboard() {
             </div>
           </div>
           
-          {!isStable && (
-            <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={resetStability}>
-                <Shield className="w-4 h-4 mr-2" />
-                Reset
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
-                <RefreshCw className="w-4 h-4 mr-2" />
-                Refresh
-              </Button>
-            </div>
-          )}
+          {/* Translation Status - Keep for development monitoring */}
+          <div className="flex items-center gap-2">
+            <TranslationStatus />
+            
+            {!isStable && (
+              <>
+                <Button variant="outline" size="sm" onClick={resetStability}>
+                  <Shield className="w-4 h-4 mr-2" />
+                  Reset
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => window.location.reload()}>
+                  <RefreshCw className="w-4 h-4 mr-2" />
+                  Refresh
+                </Button>
+              </>
+            )}
+          </div>
         </div>
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="orders">My Orders</TabsTrigger>
+          <TabsTrigger value="overview">{bt('overview')}</TabsTrigger>
+          <TabsTrigger value="orders">{bt('myOrders')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -573,23 +841,23 @@ function FarmerDashboard() {
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Connected Dealers</CardTitle>
+                <CardTitle className="text-sm font-medium">{bt('connectedDealers')}</CardTitle>
                 <Users className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{connectedDealers.length}</div>
                 <p className="text-xs text-muted-foreground">
-                  Dealers available for feed prices
+                  {bt('dealersAvailable')}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  Call directly to place orders
+                  {bt('callDirectly')}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Weather</CardTitle>
+                <CardTitle className="text-sm font-medium">{bt('todaysWeather')}</CardTitle>
                 {getWeatherIcon()}
               </CardHeader>
               <CardContent>
@@ -606,8 +874,8 @@ function FarmerDashboard() {
                       {weather.forecast}
                     </p>
                     <div className="flex gap-3 mt-1 text-xs">
-                      <span className="text-blue-600">Humidity: {weather.humidity}</span>
-                      <span className="text-green-600">Rainfall: {weather.rainfall}</span>
+                      <span className="text-blue-600">{bt('humidity')}: {weather.humidity}</span>
+                      <span className="text-green-600">{bt('rainfall')}: {weather.rainfall}</span>
                     </div>
                   </>
                 )}
@@ -616,7 +884,7 @@ function FarmerDashboard() {
 
             <Card>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Active Batches</CardTitle>
+                <CardTitle className="text-sm font-medium">{bt('activeBatches')}</CardTitle>
                 <Package className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -624,10 +892,10 @@ function FarmerDashboard() {
                   {activeBatches}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Total Active Batches
+                  {bt('totalActiveBatches')}
                 </p>
                 <p className="text-xs text-green-600 mt-1">
-                  {totalBirds} birds total
+                  {totalBirds} {bt('birdsTotal')}
                 </p>
               </CardContent>
             </Card>
@@ -636,8 +904,8 @@ function FarmerDashboard() {
           {/* Dealer Account Balances Section */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg sm:text-xl">Dealer Account Balances</CardTitle>
-              <p className="text-sm text-muted-foreground">Your running balance with each connected dealer</p>
+              <CardTitle className="text-lg sm:text-xl">{bt('dealerAccountBalances')}</CardTitle>
+              <p className="text-sm text-muted-foreground">{bt('runningBalance')}</p>
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
@@ -653,39 +921,39 @@ function FarmerDashboard() {
                         {balance ? (
                           <div className="space-y-2">
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">Your Available Balance:</span>
+                              <span className="text-sm text-muted-foreground">{bt('yourAvailableBalance')}</span>
                               <span className="text-sm font-medium text-green-600">₹{balance.netBalance}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">Total Deposited:</span>
+                              <span className="text-sm text-muted-foreground">{bt('totalDeposited')}</span>
                               <span className="text-sm font-medium text-blue-600">₹{balance.creditBalance}</span>
                             </div>
                             <hr />
                             <div className="flex justify-between">
-                              <span className="font-medium">Available for Orders:</span>
+                              <span className="font-medium">{bt('availableForOrders')}</span>
                               <span className={`font-medium ${balance.netBalance > 0 ? 'text-green-600' : balance.netBalance < 0 ? 'text-red-600' : 'text-gray-600'}`}>
                                 ₹{balance.netBalance}
                               </span>
                             </div>
-                            <div className="text-xs text-gray-500">Last updated: {balance.lastUpdated.toDate().toLocaleDateString()}</div>
+                            <div className="text-xs text-gray-500">{bt('lastUpdated')} {balance.lastUpdated.toDate().toLocaleDateString()}</div>
                           </div>
                         ) : (
                           <div>
-                            <div className="text-sm text-gray-500 mb-2">No transactions yet</div>
+                            <div className="text-sm text-gray-500 mb-2">{bt('noTransactionsYet')}</div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">You owe dealer:</span>
+                              <span className="text-sm text-muted-foreground">{bt('youOweDealer')}</span>
                               <span className="text-sm font-medium text-red-600">₹0</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-sm text-muted-foreground">Dealer owes you:</span>
+                              <span className="text-sm text-muted-foreground">{bt('dealerOwesYou')}</span>
                               <span className="text-sm font-medium text-green-600">₹0</span>
                             </div>
                             <hr />
                             <div className="flex justify-between">
-                              <span className="font-medium">Net Balance:</span>
+                              <span className="font-medium">{bt('netBalance')}</span>
                               <span className="font-medium text-gray-600">₹0</span>
                             </div>
-                            <div className="text-xs text-gray-500">No transactions yet</div>
+                            <div className="text-xs text-gray-500">{bt('noTransactionsYet')}</div>
                           </div>
                         )}
                       </CardContent>
@@ -702,10 +970,10 @@ function FarmerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
-              Batch Management
+              {bt('batchManagement')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Manage your poultry batches (1-10 max)
+              {bt('manageBatches')}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -743,12 +1011,12 @@ function FarmerDashboard() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No Active Batches</h3>
+                <h3 className="text-lg font-semibold mb-2">{bt('noActiveBatches')}</h3>
                 <p className="text-gray-600 mb-4">
-                  Start managing your poultry by creating your first batch
+                  {bt('startManaging')}
                 </p>
                 <Button onClick={addNewBatch} className="w-full">
-                  Create First Batch
+                  {bt('createFirstBatch')}
                 </Button>
               </div>
             )}
@@ -760,10 +1028,10 @@ function FarmerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
-              Financial Summary
+              {bt('financialSummary')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Your account balance with dealers
+              {bt('accountBalance')}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -789,15 +1057,15 @@ function FarmerDashboard() {
                 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium text-blue-800">Net Balance</h4>
+                    <h4 className="font-medium text-blue-800">{bt('netBalance')}</h4>
                     <p className={`text-lg font-bold ${financialSummary.netBalance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                       ₹{Math.abs(financialSummary.netBalance).toLocaleString()}
-                      {financialSummary.netBalance >= 0 ? ' Credit' : ' Debit'}
+                      {financialSummary.netBalance >= 0 ? ` ${bt('credit')}` : ` ${bt('debit')}`}
                     </p>
                   </div>
                   {financialSummary.pendingPayments > 0 && (
                     <p className="text-sm text-blue-700 mt-2">
-                      Pending: ₹{financialSummary.pendingPayments.toLocaleString()}
+                      {bt('pending')}: ₹{financialSummary.pendingPayments.toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -805,18 +1073,18 @@ function FarmerDashboard() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <CreditCard className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No Financial Data</h3>
+                <h3 className="text-lg font-semibold mb-2">{bt('noFinancialData')}</h3>
                 <p className="text-gray-600 mb-4">
-                  Financial transactions will appear here once you start trading with dealers
+                  {bt('financialTransactions')}
                 </p>
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="font-medium">₹0</p>
-                    <p className="text-gray-600">Total Credit</p>
+                    <p className="text-gray-600">{bt('totalCredit')}</p>
                   </div>
                   <div className="p-3 bg-gray-50 rounded-lg">
                     <p className="font-medium">₹0</p>
-                    <p className="text-gray-600">Total Debit</p>
+                    <p className="text-gray-600">{bt('totalDebit')}</p>
                   </div>
                 </div>
               </div>
@@ -829,10 +1097,10 @@ function FarmerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Wheat className="h-5 w-5" />
-              Stock Overview
+              {bt('stockOverview')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Current inventory status
+              {bt('currentInventory')}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -843,8 +1111,8 @@ function FarmerDashboard() {
                     <div className="flex items-center gap-3 p-3 bg-yellow-50 rounded-lg">
                       <Wheat className="h-5 w-5 text-yellow-600" />
                       <div className="flex-1">
-                        <p className="font-medium">{stockSummary.feeds.bags} Bags</p>
-                        <p className="text-sm text-gray-600">Feed Stock</p>
+                        <p className="font-medium">{stockSummary.feeds.bags} {bt('bags')}</p>
+                        <p className="text-sm text-gray-600">{bt('feedStock')}</p>
                       </div>
                       <p className="text-sm font-medium">₹{stockSummary.feeds.value.toLocaleString()}</p>
                     </div>
@@ -854,8 +1122,8 @@ function FarmerDashboard() {
                     <div className="flex items-center gap-3 p-3 bg-orange-50 rounded-lg">
                       <Bird className="h-5 w-5 text-orange-600" />
                       <div className="flex-1">
-                        <p className="font-medium">{stockSummary.chicks.count} Chicks</p>
-                        <p className="text-sm text-gray-600">Active Birds</p>
+                        <p className="font-medium">{stockSummary.chicks.count} {bt('chicks')}</p>
+                        <p className="text-sm text-gray-600">{bt('activeBirds')}</p>
                       </div>
                       <p className="text-sm font-medium">₹{stockSummary.chicks.value.toLocaleString()}</p>
                     </div>
@@ -865,8 +1133,8 @@ function FarmerDashboard() {
                     <div className="flex items-center gap-3 p-3 bg-purple-50 rounded-lg">
                       <Pill className="h-5 w-5 text-purple-600" />
                       <div className="flex-1">
-                        <p className="font-medium">{stockSummary.medicines.items} Items</p>
-                        <p className="text-sm text-gray-600">Medicines</p>
+                        <p className="font-medium">{stockSummary.medicines.items} {bt('items')}</p>
+                        <p className="text-sm text-gray-600">{bt('medicines')}</p>
                       </div>
                       <p className="text-sm font-medium">₹{stockSummary.medicines.value.toLocaleString()}</p>
                     </div>
@@ -875,7 +1143,7 @@ function FarmerDashboard() {
                 
                 <div className="p-3 bg-gray-50 rounded-lg">
                   <div className="flex items-center justify-between">
-                    <h4 className="font-medium">Total Stock Value</h4>
+                    <h4 className="font-medium">{bt('totalStockValue')}</h4>
                     <p className="text-lg font-bold text-blue-600">
                       ₹{(stockSummary.feeds.value + stockSummary.chicks.value + stockSummary.medicines.value).toLocaleString()}
                     </p>
@@ -885,22 +1153,22 @@ function FarmerDashboard() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No Stock Data</h3>
+                <h3 className="text-lg font-semibold mb-2">{bt('noStockData')}</h3>
                 <p className="text-gray-600 mb-4">
-                  Your inventory will appear here once you start tracking stock
+                  {bt('inventoryAppear')}
                 </p>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="p-2 bg-gray-50 rounded">
-                    <p className="font-medium">0 Bags</p>
-                    <p className="text-gray-600">Feed</p>
+                    <p className="font-medium">0 {bt('bags')}</p>
+                    <p className="text-gray-600">{bt('feed')}</p>
                   </div>
                   <div className="p-2 bg-gray-50 rounded">
-                    <p className="font-medium">0 Birds</p>
-                    <p className="text-gray-600">Chicks</p>
+                    <p className="font-medium">0 {bt('birds')}</p>
+                    <p className="text-gray-600">{bt('chicks')}</p>
                   </div>
                   <div className="p-2 bg-gray-50 rounded">
-                    <p className="font-medium">0 Items</p>
-                    <p className="text-gray-600">Medicine</p>
+                    <p className="font-medium">0 {bt('items')}</p>
+                    <p className="text-gray-600">{bt('medicine')}</p>
                   </div>
                 </div>
               </div>
@@ -913,25 +1181,25 @@ function FarmerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               {getWeatherIcon()}
-              Weather Information
+              {bt('weatherInformation')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Current weather conditions for poultry care
+              {bt('currentWeather')}
             </p>
           </CardHeader>
           <CardContent className="space-y-4">
             {weather.isLoading ? (
               <div className="text-center py-8">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                <p className="text-gray-600">Loading weather data...</p>
+                <p className="text-gray-600">{bt('loadingWeatherData')}</p>
               </div>
             ) : weather.error ? (
               <div className="text-center py-8 text-gray-500">
                 <Cloud className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">Weather Data Unavailable</h3>
+                <h3 className="text-lg font-semibold mb-2">{bt('weatherDataUnavailable')}</h3>
                 <p className="text-gray-600 mb-4">{weather.error}</p>
                 <p className="text-sm text-gray-500">
-                  Weather information will be available once the service is restored
+                  {bt('weatherServiceRestored')}
                 </p>
               </div>
             ) : (
@@ -941,7 +1209,7 @@ function FarmerDashboard() {
                     <Thermometer className="h-5 w-5 text-orange-600" />
                     <div>
                       <p className="font-medium">{weather.temperature}</p>
-                      <p className="text-sm text-gray-600">Temperature</p>
+                      <p className="text-sm text-gray-600">{bt('temperature')}</p>
                     </div>
                   </div>
                   
@@ -949,7 +1217,7 @@ function FarmerDashboard() {
                     <Activity className="h-5 w-5 text-blue-600" />
                     <div>
                       <p className="font-medium">{weather.humidity}</p>
-                      <p className="text-sm text-gray-600">Humidity</p>
+                      <p className="text-sm text-gray-600">{bt('humidity')}</p>
                     </div>
                   </div>
                   
@@ -957,7 +1225,7 @@ function FarmerDashboard() {
                     <CloudRain className="h-5 w-5 text-green-600" />
                     <div>
                       <p className="font-medium">{weather.rainfall}</p>
-                      <p className="text-sm text-gray-600">Rainfall</p>
+                      <p className="text-sm text-gray-600">{bt('rainfall')}</p>
                     </div>
                   </div>
                   
@@ -965,30 +1233,30 @@ function FarmerDashboard() {
                     {getWeatherIcon()}
                     <div>
                       <p className="font-medium">
-                        {weather.condition === 'sunny' ? 'Excellent' : 
-                         weather.condition === 'cloudy' ? 'Good' : 
-                         weather.condition === 'rain' ? 'Fair' : 'Monitor'}
+                        {weather.condition === 'sunny' ? bt('excellent') : 
+                         weather.condition === 'cloudy' ? bt('good') : 
+                         weather.condition === 'rain' ? bt('fair') : bt('monitor')}
                       </p>
-                      <p className="text-sm text-gray-600">Poultry Conditions</p>
+                      <p className="text-sm text-gray-600">{bt('poultryConditions')}</p>
                     </div>
                   </div>
                 </div>
 
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <h4 className="font-medium text-blue-800 mb-1">Weather Forecast</h4>
+                  <h4 className="font-medium text-blue-800 mb-1">{bt('weatherForecast')}</h4>
                   <p className="text-sm text-blue-700">
                     {weather.forecast}
                   </p>
                 </div>
 
                 <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <h4 className="font-medium text-green-800 mb-1">Poultry Care Advice</h4>
+                  <h4 className="font-medium text-green-800 mb-1">{bt('poultryAdvice')}</h4>
                   <p className="text-sm text-green-700">
                     {weather.condition === 'rain' ? 
-                      "Rainy conditions - ensure proper drainage and dry bedding for birds" :
+                      bt('poultryAdviceRain') :
                       weather.condition === 'sunny' ?
-                      "Clear weather - maintain adequate ventilation and fresh water supply" :
-                      "Monitor birds regularly and maintain optimal housing conditions"
+                      bt('poultryAdviceSunny') :
+                      bt('poultryAdvice')
                     }
                   </p>
                 </div>
@@ -1002,10 +1270,10 @@ function FarmerDashboard() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Users className="h-5 w-5" />
-              Connected Dealers
+              {bt('connectedDealers')}
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              Your trusted feed suppliers
+              {bt('trustedSuppliers')}
             </p>
           </CardHeader>
           <CardContent>
@@ -1027,15 +1295,15 @@ function FarmerDashboard() {
                             window.open(`tel:${dealer.dealerPhone}`);
                           } else {
                             toast({
-                              title: "Phone number not available",
-                              description: `${dealer.dealerName} hasn't provided a phone number`,
+                              title: bt('phoneNotAvailable'),
+                              description: `${dealer.dealerName} ${bt('hasntProvidedPhone')}`,
                               variant: "default"
                             });
                           }
                         }}
                       >
                         <Phone className="h-3 w-3" />
-                        Call
+                        {bt('call')}
                       </Button>
                       <Button 
                         size="sm" 
@@ -1047,7 +1315,7 @@ function FarmerDashboard() {
                         }}
                       >
                         <DollarSign className="h-3 w-3" />
-                        View Prices
+                        {bt('viewPrices')}
                       </Button>
                     </div>
                   </div>
@@ -1056,17 +1324,17 @@ function FarmerDashboard() {
             ) : (
               <div className="text-center py-8 text-gray-500">
                 <Users className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                <h3 className="text-lg font-semibold mb-2">No Connected Dealers</h3>
+                <h3 className="text-lg font-semibold mb-2">{bt('noConnectedDealers')}</h3>
                 <p className="text-gray-600 mb-4">
-                  Connect with dealers to view feed prices and place orders
+                  {bt('connectDealers')}
                 </p>
                 <Button onClick={() => {
                   toast({
-                    title: "Feature Coming Soon",
-                    description: "We're working on a dealer directory feature. For now, ask existing dealers for invitation codes.",
+                    title: bt('featureComingSoon'),
+                    description: bt('dealerDirectoryMessage'),
                     variant: "default"
                   });
-                }}>Find Dealers</Button>
+                }}>{bt('findDealers')}</Button>
               </div>
             )}
           </CardContent>
@@ -1076,7 +1344,7 @@ function FarmerDashboard() {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
+          <CardTitle>{bt('quickActions')}</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
@@ -1086,14 +1354,14 @@ function FarmerDashboard() {
               onClick={() => window.location.href = '/farmer/feed-prices'}
             >
               <DollarSign className="h-6 w-6" />
-              <span>View Feed Prices</span>
-              <span className="text-xs opacity-70">Compare dealer rates</span>
+              <span>{bt('viewFeedPrices')}</span>
+              <span className="text-xs opacity-70">{bt('compareDealerRates')}</span>
             </Button>
             <Link to="/batch-management">
               <Button variant="outline" className="gap-2 h-auto p-4 flex-col w-full">
                 <Package className="h-6 w-6" />
-                <span>Batch Management</span>
-                <span className="text-xs opacity-70">Manage your poultry batches</span>
+                <span>{bt('batchManagement')}</span>
+                <span className="text-xs opacity-70">{bt('managePoultryBatches')}</span>
               </Button>
             </Link>
             <Button 
@@ -1108,30 +1376,30 @@ function FarmerDashboard() {
                       window.open(`tel:${dealersWithPhone[0].dealerPhone}`);
                     } else {
                       toast({
-                        title: "Multiple dealers available",
-                        description: `${dealersWithPhone.length} dealers have phone numbers. Use individual Call buttons.`,
+                        title: bt('multipleDealersAvailable') || "Multiple dealers available",
+                        description: bt('multipleDealersDescription') || `${dealersWithPhone.length} dealers have phone numbers. Use individual Call buttons.`,
                         variant: "default"
                       });
                     }
                   } else {
                     toast({
-                      title: "No phone numbers available",
-                      description: "Your connected dealers haven't provided phone numbers",
+                      title: bt('noPhoneNumbers') || "No phone numbers available",
+                      description: bt('noPhoneDescription') || "Your connected dealers haven't provided phone numbers",
                       variant: "default"
                     });
                   }
                 } else {
                   toast({
-                    title: "No connected dealers",
-                    description: "Connect with dealers first to get their contact information",
+                    title: bt('noConnectedDealers') || "No connected dealers",
+                    description: bt('connectDealersFirst') || "Connect with dealers first to get their contact information",
                     variant: "default"
                   });
                 }
               }}
             >
               <Phone className="h-6 w-6" />
-              <span>Call Dealers</span>
-              <span className="text-xs opacity-70">Place orders</span>
+              <span>{bt('callDealers')}</span>
+              <span className="text-xs opacity-70">{bt('placeOrders')}</span>
             </Button>
             <Button 
               variant="outline" 
@@ -1139,22 +1407,22 @@ function FarmerDashboard() {
               onClick={() => {
                 if (!weather.isLoading && !weather.error) {
                   toast({
-                    title: "Weather Information",
-                    description: `${weather.temperature}, ${weather.forecast}. Humidity: ${weather.humidity}`,
+                    title: bt('weatherInformation') || "Weather Information",
+                    description: `${weather.temperature}, ${weather.forecast}. ${bt('humidity') || 'Humidity'}: ${weather.humidity}`,
                     variant: "default"
                   });
                 } else {
                   toast({
-                    title: "Weather Data Unavailable",
-                    description: weather.error || "Weather information is loading. Please wait a moment.",
+                    title: bt('weatherUnavailable') || "Weather Data Unavailable",
+                    description: weather.error || bt('weatherLoading') || "Weather information is loading. Please wait a moment.",
                     variant: "default"
                   });
                 }
               }}
             >
               <Cloud className="h-6 w-6" />
-              <span>Weather Info</span>
-              <span className="text-xs opacity-70">Current conditions</span>
+              <span>{bt('weatherInfo')}</span>
+              <span className="text-xs opacity-70">{bt('currentConditions')}</span>
             </Button>
           </div>
         </CardContent>
@@ -1163,7 +1431,7 @@ function FarmerDashboard() {
       {/* Free Tools Section */}
       <Card>
         <CardHeader>
-          <CardTitle>Free Farm Management Tools</CardTitle>
+          <CardTitle>{bt('freeToolsTitle')}</CardTitle>
           <p className="text-sm text-muted-foreground">
             All tools are completely free to use! Login only required to save and download reports.
           </p>

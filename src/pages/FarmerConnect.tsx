@@ -7,12 +7,60 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { validateInvitationCode, connectFarmerToDealer } from "@/services/connectionService";
-import { CheckCircle, AlertCircle, UserPlus, Bird, Users, Key } from "lucide-react";
+import { CheckCircle, AlertCircle, UserPlus, Bird, Users, Key, Globe } from "lucide-react";
 
 export default function FarmerConnect() {
+  const [language, setLanguage] = useState("hi");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  
+  const content = {
+    hi: {
+      title: "डीलर से जुड़ें",
+      subtitle: "अपने डीलर के साथ व्यापारिक संबंध बनाएं",
+      enterCode: "डीलर कोड दर्ज करें",
+      codePlaceholder: "डीलर का आमंत्रण कोड",
+      validateCode: "कोड सत्यापित करें",
+      validating: "सत्यापन हो रहा है...",
+      connect: "जुड़ें",
+      connecting: "जुड़ रहे हैं...",
+      validCode: "वैध कोड",
+      invalidCode: "अमान्य कोड",
+      dealerInfo: "डीलर की जानकारी",
+      businessName: "व्यापारिक नाम",
+      ownerName: "मालिक का नाम",
+      email: "ईमेल",
+      confirmConnection: "क्या आप इस डीलर के साथ जुड़ना चाहते हैं?",
+      connectionSuccess: "सफलतापूर्वक जुड़ाव हो गया!",
+      goToDashboard: "डैशबोर्ड पर जाएं",
+      error: "त्रुटि",
+      tryAgain: "पुनः प्रयास करें"
+    },
+    en: {
+      title: "Connect with Dealer",
+      subtitle: "Establish business relationship with your dealer",
+      enterCode: "Enter Dealer Code",
+      codePlaceholder: "Dealer's invitation code",
+      validateCode: "Validate Code",
+      validating: "Validating...",
+      connect: "Connect",
+      connecting: "Connecting...",
+      validCode: "Valid Code",
+      invalidCode: "Invalid Code",
+      dealerInfo: "Dealer Information",
+      businessName: "Business Name",
+      ownerName: "Owner Name",
+      email: "Email",
+      confirmConnection: "Do you want to connect with this dealer?",
+      connectionSuccess: "Successfully connected!",
+      goToDashboard: "Go to Dashboard",
+      error: "Error",
+      tryAgain: "Try Again"
+    }
+  };
+
+  const t = content[language];
   
   // Simple state management for dealer code connection
   const [dealerCode, setDealerCode] = useState('');
@@ -430,9 +478,23 @@ export default function FarmerConnect() {
               <Bird className="w-8 h-8 text-green-600" />
               <h1 className="text-2xl font-bold text-green-600">Poultry Mitra</h1>
             </div>
-            <Button onClick={() => navigate('/')} variant="outline">
-              Go Home
-            </Button>
+            
+            <div className="flex items-center gap-2">
+              {/* Language Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+                className="flex items-center gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                {language === 'hi' ? 'EN' : 'हिं'}
+              </Button>
+              
+              <Button onClick={() => navigate('/')} variant="outline">
+                Go Home
+              </Button>
+            </div>
             
             {/* Quick Login Access */}
             {!currentUser && (
@@ -462,9 +524,9 @@ export default function FarmerConnect() {
           <Card>
             <CardHeader className="text-center">
               <Users className="h-12 w-12 text-green-500 mx-auto mb-2" />
-              <CardTitle className="text-2xl">Connect to Dealer</CardTitle>
+              <CardTitle className="text-2xl">{t.title}</CardTitle>
               <p className="text-gray-600">
-                Enter your dealer's code to join their network
+                {t.subtitle}
               </p>
               
               {/* Login Option for existing users */}
@@ -493,13 +555,13 @@ export default function FarmerConnect() {
             <CardContent className="space-y-6">
               {/* Dealer Code Input */}
               <div className="space-y-2">
-                <Label htmlFor="dealerCode">Dealer Code</Label>
+                <Label htmlFor="dealerCode">{t.enterCode}</Label>
                 <div className="relative">
                   <Key className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                   <Input
                     id="dealerCode"
                     type="text"
-                    placeholder="Enter dealer code (e.g., DEAL123)"
+                    placeholder={t.codePlaceholder}
                     value={dealerCode}
                     onChange={(e) => setDealerCode(e.target.value.toUpperCase())}
                     className="pl-10"
@@ -520,10 +582,10 @@ export default function FarmerConnect() {
                 {isValidating ? (
                   <>
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                    Validating...
+                    {t.validating}
                   </>
                 ) : (
-                  'Find Dealer'
+                  t.validateCode
                 )}
               </Button>
 

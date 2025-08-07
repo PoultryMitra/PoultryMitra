@@ -7,6 +7,8 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedTranslation } from '@/contexts/EnhancedTranslationContext';
+import { TranslationStatus } from '@/components/TranslationComponents';
 import { 
   adminContentService,
   type AdminPost
@@ -30,6 +32,43 @@ const PostsAndGuides: React.FC = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
   const location = useLocation();
+  const { language, t } = useEnhancedTranslation();
+
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for PostsAndGuides: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to static translations
+    const translations = {
+      'posts.title': { hi: "पोस्ट्स और गाइड्स", en: "Posts & Guides" },
+      'posts.subtitle': { hi: "घोषणाओं, गाइड्स, टिप्स और ट्यूटोरियल्स के साथ अपडेट रहें", en: "Stay updated with announcements, guides, tips, and tutorials" },
+      'posts.searchPlaceholder': { hi: "पोस्ट्स खोजें...", en: "Search posts..." },
+      'posts.all': { hi: "सभी", en: "All" },
+      'posts.announcements': { hi: "घोषणाएं", en: "Announcements" },
+      'posts.guides': { hi: "गाइड्स", en: "Guides" },
+      'posts.tips': { hi: "टिप्स", en: "Tips" },
+      'posts.tutorials': { hi: "ट्यूटोरियल्स", en: "Tutorials" },
+      'posts.noPosts': { hi: "कोई पोस्ट उपलब्ध नहीं है", en: "No posts available" },
+      'posts.readMore': { hi: "और पढ़ें", en: "Read More" },
+      'posts.share': { hi: "शेयर करें", en: "Share" },
+      'posts.back': { hi: "वापस", en: "Back" }
+    };
+    
+    const translation = translations[key as keyof typeof translations];
+    if (translation) {
+      const staticTranslation = translation[language] || translation.en;
+      console.log(`📚 Static content used for PostsAndGuides: ${key} -> ${staticTranslation}`);
+      return staticTranslation;
+    }
+    
+    console.log(`❌ No translation found for PostsAndGuides: ${key}`);
+    return key;
+  };
 
   // State management
   const [posts, setPosts] = useState<AdminPost[]>([]);
@@ -103,11 +142,16 @@ const PostsAndGuides: React.FC = () => {
 
   return (
     <div className="container mx-auto p-6 space-y-8">
+      {/* Translation Status */}
+      <div className="flex justify-end mb-4">
+        <TranslationStatus />
+      </div>
+
       {/* Header */}
       <div className="text-center">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Posts & Guides</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">{bt('posts.title')}</h1>
         <p className="text-gray-600">
-          Stay updated with announcements, guides, tips, and tutorials
+          {bt('posts.subtitle')}
         </p>
       </div>
 
@@ -116,7 +160,7 @@ const PostsAndGuides: React.FC = () => {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
           <Input
-            placeholder="Search posts..."
+            placeholder={bt('posts.searchPlaceholder')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="pl-10"
@@ -127,11 +171,11 @@ const PostsAndGuides: React.FC = () => {
       {/* Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-5">
-          <TabsTrigger value="all">All</TabsTrigger>
-          <TabsTrigger value="announcement">News</TabsTrigger>
-          <TabsTrigger value="guide">Guides</TabsTrigger>
-          <TabsTrigger value="tip">Tips</TabsTrigger>
-          <TabsTrigger value="tutorial">Videos</TabsTrigger>
+          <TabsTrigger value="all">{bt('posts.all')}</TabsTrigger>
+          <TabsTrigger value="announcement">{bt('posts.announcements')}</TabsTrigger>
+          <TabsTrigger value="guide">{bt('posts.guides')}</TabsTrigger>
+          <TabsTrigger value="tip">{bt('posts.tips')}</TabsTrigger>
+          <TabsTrigger value="tutorial">{bt('posts.tutorials')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value={activeTab} className="space-y-6 mt-8">
@@ -139,9 +183,9 @@ const PostsAndGuides: React.FC = () => {
             <Card>
               <CardContent className="text-center py-16">
                 <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No posts found</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">{bt('posts.noPosts')}</h3>
                 <p className="text-gray-600">
-                  {searchQuery ? 'Try adjusting your search terms' : 'Check back later for new content'}
+                  {searchQuery ? bt('posts.searchNoResults') || 'Try adjusting your search terms' : bt('posts.checkLater') || 'Check back later for new content'}
                 </p>
               </CardContent>
             </Card>

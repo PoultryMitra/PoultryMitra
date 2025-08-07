@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedTranslation } from "@/contexts/EnhancedTranslationContext";
+import { LanguageToggle } from "@/components/TranslationComponents";
 import { 
   getDealerProducts,
   addProduct,
@@ -55,6 +57,136 @@ import {
 const DealerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const { language, t } = useEnhancedTranslation();
+
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for DealerDashboard: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to local content - fix the nested structure lookup
+    const localContent = content[key as keyof typeof content];
+    if (localContent && typeof localContent === 'object') {
+      const translatedValue = localContent[language as keyof typeof localContent];
+      if (translatedValue) {
+        console.log(`📚 Static content used for DealerDashboard: ${key} -> ${translatedValue}`);
+        return translatedValue as string;
+      }
+    }
+    
+    const result = key;
+    console.log(`⚠️ No translation found for DealerDashboard: ${key}`);
+    return result;
+  };
+
+  // Content object for translations
+  const content = {
+    // Page header
+    dealerDashboard: { en: "Dealer Dashboard", hi: "डीलर डैशबोर्ड" },
+    welcomeBack: { en: "Welcome back", hi: "स्वागत है" },
+    generateInviteCode: { en: "Generate Invite Code", hi: "इनवाइट कोड बनाएं" },
+    editProfile: { en: "Edit Profile", hi: "प्रोफ़ाइल संपादित करें" },
+    
+    // Stats cards
+    totalProducts: { en: "Total Products", hi: "कुल उत्पाद" },
+    inInventory: { en: "In inventory", hi: "इन्वेंटरी में" },
+    totalRevenue: { en: "Total Revenue", hi: "कुल आय" },
+    fromAllFarmers: { en: "From all farmers", hi: "सभी किसानों से" },
+    amountGiven: { en: "Amount Given", hi: "दी गई राशि" },
+    toFarmers: { en: "To farmers", hi: "किसानों को" },
+    
+    // Company amounts section
+    companyAmountsTitle: { en: "Company Amounts Given to Farmers", hi: "कंपनी की राशि किसानों को दी गई" },
+    companyAmountsDesc: { en: "Track amounts from different companies provided to farmers", hi: "किसानों को प्रदान की गई विभिन्न कंपनियों की राशि को ट्रैक करें" },
+    feedCompanies: { en: "Feed Companies", hi: "फीड कंपनियां" },
+    medicineCompanies: { en: "Medicine Companies", hi: "दवा कंपनियां" },
+    chickCompanies: { en: "Chick Companies", hi: "चूजा कंपनियां" },
+    amountGivenToFarmers: { en: "Amount given to farmers", hi: "किसानों को दी गई राशि" },
+    totalGiven: { en: "Total Given", hi: "कुल दी गई" },
+    allCompaniesCombined: { en: "All companies combined", hi: "सभी कंपनियां मिलाकर" },
+    pendingRecovery: { en: "Pending Recovery", hi: "लंबित वसूली" },
+    amountToRecover: { en: "Amount to recover", hi: "वसूली की जाने वाली राशि" },
+    
+    // Quick actions
+    quickActions: { en: "Quick Actions", hi: "त्वरित क्रियाएं" },
+    quickActionsDesc: { en: "Manage your dealer operations efficiently", hi: "अपने डीलर ऑपरेशन को कुशलता से प्रबंधित करें" },
+    addProduct: { en: "Add Product", hi: "उत्पाद जोड़ें" },
+    updatePrices: { en: "Update Prices", hi: "कीमतें अपडेट करें" },
+    products: { en: "Products", hi: "उत्पाद" },
+    inventory: { en: "Inventory", hi: "इन्वेंटरी" },
+    orders: { en: "Orders", hi: "ऑर्डर" },
+    farmers: { en: "Farmers", hi: "किसान" },
+    guides: { en: "Guides", hi: "गाइड्स" },
+    
+    // Products section
+    yourProducts: { en: "Your Products", hi: "आपके उत्पाद" },
+    manageProductsDesc: { en: "Manage your product inventory and pricing", hi: "अपनी उत्पाद सूची और मूल्य निर्धारण का प्रबंधन करें" },
+    
+    // Product details
+    feed: { en: "Feed", hi: "चारा" },
+    price: { en: "Price", hi: "कीमत" },
+    stock: { en: "Stock", hi: "स्टॉक" },
+    supplier: { en: "Supplier", hi: "आपूर्तिकर्ता" },
+    bags: { en: "bags", hi: "बैग" },
+    
+    // Product management
+    manageProductInventory: { en: "Manage your product inventory and pricing", hi: "अपनी उत्पाद इन्वेंट्री और मूल्य निर्धारण का प्रबंधन करें" },
+    noProductsYet: { en: "No Products Yet", hi: "अभी तक कोई उत्पाद नहीं" },
+    addFirstProductMsg: { en: "Add your first product to start selling to farmers.", hi: "किसानों को बेचना शुरू करने के लिए अपना पहला उत्पाद जोड़ें।" },
+    addFirstProduct: { en: "Add First Product", hi: "पहला उत्पाद जोड़ें" },
+    lowStockWarning: { en: "Low stock! Only", hi: "कम स्टॉक! केवल" },
+    remaining: { en: "remaining", hi: "बचे हैं" },
+    
+    // Inventory section
+    inventoryManagement: { en: "Inventory Management", hi: "इन्वेंट्री प्रबंधन" },
+    items: { en: "items", hi: "आइटम" },
+    trackStockLevels: { en: "Track and manage your stock levels manually", hi: "अपने स्टॉक स्तर को मैन्युअल रूप से ट्रैक और प्रबंधित करें" },
+    addItem: { en: "Add Item", hi: "आइटम जोड़ें" },
+    noInventoryItems: { en: "No inventory items yet", hi: "अभी तक कोई इन्वेंट्री आइटम नहीं" },
+    addFirstInventoryMsg: { en: "Start by adding your first inventory item to track stock levels.", hi: "स्टॉक स्तर को ट्रैक करने के लिए अपना पहला इन्वेंट्री आइटम जोड़ना शुरू करें।" },
+    addFirstItem: { en: "Add First Item", hi: "पहला आइटम जोड़ें" },
+    
+    // Orders section
+    farmerOrderRequests: { en: "Farmer Order Requests", hi: "किसान ऑर्डर अनुरोध" },
+    pending: { en: "pending", hi: "लंबित" },
+    manageIncomingOrders: { en: "Manage incoming orders from your farmers", hi: "अपने किसानों से आने वाले ऑर्डर का प्रबंधन करें" },
+    noOrderRequests: { en: "No order requests yet", hi: "अभी तक कोई ऑर्डर अनुरोध नहीं" },
+    farmersWillRequestProducts: { en: "Farmers will be able to request feed, medicine, and chicks from you.", hi: "किसान आपसे चारा, दवाई और चूजों की मांग कर सकेंगे।" },
+    
+    // Farmers section
+    connectedFarmers: { en: "Connected Farmers", hi: "जुड़े हुए किसान" },
+    farmersConnectedToDealer: { en: "Farmers connected to your dealership", hi: "आपकी डीलरशिप से जुड़े किसान" },
+    noConnectedFarmers: { en: "No Connected Farmers", hi: "कोई जुड़े हुए किसान नहीं" },
+    generateInviteCodeMsg: { en: "Generate an invite code to connect with farmers or create demo data", hi: "किसानों से जुड़ने के लिए इनवाइट कोड बनाएं या डेमो डेटा बनाएं" },
+    
+    // Guides section
+    poultryBusinessGuides: { en: "Poultry Business Guides", hi: "पोल्ट्री बिजनेस गाइड्स" },
+    accessBusinessTips: { en: "Access business tips, market insights, and best practices for dealers", hi: "डीलरों के लिए व्यावसायिक सुझाव, बाजार की जानकारी और सर्वोत्तम प्रथाओं तक पहुंच" },
+    loadingGuides: { en: "Loading guides and business tips...", hi: "गाइड और व्यावसायिक सुझाव लोड कर रहे हैं..." },
+    viewAllGuides: { en: "View All Guides & Tips", hi: "सभी गाइड और टिप्स देखें" },
+    
+    // Product modal
+    editProduct: { en: "Edit Product", hi: "उत्पाद संपादित करें" },
+    addNewProduct: { en: "Add New Product", hi: "नया उत्पाद जोड़ें" },
+    updateProductInfo: { en: "Update product information", hi: "उत्पाद की जानकारी अपडेट करें" },
+    addNewProductToInventory: { en: "Add a new product to your inventory", hi: "अपनी इन्वेंट्री में नया उत्पाद जोड़ें" },
+    productName: { en: "Product Name", hi: "उत्पाद का नाम" },
+    productNamePlaceholder: { en: "e.g., Starter Feed", hi: "जैसे, स्टार्टर फीड" },
+    category: { en: "Category", hi: "श्रेणी" },
+    selectCategory: { en: "Select category", hi: "श्रेणी चुनें" },
+    medicine: { en: "Medicine", hi: "दवाई" },
+    equipment: { en: "Equipment", hi: "उपकरण" },
+    chicks: { en: "Chicks", hi: "चूजे" },
+    other: { en: "Other", hi: "अन्य" },
+    unit: { en: "Unit", hi: "इकाई" },
+    
+    // Loading message
+    loadingDashboard: { en: "Loading dealer dashboard...", hi: "डीलर डैशबोर्ड लोड कर रहे हैं..." }
+  };
 
   // State management
   const [dealerProfile, setDealerProfile] = useState<DealerProfile | null>(null);
@@ -599,7 +731,7 @@ const DealerDashboard: React.FC = () => {
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-green-500"></div>
-          <p className="mt-4 text-lg text-gray-600">Loading dealer dashboard...</p>
+          <p className="mt-4 text-lg text-gray-600">{bt('loadingDashboard')}</p>
         </div>
       </div>
     );
@@ -610,21 +742,21 @@ const DealerDashboard: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dealer Dashboard</h1>
+          <h1 className="text-3xl font-bold text-gray-900">{bt('dealerDashboard')}</h1>
           <p className="text-gray-600 mt-1">
-            Welcome back, {dealerProfile?.businessName || 'Dealer'}!
+            {bt('welcomeBack')}, {dealerProfile?.businessName || bt('dealer')}!
           </p>
         </div>
         
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleGenerateInviteCode} className="bg-blue-600 hover:bg-blue-700">
             <UserPlus className="w-4 h-4 mr-2" />
-            Generate Invite Code
+            {bt('generateInviteCode')}
           </Button>
           
           <Button variant="outline" onClick={() => setShowContactModal(true)}>
             <Settings className="w-4 h-4 mr-2" />
-            Edit Profile
+            {bt('editProfile')}
           </Button>
         </div>
       </div>
@@ -633,34 +765,34 @@ const DealerDashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+            <CardTitle className="text-sm font-medium">{bt('totalProducts')}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.totalProducts}</div>
-            <p className="text-xs text-muted-foreground">In inventory</p>
+            <p className="text-xs text-muted-foreground">{bt('inInventory')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{bt('totalRevenue')}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{stats.totalRevenue.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">From all farmers</p>
+            <p className="text-xs text-muted-foreground">{bt('fromAllFarmers')}</p>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Amount Given</CardTitle>
+            <CardTitle className="text-sm font-medium">{bt('amountGiven')}</CardTitle>
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{companyAmounts.totalGivenToFarmers.toLocaleString()}</div>
-            <p className="text-xs text-muted-foreground">To farmers</p>
+            <p className="text-xs text-muted-foreground">{bt('toFarmers')}</p>
           </CardContent>
         </Card>
       </div>
@@ -668,35 +800,35 @@ const DealerDashboard: React.FC = () => {
       {/* Company Amounts Breakdown */}
       <Card>
         <CardHeader>
-          <CardTitle>Company Amounts Given to Farmers</CardTitle>
-          <CardDescription>Track amounts from different companies provided to farmers</CardDescription>
+          <CardTitle>{bt('companyAmountsTitle')}</CardTitle>
+          <CardDescription>{bt('companyAmountsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
             <div className="flex items-center gap-3 p-4 bg-yellow-50 rounded-lg border border-yellow-200">
               <Package className="h-8 w-8 text-yellow-600" />
               <div>
-                <h4 className="font-semibold text-yellow-800">Feed Companies</h4>
+                <h4 className="font-semibold text-yellow-800">{bt('feedCompanies')}</h4>
                 <p className="text-2xl font-bold text-yellow-600">₹{companyAmounts.feedCompanyAmounts.toLocaleString()}</p>
-                <p className="text-sm text-yellow-700">Amount given to farmers</p>
+                <p className="text-sm text-yellow-700">{bt('amountGivenToFarmers')}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-4 bg-purple-50 rounded-lg border border-purple-200">
               <Package className="h-8 w-8 text-purple-600" />
               <div>
-                <h4 className="font-semibold text-purple-800">Medicine Companies</h4>
+                <h4 className="font-semibold text-purple-800">{bt('medicineCompanies')}</h4>
                 <p className="text-2xl font-bold text-purple-600">₹{companyAmounts.medicineCompanyAmounts.toLocaleString()}</p>
-                <p className="text-sm text-purple-700">Amount given to farmers</p>
+                <p className="text-sm text-purple-700">{bt('amountGivenToFarmers')}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg border border-orange-200">
               <Package className="h-8 w-8 text-orange-600" />
               <div>
-                <h4 className="font-semibold text-orange-800">Chick Companies</h4>
+                <h4 className="font-semibold text-orange-800">{bt('chickCompanies')}</h4>
                 <p className="text-2xl font-bold text-orange-600">₹{companyAmounts.chickCompanyAmounts.toLocaleString()}</p>
-                <p className="text-sm text-orange-700">Amount given to farmers</p>
+                <p className="text-sm text-orange-700">{bt('amountGivenToFarmers')}</p>
               </div>
             </div>
           </div>
@@ -704,20 +836,20 @@ const DealerDashboard: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-green-800">Total Given</h4>
+                <h4 className="font-semibold text-green-800">{bt('totalGiven')}</h4>
                 <DollarSign className="h-5 w-5 text-green-600" />
               </div>
               <p className="text-3xl font-bold text-green-600">₹{companyAmounts.totalGivenToFarmers.toLocaleString()}</p>
-              <p className="text-sm text-green-700">All companies combined</p>
+              <p className="text-sm text-green-700">{bt('allCompaniesCombined')}</p>
             </div>
             
             <div className="p-4 bg-red-50 rounded-lg border border-red-200">
               <div className="flex justify-between items-center">
-                <h4 className="font-semibold text-red-800">Pending Recovery</h4>
+                <h4 className="font-semibold text-red-800">{bt('pendingRecovery')}</h4>
                 <AlertCircle className="h-5 w-5 text-red-600" />
               </div>
               <p className="text-3xl font-bold text-red-600">₹{companyAmounts.pendingRecovery.toLocaleString()}</p>
-              <p className="text-sm text-red-700">Amount to recover</p>
+              <p className="text-sm text-red-700">{bt('amountToRecover')}</p>
             </div>
           </div>
         </CardContent>
@@ -726,8 +858,8 @@ const DealerDashboard: React.FC = () => {
       {/* Quick Actions */}
       <Card>
         <CardHeader>
-          <CardTitle>Quick Actions</CardTitle>
-          <CardDescription>Manage your dealer operations efficiently</CardDescription>
+          <CardTitle>{bt('quickActions')}</CardTitle>
+          <CardDescription>{bt('quickActionsDesc')}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -736,7 +868,7 @@ const DealerDashboard: React.FC = () => {
               className="h-20 flex flex-col gap-2"
             >
               <Plus className="w-6 h-6" />
-              Add Product
+              {bt('addProduct')}
             </Button>
             
             <Button 
@@ -746,7 +878,7 @@ const DealerDashboard: React.FC = () => {
               disabled={dealerProducts.length === 0}
             >
               <Edit className="w-6 h-6" />
-              Update Prices
+              {bt('updatePrices')}
             </Button>
           </div>
         </CardContent>
@@ -755,11 +887,11 @@ const DealerDashboard: React.FC = () => {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
-          <TabsTrigger value="overview">Products</TabsTrigger>
-          <TabsTrigger value="inventory">Inventory</TabsTrigger>
-          <TabsTrigger value="orders">Orders</TabsTrigger>
-          <TabsTrigger value="farmers">Farmers</TabsTrigger>
-          <TabsTrigger value="guides">Guides</TabsTrigger>
+          <TabsTrigger value="overview">{bt('products')}</TabsTrigger>
+          <TabsTrigger value="inventory">{bt('inventory')}</TabsTrigger>
+          <TabsTrigger value="orders">{bt('orders')}</TabsTrigger>
+          <TabsTrigger value="farmers">{bt('farmers')}</TabsTrigger>
+          <TabsTrigger value="guides">{bt('guides')}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="overview" className="space-y-6">
@@ -768,15 +900,15 @@ const DealerDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Your Products ({dealerProducts.length})</CardTitle>
-                  <CardDescription>Manage your product inventory and pricing</CardDescription>
+                  <CardTitle>{bt('yourProducts')} ({dealerProducts.length})</CardTitle>
+                  <CardDescription>{bt('manageProductInventory')}</CardDescription>
                 </div>
                 <Button 
                   onClick={() => setShowProductModal(true)}
                   className="bg-green-600 hover:bg-green-700"
                 >
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Product
+                  {bt('addProduct')}
                 </Button>
               </div>
             </CardHeader>
@@ -784,16 +916,16 @@ const DealerDashboard: React.FC = () => {
               {dealerProducts.length === 0 ? (
                 <div className="text-center py-12">
                   <Package className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No Products Yet</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">{bt('noProductsYet')}</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Add your first product to start selling to farmers.
+                    {bt('addFirstProductMsg')}
                   </p>
                   <Button 
                     onClick={() => setShowProductModal(true)}
                     className="mt-4"
                   >
                     <Plus className="w-4 h-4 mr-2" />
-                    Add First Product
+                    {bt('addFirstProduct')}
                   </Button>
                 </div>
               ) : (
@@ -827,18 +959,18 @@ const DealerDashboard: React.FC = () => {
                       <CardContent>
                         <div className="space-y-2">
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Price:</span>
+                            <span className="text-sm text-gray-600">{bt('price')}:</span>
                             <span className="font-medium">₹{product.pricePerUnit}/{product.unit}</span>
                           </div>
                           <div className="flex justify-between">
-                            <span className="text-sm text-gray-600">Stock:</span>
+                            <span className="text-sm text-gray-600">{bt('stock')}:</span>
                             <span className={`font-medium ${product.currentStock <= product.minStockLevel ? 'text-red-600' : ''}`}>
                               {product.currentStock} {product.unit}
                             </span>
                           </div>
                           {product.supplier && (
                             <div className="flex justify-between">
-                              <span className="text-sm text-gray-600">Supplier:</span>
+                              <span className="text-sm text-gray-600">{bt('supplier')}:</span>
                               <span className="text-sm">{product.supplier}</span>
                             </div>
                           )}
@@ -846,7 +978,7 @@ const DealerDashboard: React.FC = () => {
                             <Alert className="mt-2">
                               <AlertCircle className="h-4 w-4" />
                               <AlertDescription className="text-xs">
-                                Low stock! Only {product.currentStock} {product.unit} remaining.
+                                {bt('lowStockWarning')} {product.currentStock} {product.unit} {bt('remaining')}.
                               </AlertDescription>
                             </Alert>
                           )}
@@ -866,12 +998,12 @@ const DealerDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Inventory Management ({inventoryItems.length} items)</CardTitle>
-                  <CardDescription>Track and manage your stock levels manually</CardDescription>
+                  <CardTitle>{bt('inventoryManagement')} ({inventoryItems.length} {bt('items')})</CardTitle>
+                  <CardDescription>{bt('trackStockLevels')}</CardDescription>
                 </div>
                 <Button onClick={() => setShowInventoryModal(true)} className="bg-blue-600 hover:bg-blue-700">
                   <Plus className="w-4 h-4 mr-2" />
-                  Add Item
+                  {bt('addItem')}
                 </Button>
               </div>
             </CardHeader>
@@ -879,11 +1011,11 @@ const DealerDashboard: React.FC = () => {
               {inventoryItems.length === 0 ? (
                 <div className="text-center py-8">
                   <Archive className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No inventory items yet</h3>
-                  <p className="text-gray-600 mb-4">Start by adding your first inventory item to track stock levels.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{bt('noInventoryItems')}</h3>
+                  <p className="text-gray-600 mb-4">{bt('addFirstInventoryMsg')}</p>
                   <Button onClick={() => setShowInventoryModal(true)} className="bg-blue-600 hover:bg-blue-700">
                     <Plus className="w-4 h-4 mr-2" />
-                    Add First Item
+                    {bt('addFirstItem')}
                   </Button>
                 </div>
               ) : (
@@ -980,8 +1112,8 @@ const DealerDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Farmer Order Requests ({dealerOrderRequests.filter(o => o.status === 'pending').length} pending)</CardTitle>
-                  <CardDescription>Manage incoming orders from your farmers</CardDescription>
+                  <CardTitle>{bt('farmerOrderRequests')} ({dealerOrderRequests.filter(o => o.status === 'pending').length} {bt('pending')})</CardTitle>
+                  <CardDescription>{bt('manageIncomingOrders')}</CardDescription>
                 </div>
               </div>
             </CardHeader>
@@ -989,8 +1121,8 @@ const DealerDashboard: React.FC = () => {
               {dealerOrderRequests.length === 0 ? (
                 <div className="text-center py-8">
                   <ShoppingCart className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">No order requests yet</h3>
-                  <p className="text-gray-600">Farmers will be able to request feed, medicine, and chicks from you.</p>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">{bt('noOrderRequests')}</h3>
+                  <p className="text-gray-600">{bt('farmersWillRequestProducts')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -1090,13 +1222,13 @@ const DealerDashboard: React.FC = () => {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <div>
-                  <CardTitle>Connected Farmers</CardTitle>
-                  <CardDescription>Farmers connected to your dealership</CardDescription>
+                  <CardTitle>{bt('connectedFarmers')}</CardTitle>
+                  <CardDescription>{bt('farmersConnectedToDealer')}</CardDescription>
                 </div>
                 <div className="flex gap-2">
                   <Button onClick={handleGenerateInviteCode} className="bg-blue-600 hover:bg-blue-700">
                     <UserPlus className="w-4 h-4 mr-2" />
-                    Generate Invite Code
+                    {bt('generateInviteCode')}
                   </Button>
                 </div>
               </div>
@@ -1105,14 +1237,14 @@ const DealerDashboard: React.FC = () => {
               {connectedFarmers.length === 0 ? (
                 <div className="text-center py-12 bg-gray-50 rounded-lg border border-dashed border-gray-300">
                   <Users className="mx-auto h-12 w-12 text-gray-400" />
-                  <h3 className="mt-2 text-sm font-medium text-gray-900">No Connected Farmers</h3>
+                  <h3 className="mt-2 text-sm font-medium text-gray-900">{bt('noConnectedFarmers')}</h3>
                   <p className="mt-1 text-sm text-gray-500">
-                    Generate an invite code to connect with farmers or create demo data
+                    {bt('generateInviteCodeMsg')}
                   </p>
                   <div className="flex justify-center gap-3 mt-4">
                     <Button onClick={handleGenerateInviteCode}>
                       <UserPlus className="w-4 h-4 mr-2" />
-                      Generate Invite Code
+                      {bt('generateInviteCode')}
                     </Button>
                   </div>
                 </div>
@@ -1165,17 +1297,17 @@ const DealerDashboard: React.FC = () => {
         <TabsContent value="guides" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Poultry Business Guides</CardTitle>
-              <p className="text-gray-600">Access business tips, market insights, and best practices for dealers</p>
+              <CardTitle>{bt('poultryBusinessGuides')}</CardTitle>
+              <p className="text-gray-600">{bt('accessBusinessTips')}</p>
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
-                <p className="text-gray-500 mb-4">Loading guides and business tips...</p>
+                <p className="text-gray-500 mb-4">{bt('loadingGuides')}</p>
                 <Button 
                   onClick={() => window.open('/posts', '_blank')}
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                 >
-                  View All Guides & Tips
+                  {bt('viewAllGuides')}
                 </Button>
               </div>
             </CardContent>
@@ -1187,45 +1319,45 @@ const DealerDashboard: React.FC = () => {
       <Dialog open={showProductModal} onOpenChange={setShowProductModal}>
         <DialogContent className="max-w-md">
           <DialogHeader>
-            <DialogTitle>{editingProduct ? 'Edit Product' : 'Add New Product'}</DialogTitle>
+            <DialogTitle>{editingProduct ? bt('editProduct') : bt('addNewProduct')}</DialogTitle>
             <DialogDescription>
-              {editingProduct ? 'Update product information' : 'Add a new product to your inventory'}
+              {editingProduct ? bt('updateProductInfo') : bt('addNewProductToInventory')}
             </DialogDescription>
           </DialogHeader>
           
           <div className="space-y-4">
             <div>
-              <Label htmlFor="productName">Product Name *</Label>
+              <Label htmlFor="productName">{bt('productName')} *</Label>
               <Input
                 id="productName"
                 value={productForm.productName}
                 onChange={(e) => setProductForm({...productForm, productName: e.target.value})}
-                placeholder="e.g., Starter Feed"
+                placeholder={bt('productNamePlaceholder')}
               />
             </div>
             
             <div>
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{bt('category')}</Label>
               <Select 
                 value={productForm.category} 
                 onValueChange={(value) => setProductForm({...productForm, category: value as any})}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Select category" />
+                  <SelectValue placeholder={bt('selectCategory')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Feed">Feed</SelectItem>
-                  <SelectItem value="Medicine">Medicine</SelectItem>
-                  <SelectItem value="Equipment">Equipment</SelectItem>
-                  <SelectItem value="Chicks">Chicks</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="Feed">{bt('feed')}</SelectItem>
+                  <SelectItem value="Medicine">{bt('medicine')}</SelectItem>
+                  <SelectItem value="Equipment">{bt('equipment')}</SelectItem>
+                  <SelectItem value="Chicks">{bt('chicks')}</SelectItem>
+                  <SelectItem value="Other">{bt('other')}</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="pricePerUnit">Price *</Label>
+                <Label htmlFor="pricePerUnit">{bt('price')} *</Label>
                 <Input
                   id="pricePerUnit"
                   type="number"
@@ -1235,7 +1367,7 @@ const DealerDashboard: React.FC = () => {
                 />
               </div>
               <div>
-                <Label htmlFor="unit">Unit</Label>
+                <Label htmlFor="unit">{bt('unit')}</Label>
                 <Select 
                   value={productForm.unit} 
                   onValueChange={(value) => setProductForm({...productForm, unit: value})}

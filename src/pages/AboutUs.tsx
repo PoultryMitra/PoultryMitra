@@ -1,11 +1,64 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { Globe } from "lucide-react";
 
 const AboutUs = () => {
+  const [language, setLanguage] = useState("hi");
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
+
+  const content = {
+    hi: {
+      header: {
+        title: "पोल्ट्री मित्र",
+        about: "हमारे बारे में",
+        services: "सेवाएं",
+        contact: "संपर्क",
+        login: "लॉग इन",
+        register: "रजिस्टर करें"
+      },
+      hero: {
+        title: "पोल्ट्री मित्र के बारे में",
+        subtitle: "डिजिटल समाधानों के माध्यम से उत्पादकता और लाभप्रदता में सुधार के लिए पोल्ट्री किसानों को सशक्त बनाना।"
+      },
+      mission: {
+        title: "हमारा मिशन",
+        description: "भारतीय पोल्ट्री किसानों को आधुनिक तकनीक के साथ सशक्त बनाकर उनकी आय बढ़ाना और फार्म प्रबंधन को आसान बनाना।"
+      },
+      vision: {
+        title: "हमारा दृष्टिकोण",
+        description: "भारत में पोल्ट्री फार्मिंग को डिजिटल बनाकर एक स्मार्ट और टिकाऊ कृषि व्यवस्था का निर्माण करना।"
+      }
+    },
+    en: {
+      header: {
+        title: "Poultry Mitra",
+        about: "About",
+        services: "Services",
+        contact: "Contact",
+        login: "Login",
+        register: "Register"
+      },
+      hero: {
+        title: "About Poultry Mitra",
+        subtitle: "Empowering poultry farmers with technology to improve productivity and profitability through innovative digital solutions."
+      },
+      mission: {
+        title: "Our Mission",
+        description: "To empower Indian poultry farmers with modern technology, increase their income and make farm management easier."
+      },
+      vision: {
+        title: "Our Vision",
+        description: "To create a smart and sustainable agricultural system by digitalizing poultry farming in India."
+      }
+    }
+  };
+
+  const t = content[language];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-blue-50">
@@ -15,20 +68,31 @@ const AboutUs = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Link to="/">
-                <h1 className="text-2xl font-bold text-green-600">Poultry Mitra</h1>
+                <h1 className="text-2xl font-bold text-green-600">{t.header.title}</h1>
               </Link>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-900 font-medium">About</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900">Services</Link>
-              <Link to="/contact" className="text-gray-500 hover:text-gray-900">Contact</Link>
+              <Link to="/about" className="text-gray-900 font-medium">{t.header.about}</Link>
+              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t.header.services}</Link>
+              <Link to="/contact" className="text-gray-500 hover:text-gray-900">{t.header.contact}</Link>
             </nav>
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-4">
+              {/* Language Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+                className="flex items-center gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                {language === 'hi' ? 'EN' : 'हिं'}
+              </Button>
+              
               <Link to="/login">
-                <Button variant="outline">Login</Button>
+                <Button variant="outline">{t.header.login}</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">Register</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{t.header.register}</Button>
               </Link>
             </div>
           </div>
@@ -39,10 +103,10 @@ const AboutUs = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            About <span className="text-green-600">Poultry Mitra</span>
+            <span className="text-green-600">{t.hero.title}</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Empowering poultry farmers with technology to improve productivity and profitability through innovative digital solutions.
+            {t.hero.subtitle}
           </p>
         </div>
       </section>
@@ -53,27 +117,22 @@ const AboutUs = () => {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-green-600">Our Mission</CardTitle>
+                <CardTitle className="text-2xl text-green-600">{t.mission.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  To revolutionize poultry farming through innovative technology solutions that help farmers 
-                  optimize their operations, increase productivity, and achieve sustainable profitability. 
-                  We believe in empowering farmers with the tools and knowledge they need to succeed in 
-                  today's competitive market.
+                  {t.mission.description}
                 </p>
               </CardContent>
             </Card>
 
             <Card>
               <CardHeader>
-                <CardTitle className="text-2xl text-green-600">Our Vision</CardTitle>
+                <CardTitle className="text-2xl text-green-600">{t.vision.title}</CardTitle>
               </CardHeader>
               <CardContent>
                 <p className="text-gray-600 leading-relaxed">
-                  To become the leading platform for poultry farm management globally, creating a 
-                  sustainable ecosystem where farmers, dealers, and customers can connect, collaborate, 
-                  and thrive together while ensuring food security and environmental responsibility.
+                  {t.vision.description}
                 </p>
               </CardContent>
             </Card>

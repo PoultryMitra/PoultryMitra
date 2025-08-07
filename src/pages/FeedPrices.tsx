@@ -20,7 +20,8 @@ import {
   ChevronDown,
   ChevronRight,
   Factory,
-  Grid3X3
+  Grid3X3,
+  Globe
 } from "lucide-react";
 
 interface Category {
@@ -58,6 +59,76 @@ interface DealerContact {
 function FeedPrices() {
   const { currentUser } = useAuth();
   const { toast } = useToast();
+  const [language, setLanguage] = useState("hi");
+  
+  const content = {
+    hi: {
+      title: "फीड की कीमतें",
+      subtitle: "अपने डीलर से फीड की वर्तमान कीमतें देखें",
+      contactInformation: "संपर्क जानकारी",
+      businessName: "व्यापारिक नाम",
+      ownerName: "मालिक का नाम",
+      email: "ईमेल",
+      phone: "फोन",
+      address: "पता",
+      feedCatalog: "फीड कैटालॉग",
+      categories: "श्रेणियां",
+      companies: "कंपनियां",
+      products: "उत्पाद",
+      pricePerBag: "प्रति बोरी कीमत",
+      bagWeight: "बोरी का वजन",
+      stock: "स्टॉक",
+      available: "उपलब्ध",
+      outOfStock: "स्टॉक खत्म",
+      kg: "किग्रा",
+      bags: "बोरे",
+      loading: "लोड हो रहा है...",
+      noDataAvailable: "कोई डेटा उपलब्ध नहीं",
+      contactDealer: "डीलर से संपर्क करें",
+      callNow: "अभी कॉल करें",
+      sendEmail: "ईमेल भेजें",
+      viewLocation: "स्थान देखें",
+      noCategoriesFound: "कोई श्रेणी नहीं मिली",
+      noCompaniesFound: "कोई कंपनी नहीं मिली",
+      noProductsFound: "कोई उत्पाद नहीं मिले",
+      dealerProfile: "डीलर प्रोफाइल",
+      businessDetails: "व्यापारिक विवरण"
+    },
+    en: {
+      title: "Feed Prices",
+      subtitle: "View current feed prices from your dealer",
+      contactInformation: "Contact Information",
+      businessName: "Business Name",
+      ownerName: "Owner Name",
+      email: "Email",
+      phone: "Phone",
+      address: "Address",
+      feedCatalog: "Feed Catalog",
+      categories: "Categories",
+      companies: "Companies",
+      products: "Products",
+      pricePerBag: "Price per Bag",
+      bagWeight: "Bag Weight",
+      stock: "Stock",
+      available: "Available",
+      outOfStock: "Out of Stock",
+      kg: "kg",
+      bags: "bags",
+      loading: "Loading...",
+      noDataAvailable: "No data available",
+      contactDealer: "Contact Dealer",
+      callNow: "Call Now",
+      sendEmail: "Send Email",
+      viewLocation: "View Location",
+      noCategoriesFound: "No categories found",
+      noCompaniesFound: "No companies found",
+      noProductsFound: "No products found",
+      dealerProfile: "Dealer Profile",
+      businessDetails: "Business Details"
+    }
+  };
+
+  const t = content[language];
   
   // State management
   const [categories, setCategories] = useState<Category[]>([]);
@@ -389,15 +460,22 @@ function FeedPrices() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Product Catalog Management</h1>
+          <h1 className="text-3xl font-bold">{t.title}</h1>
           <p className="text-muted-foreground">
-            Manage your product catalog organized by categories and companies
+            {t.subtitle}
           </p>
         </div>
-        <Button onClick={() => setShowAddCategory(true)} className="gap-2">
-          <Plus className="h-4 w-4" />
-          Add Category
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+            className="flex items-center gap-2"
+          >
+            <Globe className="w-4 h-4" />
+            {language === 'hi' ? 'EN' : 'हिं'}
+          </Button>
+        </div>
       </div>
 
       {/* Dealer Contact Information */}
@@ -405,13 +483,13 @@ function FeedPrices() {
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-blue-800">
             <Building2 className="h-5 w-5" />
-            Dealer Contact Information
+            {t.contactInformation}
             {loadingProfile && (
               <div className="animate-spin h-4 w-4 border-2 border-blue-600 border-t-transparent rounded-full"></div>
             )}
           </CardTitle>
           <p className="text-sm text-blue-700">
-            Farmers will see this information to contact you directly
+            {t.subtitle}
           </p>
         </CardHeader>
         <CardContent>
@@ -434,7 +512,7 @@ function FeedPrices() {
                 <p className={`font-medium ${loadingProfile ? 'animate-pulse bg-gray-200 h-4 rounded' : ''}`}>
                   {loadingProfile ? '' : dealerContact.phone}
                 </p>
-                <p className="text-sm text-gray-600">Call for orders</p>
+                <p className="text-sm text-gray-600">{t.callNow}</p>
               </div>
             </div>
             
@@ -444,14 +522,14 @@ function FeedPrices() {
                 <p className={`font-medium text-sm ${loadingProfile ? 'animate-pulse bg-gray-200 h-4 rounded' : ''}`}>
                   {loadingProfile ? '' : dealerContact.email}
                 </p>
-                <p className="text-sm text-gray-600">Email inquiries</p>
+                <p className="text-sm text-gray-600">{t.sendEmail}</p>
               </div>
             </div>
             
             <div className="flex items-center gap-3 p-3 bg-white rounded-lg border">
               <MapPin className="h-5 w-5 text-red-600" />
               <div className="flex-1">
-                <p className="font-medium text-sm">Visit Store</p>
+                <p className="font-medium text-sm">{t.viewLocation}</p>
                 <p className={`text-xs text-gray-600 ${loadingProfile ? 'animate-pulse bg-gray-200 h-3 rounded' : ''}`}>
                   {loadingProfile ? '' : dealerContact.address}
                 </p>

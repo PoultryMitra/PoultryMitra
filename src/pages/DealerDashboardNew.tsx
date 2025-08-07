@@ -33,11 +33,167 @@ import {
   Phone,
   Building2,
   MapPin,
-  Mail
+  Mail,
+  Globe
 } from "lucide-react";
 
 function DealerDashboard() {
+  const [language, setLanguage] = useState("hi");
   const { currentUser } = useAuth();
+  
+  const content = {
+    hi: {
+      title: "डीलर डैशबोर्ड",
+      overview: "सिंहावलोकन",
+      farmers: "किसान",
+      products: "उत्पाद",
+      orders: "ऑर्डर",
+      accounting: "लेखांकन",
+      totalFarmers: "कुल किसान",
+      totalProducts: "कुल उत्पाद",
+      totalOrders: "कुल ऑर्डर",
+      monthlyRevenue: "मासिक आय",
+      connectedFarmers: "जुड़े हुए किसान",
+      recentOrders: "हाल के ऑर्डर",
+      productCatalog: "उत्पाद कैटलॉग",
+      inviteFarmers: "किसानों को आमंत्रित करें",
+      generateCode: "कोड जेनरेट करें",
+      shareCode: "कोड साझा करें",
+      loading: "लोड हो रहा है...",
+      noData: "कोई डेटा उपलब्ध नहीं",
+      addProduct: "उत्पाद जोड़ें",
+      businessProfile: "व्यापारिक प्रोफ़ाइल",
+      welcome: "वापसी पर स्वागत है",
+      generateInviteCode: "आमंत्रण कोड जेनरेट करें",
+      editProfile: "प्रोफ़ाइल संपादित करें",
+      inInventory: "इन्वेंटरी में",
+      totalRevenue: "कुल आय",
+      fromAllFarmers: "सभी किसानों से",
+      amountGiven: "दी गई राशि",
+      toFarmers: "किसानों को",
+      feedCompanies: "फीड कंपनियां",
+      medicineCompanies: "दवा कंपनियां",
+      chickCompanies: "चूजा कंपनियां",
+      totalGiven: "कुल दिया गया",
+      pendingRecovery: "लंबित वसूली",
+      amountToRecover: "वसूली योग्य राशि",
+      allCompaniesCombined: "सभी कंपनियों को मिलाकर",
+      quickActions: "त्वरित कार्य",
+      manageOperations: "अपने डीलर संचालन को कुशलतापूर्वक प्रबंधित करें",
+      updatePrices: "मूल्य अपडेट करें",
+      inventory: "इन्वेंटरी",
+      guides: "गाइड",
+      yourProducts: "आपके उत्पाद",
+      manageInventoryPricing: "अपनी उत्पाद इन्वेंटरी और मूल्य निर्धारण का प्रबंधन करें",
+      price: "मूल्य",
+      stock: "स्टॉक",
+      supplier: "आपूर्तिकर्ता",
+      bags: "बोरे",
+      feed: "फीड",
+      dashboard: "डैशबोर्ड",
+      accounts: "खाते",
+      ledger: "खाता बही",
+      insights: "अंतर्दृष्टि",
+      active: "सक्रिय",
+      noFarmersConnected: "अभी तक कोई किसान जुड़े नहीं हैं। शुरुआत करने के लिए अपना आमंत्रण कोड साझा करें!",
+      call: "कॉल करें",
+      productsNeedRestocking: "उत्पादों को फिर से स्टॉक करने की आवश्यकता है",
+      fromLastMonth: "पिछले महीने से +12%",
+      trackAmounts: "विभिन्न कंपनियों से किसानों को प्रदान की गई राशि को ट्रैक करें",
+      amountGivenToFarmers: "किसानों को दी गई राशि",
+      createDemoData: "डेमो डेटा बनाएं",
+      creating: "बना रहे हैं...",
+      yourInvitationCode: "आपका आमंत्रण कोड",
+      lowStockAlerts: "कम स्टॉक अलर्ट",
+      pendingOrders: "लंबित ऑर्डर",
+      fromLastMonth2: "पिछले महीने से +2",
+      addFeedProduct: "फीड उत्पाद जोड़ें",
+      viewPriceInquiries: "मूल्य पूछताछ देखें",
+      updateContactInfo: "संपर्क जानकारी अपडेट करें",
+      noOrdersYet: "अभी तक कोई ऑर्डर नहीं। जब किसान ऑर्डर देंगे तो वे यहाँ दिखाई देंगे।",
+      productAlerts: "उत्पाद अलर्ट",
+      allProductsWellStocked: "सभी उत्पाद अच्छी तरह से स्टॉक में हैं!",
+      update: "अपडेट करें",
+      stockLabel: "स्टॉक"
+    },
+    en: {
+      title: "Dealer Dashboard",
+      overview: "Overview",
+      farmers: "Farmers", 
+      products: "Products",
+      orders: "Orders",
+      accounting: "Accounting",
+      totalFarmers: "Total Farmers",
+      totalProducts: "Total Products",
+      totalOrders: "Total Orders",
+      monthlyRevenue: "Monthly Revenue",
+      connectedFarmers: "Connected Farmers",
+      recentOrders: "Recent Orders",
+      productCatalog: "Product Catalog",
+      inviteFarmers: "Invite Farmers",
+      generateCode: "Generate Code",
+      shareCode: "Share Code",
+      loading: "Loading...",
+      noData: "No data available",
+      addProduct: "Add Product",
+      businessProfile: "Business Profile",
+      welcome: "Welcome back",
+      generateInviteCode: "Generate Invite Code",
+      editProfile: "Edit Profile",
+      inInventory: "In inventory",
+      totalRevenue: "Total Revenue",
+      fromAllFarmers: "From all farmers",
+      amountGiven: "Amount Given",
+      toFarmers: "To farmers",
+      feedCompanies: "Feed Companies",
+      medicineCompanies: "Medicine Companies",
+      chickCompanies: "Chick Companies",
+      totalGiven: "Total Given",
+      pendingRecovery: "Pending Recovery",
+      amountToRecover: "Amount to recover",
+      allCompaniesCombined: "All companies combined",
+      quickActions: "Quick Actions",
+      manageOperations: "Manage your dealer operations efficiently",
+      updatePrices: "Update Prices",
+      inventory: "Inventory",
+      guides: "Guides",
+      yourProducts: "Your Products",
+      manageInventoryPricing: "Manage your product inventory and pricing",
+      price: "Price",
+      stock: "Stock",
+      supplier: "Supplier",
+      bags: "bags",
+      feed: "Feed",
+      dashboard: "Dashboard",
+      accounts: "Accounts",
+      ledger: "Ledger",
+      insights: "Insights",
+      active: "Active",
+      noFarmersConnected: "No farmers connected yet. Share your invitation code to get started!",
+      call: "Call",
+      productsNeedRestocking: "Products need restocking",
+      fromLastMonth: "+12% from last month",
+      trackAmounts: "Track amounts from different companies provided to farmers",
+      amountGivenToFarmers: "Amount given to farmers",
+      createDemoData: "Create Demo Data",
+      creating: "Creating...",
+      yourInvitationCode: "Your Invitation Code",
+      lowStockAlerts: "Low Stock Alerts",
+      pendingOrders: "Pending Orders",
+      fromLastMonth2: "+2 from last month",
+      addFeedProduct: "Add Feed Product",
+      viewPriceInquiries: "View Price Inquiries",
+      updateContactInfo: "Update Contact Info",
+      noOrdersYet: "No orders yet. They will appear here when farmers place orders.",
+      productAlerts: "Product Alerts",
+      allProductsWellStocked: "All products are well stocked!",
+      update: "Update",
+      stockLabel: "Stock"
+    }
+  };
+
+  const t = content[language];
+  
   const [farmers, setFarmers] = useState<FarmerData[]>([]);
   const [connectedFarmers, setConnectedFarmers] = useState<DealerFarmerData[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
@@ -443,19 +599,30 @@ function DealerDashboard() {
       {/* Header */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Dealer Dashboard</h1>
+          <h1 className="text-3xl font-bold">{t.title}</h1>
           <p className="text-muted-foreground">
-            Welcome back, {dealerProfile?.businessName || currentUser?.displayName || 'Dealer'}
+            {t.welcome}, {dealerProfile?.businessName || currentUser?.displayName || 'Dealer'}
           </p>
         </div>
         <div className="flex gap-2">
+          {/* Language Toggle */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+            className="flex items-center gap-2"
+          >
+            <Globe className="w-4 h-4" />
+            {language === 'hi' ? 'EN' : 'हिं'}
+          </Button>
+          
           <Button onClick={handleCreateDemo} disabled={isCreatingDemo}>
             <Database className="mr-2 h-4 w-4" />
-            {isCreatingDemo ? 'Creating...' : 'Create Demo Data'}
+            {isCreatingDemo ? t.creating : t.createDemoData}
           </Button>
           <Button onClick={handleGenerateInviteCode} disabled={isGeneratingCode}>
             <Share className="mr-2 h-4 w-4" />
-            {isGeneratingCode ? 'Generating...' : 'Generate Invite Code'}
+            {isGeneratingCode ? 'Generating...' : t.generateCode}
           </Button>
         </div>
       </div>
@@ -466,7 +633,7 @@ function DealerDashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-semibold text-blue-900">Your Invitation Code</h3>
+                <h3 className="font-semibold text-blue-900">{t.yourInvitationCode}</h3>
                 <p className="text-blue-700 font-mono text-lg">{currentInviteCode}</p>
               </div>
               <div className="flex gap-2">
@@ -486,20 +653,20 @@ function DealerDashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Connected Farmers</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.connectedFarmers}</CardTitle>
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{totalFarmers}</div>
             <p className="text-xs text-muted-foreground">
-              +2 from last month
+              {t.fromLastMonth2}
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pending Orders</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.pendingOrders}</CardTitle>
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
@@ -512,26 +679,26 @@ function DealerDashboard() {
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Low Stock Alerts</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.lowStockAlerts}</CardTitle>
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{lowStockProducts}</div>
             <p className="text-xs text-muted-foreground">
-              Products need restocking
+              {t.productsNeedRestocking}
             </p>
           </CardContent>
         </Card>
         
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+            <CardTitle className="text-sm font-medium">{t.totalRevenue}</CardTitle>
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">₹{totalRevenue.toLocaleString('en-IN')}</div>
             <p className="text-xs text-muted-foreground">
-              +12% from last month
+              {t.fromLastMonth}
             </p>
           </CardContent>
         </Card>
@@ -540,10 +707,10 @@ function DealerDashboard() {
       {/* Main Content */}
       <Tabs defaultValue="dashboard" className="space-y-6">
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="dashboard">Dashboard</TabsTrigger>
-          <TabsTrigger value="accounts">Accounts</TabsTrigger>
-          <TabsTrigger value="ledger">Ledger</TabsTrigger>
-          <TabsTrigger value="insights">Insights</TabsTrigger>
+          <TabsTrigger value="dashboard">{t.dashboard}</TabsTrigger>
+          <TabsTrigger value="accounts">{t.accounts}</TabsTrigger>
+          <TabsTrigger value="ledger">{t.ledger}</TabsTrigger>
+          <TabsTrigger value="insights">{t.insights}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -554,15 +721,15 @@ function DealerDashboard() {
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
-              <span>Connected Farmers</span>
-              <Badge variant="secondary">{farmers.length} Active</Badge>
+              <span>{t.connectedFarmers}</span>
+              <Badge variant="secondary">{farmers.length} {t.active}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {farmers.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  No farmers connected yet. Share your invitation code to get started!
+                  {t.noFarmersConnected}
                 </p>
               ) : (
                 farmers.slice(0, 5).map((farmer) => (
@@ -584,7 +751,7 @@ function DealerDashboard() {
                         onClick={() => handleCallBack(farmer.farmerName)}
                       >
                         <Phone className="h-3 w-3 mr-1" />
-                        Call
+                        {t.call}
                       </Button>
                     </div>
                   </div>
@@ -597,20 +764,20 @@ function DealerDashboard() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle>{t.quickActions}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button onClick={handleAddFeed} className="w-full">
               <Plus className="mr-2 h-4 w-4" />
-              Add Feed Product
+              {t.addFeedProduct}
             </Button>
             <Button onClick={handleViewAllInquiries} variant="outline" className="w-full">
               <Eye className="mr-2 h-4 w-4" />
-              View Price Inquiries
+              {t.viewPriceInquiries}
             </Button>
             <Button onClick={handleEditContact} variant="outline" className="w-full">
               <Building2 className="mr-2 h-4 w-4" />
-              Update Contact Info
+              {t.updateContactInfo}
             </Button>
           </CardContent>
         </Card>
@@ -618,13 +785,13 @@ function DealerDashboard() {
         {/* Recent Orders */}
         <Card className="md:col-span-2">
           <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
+            <CardTitle>{t.recentOrders}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {orders.length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  No orders yet. They will appear here when farmers place orders.
+                  {t.noOrdersYet}
                 </p>
               ) : (
                 orders.slice(0, 5).map((order) => (
@@ -655,13 +822,13 @@ function DealerDashboard() {
         {/* Product Alerts */}
         <Card>
           <CardHeader>
-            <CardTitle>Product Alerts</CardTitle>
+            <CardTitle>{t.productAlerts}</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
               {products.filter(p => p.currentStock <= p.minStockLevel).length === 0 ? (
                 <p className="text-muted-foreground text-center py-4">
-                  All products are well stocked!
+                  {t.allProductsWellStocked}
                 </p>
               ) : (
                 products
@@ -672,7 +839,7 @@ function DealerDashboard() {
                       <div>
                         <p className="font-medium text-red-900">{product.productName}</p>
                         <p className="text-sm text-red-600">
-                          Stock: {product.currentStock} {product.unit}
+                          {t.stockLabel}: {product.currentStock} {product.unit}
                         </p>
                       </div>
                       <Button 
@@ -680,7 +847,7 @@ function DealerDashboard() {
                         size="sm"
                         onClick={() => handleUpdatePrice(product.id, product.productName)}
                       >
-                        Update
+                        {t.update}
                       </Button>
                     </div>
                   ))

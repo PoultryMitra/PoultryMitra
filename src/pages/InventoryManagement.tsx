@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedTranslation } from '@/contexts/EnhancedTranslationContext';
 import { 
   getDealerProducts,
   addProduct,
@@ -38,6 +39,62 @@ import {
 export default function InventoryManagement() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { language, t } = useEnhancedTranslation();
+
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for InventoryManagement: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to local content
+    const localContent = content[key as keyof typeof content];
+    if (localContent && typeof localContent === 'object') {
+      const translatedValue = localContent[language as keyof typeof localContent];
+      if (translatedValue) {
+        console.log(`📚 Static content used for InventoryManagement: ${key} -> ${translatedValue}`);
+        return translatedValue as string;
+      }
+    }
+    
+    const result = key;
+    console.log(`⚠️ No translation found for InventoryManagement: ${key}`);
+    return result;
+  };
+
+  // Content object for translations
+  const content = {
+    // Page headers
+    inventoryManagement: { en: "Inventory Management", hi: "इन्वेंट्री प्रबंधन" },
+    manageYourStock: { en: "Manage your product stock and inventory", hi: "अपने उत्पाद स्टॉक और इन्वेंट्री का प्रबंधन करें" },
+    
+    // Tabs
+    products: { en: "Products", hi: "उत्पाद" },
+    inventory: { en: "Inventory", hi: "इन्वेंट्री" },
+    
+    // Actions
+    addProduct: { en: "Add Product", hi: "उत्पाद जोड़ें" },
+    addInventoryItem: { en: "Add Inventory Item", hi: "इन्वेंट्री आइटम जोड़ें" },
+    
+    // Search and filters
+    searchProducts: { en: "Search products...", hi: "उत्पाद खोजें..." },
+    allCategories: { en: "All Categories", hi: "सभी श्रेणियां" },
+    allStock: { en: "All Stock", hi: "सभी स्टॉक" },
+    lowStock: { en: "Low Stock", hi: "कम स्टॉक" },
+    outOfStock: { en: "Out of Stock", hi: "स्टॉक समाप्त" },
+    
+    // Product details
+    price: { en: "Price", hi: "मूल्य" },
+    stock: { en: "Stock", hi: "स्टॉक" },
+    minLevel: { en: "Min Level", hi: "न्यूनतम स्तर" },
+    
+    // Empty states
+    noProductsFound: { en: "No products found", hi: "कोई उत्पाद नहीं मिला" },
+    addFirstProduct: { en: "Add your first product to get started", hi: "आरंभ करने के लिए अपना पहला उत्पाद जोड़ें" }
+  };
 
   // State management
   const [products, setProducts] = useState<Product[]>([]);
@@ -306,8 +363,8 @@ export default function InventoryManagement() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Inventory Management</h1>
-          <p className="mt-2 text-gray-600">Manage your products and inventory levels</p>
+          <h1 className="text-3xl font-bold text-gray-900">{bt('inventoryManagement')}</h1>
+          <p className="mt-2 text-gray-600">{bt('manageYourStock')}</p>
         </div>
       </div>
 
@@ -316,19 +373,19 @@ export default function InventoryManagement() {
         <CardContent className="pt-6">
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="search">Search</Label>
+              <Label htmlFor="search">{bt('searchProducts')}</Label>
               <Input
                 id="search"
-                placeholder="Search products..."
+                placeholder={bt('searchProducts')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="category">Category</Label>
+              <Label htmlFor="category">{bt('category')}</Label>
               <Select value={categoryFilter} onValueChange={setCategoryFilter}>
                 <SelectTrigger>
-                  <SelectValue placeholder="All Categories" />
+                  <SelectValue placeholder={bt('allCategories')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Categories</SelectItem>

@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { LanguageToggle } from "@/components/TranslationComponents";
 
 interface TopBarProps {
   title: string;
@@ -13,7 +14,6 @@ interface TopBarProps {
 }
 
 export function TopBar({ title, onMenuClick, showMenuButton = false, showBackButton = false }: TopBarProps) {
-  const [language, setLanguage] = useState("en");
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, userProfile } = useAuth();
@@ -96,24 +96,9 @@ export function TopBar({ title, onMenuClick, showMenuButton = false, showBackBut
           )}
           
           {/* Language Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-            className="text-gray-600 hidden sm:flex text-xs lg:text-sm"
-          >
-            {language === "en" ? "English" : "हिंदी"} | {language === "en" ? "Hindi" : "English"}
-          </Button>
-
-          {/* Mobile Language Toggle */}
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setLanguage(language === "en" ? "hi" : "en")}
-            className="text-gray-600 sm:hidden text-xs"
-          >
-            {language === "en" ? "EN" : "हि"}
-          </Button>
+          <div className="hidden sm:block">
+            <LanguageToggle />
+          </div>
 
           {/* Logout Button */}
           <Button

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { useAuth } from '@/contexts/AuthContext';
+import { useEnhancedTranslation } from '@/contexts/EnhancedTranslationContext';
 import { 
   Phone, 
   MessageCircle,
@@ -35,6 +36,80 @@ export default function FarmerFeedView() {
   const [dealerProducts, setDealerProducts] = useState<DealerProduct[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Translation setup
+  const { t, language } = useEnhancedTranslation();
+
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for FarmerFeedView: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to local content - fix the nested structure lookup
+    const localContent = content[key as keyof typeof content];
+    if (localContent && typeof localContent === 'object') {
+      const translatedValue = localContent[language as keyof typeof localContent];
+      if (translatedValue) {
+        console.log(`📚 Static content used for FarmerFeedView: ${key} -> ${translatedValue}`);
+        return translatedValue as string;
+      }
+    }
+    
+    const result = key;
+    console.log(`⚠️ No translation found for FarmerFeedView: ${key}`);
+    return result;
+  };
+
+  // Content object for translations
+  const content = {
+    // Page header
+    pageTitle: { en: "Feed Prices & Dealers", hi: "फीड मूल्य और डीलर" },
+    pageSubtitle: { en: "View current feed prices from your connected dealers. Call directly to place orders.", hi: "अपने जुड़े डीलर से वर्तमान फीड मूल्य देखें। ऑर्डर देने के लिए सीधे कॉल करें।" },
+    
+    // Loading and status messages
+    authenticating: { en: "Authenticating...", hi: "प्रमाणीकरण..." },
+    loadingFeedPrices: { en: "Loading feed prices...", hi: "फीड मूल्य लोड कर रहे हैं..." },
+    
+    // Debug info
+    debugInfo: { en: "Debug Info:", hi: "डिबग जानकारी:" },
+    connectedDealers: { en: "Connected Dealers:", hi: "जुड़े डीलर:" },
+    availableProducts: { en: "Available Products:", hi: "उपलब्ध उत्पाद:" },
+    
+    // No dealers section
+    noConnectedDealers: { en: "No Connected Dealers", hi: "कोई जुड़े डीलर नहीं" },
+    connectDealersMessage: { en: "You need to connect with dealers to view feed prices and place orders.", hi: "फीड मूल्य देखने और ऑर्डर देने के लिए आपको डीलर से जुड़ना होगा।" },
+    connectWithDealers: { en: "Connect with Dealers", hi: "डीलर से जुड़ें" },
+    
+    // Products not available message
+    noProductsMessage: { en: "Your connected dealers haven't added any products yet. Contact them directly to inquire about available feed.", hi: "आपके जुड़े डीलर ने अभी तक कोई उत्पाद नहीं जोड़े हैं। उपलब्ध फीड के बारे में पूछताछ के लिए सीधे उनसे संपर्क करें।" },
+    
+    // Dealer section
+    dealer: { en: "Dealer", hi: "डीलर" },
+    callNow: { en: "Call Now", hi: "अभी कॉल करें" },
+    whatsapp: { en: "WhatsApp", hi: "व्हाट्सऐप" },
+    
+    // Contact info
+    callForOrders: { en: "Call for orders", hi: "ऑर्डर के लिए कॉल करें" },
+    whatsappOrders: { en: "WhatsApp orders", hi: "व्हाट्सऐप ऑर्डर" },
+    emailInquiries: { en: "Email inquiries", hi: "ईमेल पूछताछ" },
+    phoneNotAvailable: { en: "Phone not available", hi: "फोन उपलब्ध नहीं" },
+    
+    // Products section
+    availableFeedTypes: { en: "Available Feed Types & Prices", hi: "उपलब्ध फीड प्रकार और मूल्य" },
+    noProductsFromDealer: { en: "No products available from this dealer yet", hi: "इस डीलर से अभी तक कोई उत्पाद उपलब्ध नहीं" },
+    contactDirectly: { en: "Contact them directly to inquire about feed availability", hi: "फीड उपलब्धता के बारे में पूछताछ के लिए सीधे उनसे संपर्क करें" },
+    
+    // Product card
+    available: { en: "Available", hi: "उपलब्ध" },
+    stock: { en: "Stock:", hi: "स्टॉक:" },
+    per: { en: "per", hi: "प्रति" },
+    callToOrder: { en: "Call to Order", hi: "ऑर्डर के लिए कॉल करें" },
+    whatsappQuote: { en: "WhatsApp Quote", hi: "व्हाट्सऐप कोट" }
+  };
 
   useEffect(() => {
     // Wait for auth to load
@@ -103,7 +178,7 @@ export default function FarmerFeedView() {
       <div className="p-6">
         <div className="text-center py-12">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p>{authLoading ? 'Authenticating...' : 'Loading feed prices...'}</p>
+          <p>{authLoading ? bt('authenticating') : bt('loadingFeedPrices')}</p>
         </div>
       </div>
     );
@@ -126,11 +201,11 @@ export default function FarmerFeedView() {
         <Card>
           <CardContent className="text-center py-12">
             <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-semibold mb-2">No Connected Dealers</h3>
+            <h3 className="text-lg font-semibold mb-2">{bt('noConnectedDealers')}</h3>
             <p className="text-gray-600 mb-4">
-              You need to connect with dealers to view feed prices and place orders.
+              {bt('connectDealersMessage')}
             </p>
-            <Button>Connect with Dealers</Button>
+            <Button>{bt('connectWithDealers')}</Button>
           </CardContent>
         </Card>
       </div>
@@ -150,17 +225,17 @@ export default function FarmerFeedView() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-bold">Feed Prices & Dealers</h1>
+        <h1 className="text-3xl font-bold">{bt('pageTitle')}</h1>
         <p className="text-muted-foreground">
-          View current feed prices from your connected dealers. Call directly to place orders.
+          {bt('pageSubtitle')}
         </p>
       </div>
 
       {/* Debug Info */}
       <div className="bg-blue-50 p-4 rounded-lg text-sm">
-        <p><strong>Debug Info:</strong></p>
-        <p>Connected Dealers: {connectedDealers.length}</p>
-        <p>Available Products: {dealerProducts.length}</p>
+        <p><strong>{bt('debugInfo')}</strong></p>
+        <p>{bt('connectedDealers')} {connectedDealers.length}</p>
+        <p>{bt('availableProducts')} {dealerProducts.length}</p>
         {connectedDealers.map(dealer => (
           <p key={dealer.dealerId}>- {dealer.dealerName} ({dealer.dealerEmail})</p>
         ))}
@@ -171,7 +246,7 @@ export default function FarmerFeedView() {
         <Alert>
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            Your connected dealers haven't added any products yet. Contact them directly to inquire about available feed.
+            {bt('noProductsMessage')}
           </AlertDescription>
         </Alert>
       )}
@@ -184,8 +259,8 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-blue-600" />
                 <div>
-                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || 'Dealer'}</h2>
-                  <p className="text-sm text-gray-600">Dealer</p>
+                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || bt('dealer')}</h2>
+                  <p className="text-sm text-gray-600">{bt('dealer')}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -195,16 +270,16 @@ export default function FarmerFeedView() {
                   disabled={!dealer.dealerPhone}
                 >
                   <Phone className="h-4 w-4" />
-                  Call Now
+                  {bt('callNow')}
                 </Button>
                 <Button 
-                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
+                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || bt('dealer'))}
                   variant="outline"
                   className="gap-2"
                   disabled={!dealer.dealerPhone}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                  {bt('whatsapp')}
                 </Button>
               </div>
             </CardTitle>
@@ -214,9 +289,9 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-2">
                 <Phone className="h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium">Call for orders</p>
+                  <p className="text-sm font-medium">{bt('callForOrders')}</p>
                   <p className="text-sm text-gray-600">
-                    {dealer.dealerPhone || 'Phone not available'}
+                    {dealer.dealerPhone || bt('phoneNotAvailable')}
                   </p>
                 </div>
               </div>
@@ -224,9 +299,9 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-2">
                 <MessageCircle className="h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium">WhatsApp orders</p>
+                  <p className="text-sm font-medium">{bt('whatsappOrders')}</p>
                   <p className="text-sm text-gray-600">
-                    {dealer.dealerPhone || 'Phone not available'}
+                    {dealer.dealerPhone || bt('phoneNotAvailable')}
                   </p>
                 </div>
               </div>
@@ -234,7 +309,7 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-2">
                 <Mail className="h-4 w-4 text-gray-500" />
                 <div>
-                  <p className="text-sm font-medium">Email inquiries</p>
+                  <p className="text-sm font-medium">{bt('emailInquiries')}</p>
                   <p className="text-sm text-gray-600">{dealer.dealerEmail}</p>
                 </div>
               </div>
@@ -243,14 +318,14 @@ export default function FarmerFeedView() {
 
           <CardContent>
             <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Available Feed Types & Prices</h3>
+              <h3 className="text-lg font-semibold">{bt('availableFeedTypes')}</h3>
               
               {products.length === 0 ? (
                 <div className="text-center py-8">
                   <Package className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <p className="text-gray-600 mb-4">No products available from this dealer yet</p>
+                  <p className="text-gray-600 mb-4">{bt('noProductsFromDealer')}</p>
                   <p className="text-sm text-gray-500 mb-4">
-                    Contact them directly to inquire about feed availability
+                    {bt('contactDirectly')}
                   </p>
                   <div className="flex gap-2 justify-center">
                     <Button 
@@ -259,16 +334,16 @@ export default function FarmerFeedView() {
                       disabled={!dealer.dealerPhone}
                     >
                       <Phone className="h-4 w-4" />
-                      Call Now
+                      {bt('callNow')}
                     </Button>
                     <Button 
-                      onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
+                      onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || bt('dealer'))}
                       variant="outline"
                       className="gap-2"
                       disabled={!dealer.dealerPhone}
                     >
                       <MessageCircle className="h-4 w-4" />
-                      WhatsApp
+                      {bt('whatsapp')}
                     </Button>
                   </div>
                 </div>
@@ -281,7 +356,7 @@ export default function FarmerFeedView() {
                           <div>
                             <h4 className="font-semibold">{product.productName}</h4>
                             <Badge variant="secondary" className="text-xs">
-                              Available
+                              {bt('available')}
                             </Badge>
                           </div>
                         </div>
@@ -291,7 +366,7 @@ export default function FarmerFeedView() {
                             <strong>{product.supplier}</strong>
                           </p>
                           <p className="text-sm text-gray-600">
-                            Stock: {product.currentStock} {product.unit}
+                            {bt('stock')} {product.currentStock} {product.unit}
                           </p>
                           
                           <div className="flex justify-between items-center">
@@ -299,7 +374,7 @@ export default function FarmerFeedView() {
                               <p className="text-lg font-bold text-green-600">
                                 ₹{product.pricePerUnit}
                               </p>
-                              <p className="text-xs text-gray-500">per {product.unit}</p>
+                              <p className="text-xs text-gray-500">{bt('per')} {product.unit}</p>
                             </div>
                           </div>
                           
@@ -310,16 +385,16 @@ export default function FarmerFeedView() {
                               className="flex-1 bg-green-600 hover:bg-green-700"
                               disabled={!dealer.dealerPhone}
                             >
-                              Call to Order
+                              {bt('callToOrder')}
                             </Button>
                             <Button 
                               size="sm" 
                               variant="outline"
-                              onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
+                              onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || bt('dealer'))}
                               className="flex-1"
                               disabled={!dealer.dealerPhone}
                             >
-                              WhatsApp Quote
+                              {bt('whatsappQuote')}
                             </Button>
                           </div>
                         </div>
@@ -341,8 +416,8 @@ export default function FarmerFeedView() {
               <div className="flex items-center gap-3">
                 <Building2 className="h-6 w-6 text-gray-400" />
                 <div>
-                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || 'Dealer'}</h2>
-                  <p className="text-sm text-gray-600">Dealer</p>
+                  <h2 className="text-xl">{dealer.dealerCompany || dealer.dealerName || bt('dealer')}</h2>
+                  <p className="text-sm text-gray-600">{bt('dealer')}</p>
                 </div>
               </div>
               <div className="flex gap-2">
@@ -352,16 +427,16 @@ export default function FarmerFeedView() {
                   disabled={!dealer.dealerPhone}
                 >
                   <Phone className="h-4 w-4" />
-                  Call Now
+                  {bt('callNow')}
                 </Button>
                 <Button 
-                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || 'Dealer')}
+                  onClick={() => handleWhatsAppDealer(dealer.dealerPhone || '', dealer.dealerCompany || dealer.dealerName || bt('dealer'))}
                   variant="outline"
                   className="gap-2"
                   disabled={!dealer.dealerPhone}
                 >
                   <MessageCircle className="h-4 w-4" />
-                  WhatsApp
+                  {bt('whatsapp')}
                 </Button>
               </div>
             </CardTitle>
@@ -369,8 +444,8 @@ export default function FarmerFeedView() {
 
           <CardContent>
             <div className="text-center py-8 text-gray-500">
-              <p>No products available from this dealer yet</p>
-              <p className="text-sm">Contact them directly to inquire about feed availability</p>
+              <p>{bt('noProductsFromDealer')}</p>
+              <p className="text-sm">{bt('contactDirectly')}</p>
             </div>
           </CardContent>
         </Card>

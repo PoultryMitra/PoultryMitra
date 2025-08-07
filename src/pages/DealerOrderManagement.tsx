@@ -38,7 +38,8 @@ import {
   Filter,
   Search,
   Download,
-  Eye
+  Eye,
+  Globe
 } from 'lucide-react';
 import { db } from '@/lib/firebase';
 import { collection, query as firestoreQuery, where, onSnapshot } from 'firebase/firestore';
@@ -47,6 +48,116 @@ export default function DealerOrderManagement() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
   const { isStable, executeWithStability } = useDashboardStability();
+  const [language, setLanguage] = useState("hi");
+  
+  const content = {
+    hi: {
+      title: "ऑर्डर प्रबंधन",
+      subtitle: "किसानों के ऑर्डर अनुरोध और खाता प्रबंधन",
+      orderRequests: "ऑर्डर अनुरोध",
+      accountManagement: "खाता प्रबंधन",
+      farmerAccounts: "किसान खाते",
+      allRequests: "सभी अनुरोध",
+      pendingRequests: "लंबित अनुरोध",
+      approvedRequests: "अनुमोदित अनुरोध",
+      rejectedRequests: "अस्वीकृत अनुरोध",
+      completedRequests: "पूर्ण अनुरोध",
+      farmerName: "किसान का नाम",
+      orderType: "ऑर्डर प्रकार",
+      quantity: "मात्रा",
+      status: "स्थिति",
+      requestDate: "अनुरोध की तारीख",
+      actions: "कार्य",
+      approve: "अनुमोदित करें",
+      reject: "अस्वीकार करें",
+      complete: "पूर्ण करें",
+      pending: "लंबित",
+      approved: "अनुमोदित",
+      rejected: "अस्वीकृत",
+      completed: "पूर्ण",
+      noOrdersFound: "कोई ऑर्डर नहीं मिला",
+      loadingOrders: "ऑर्डर लोड हो रहे हैं...",
+      accountBalance: "खाता शेष",
+      creditBalance: "क्रेडिट शेष",
+      debitBalance: "डेबिट शेष",
+      netBalance: "शुद्ध शेष",
+      recordPayment: "भुगतान रिकॉर्ड करें",
+      amount: "राशि",
+      notes: "नोट्स",
+      cancel: "रद्द करें",
+      save: "सेव करें",
+      loading: "लोड हो रहा है...",
+      invalidAmount: "अमान्य राशि",
+      enterValidAmount: "कृपया 0 से अधिक मान्य राशि दर्ज करें",
+      paymentRecorded: "भुगतान रिकॉर्ड हो गया",
+      paymentSuccess: "भुगतान सफलतापूर्वक रिकॉर्ड हो गया",
+      error: "त्रुटि",
+      paymentFailed: "भुगतान रिकॉर्ड करने में विफल",
+      orderApproved: "ऑर्डर अनुमोदित",
+      orderRejected: "ऑर्डर अस्वीकृत",
+      orderCompleted: "ऑर्डर पूर्ण",
+      orderStatusUpdated: "ऑर्डर स्थिति अपडेट हो गई",
+      failedToUpdate: "स्थिति अपडेट करने में विफल",
+      lastUpdated: "अंतिम अपडेट",
+      totalAmount: "कुल राशि",
+      depositAmount: "जमा राशि",
+      addNote: "नोट जोड़ें (वैकल्पिक)"
+    },
+    en: {
+      title: "Order Management",
+      subtitle: "Manage farmer order requests and account balances",
+      orderRequests: "Order Requests",
+      accountManagement: "Account Management", 
+      farmerAccounts: "Farmer Accounts",
+      allRequests: "All Requests",
+      pendingRequests: "Pending Requests",
+      approvedRequests: "Approved Requests",
+      rejectedRequests: "Rejected Requests",
+      completedRequests: "Completed Requests",
+      farmerName: "Farmer Name",
+      orderType: "Order Type",
+      quantity: "Quantity",
+      status: "Status",
+      requestDate: "Request Date",
+      actions: "Actions",
+      approve: "Approve",
+      reject: "Reject",
+      complete: "Complete",
+      pending: "Pending",
+      approved: "Approved",
+      rejected: "Rejected",
+      completed: "Completed",
+      noOrdersFound: "No orders found",
+      loadingOrders: "Loading orders...",
+      accountBalance: "Account Balance",
+      creditBalance: "Credit Balance",
+      debitBalance: "Debit Balance",
+      netBalance: "Net Balance",
+      recordPayment: "Record Payment",
+      amount: "Amount",
+      notes: "Notes",
+      cancel: "Cancel",
+      save: "Save",
+      loading: "Loading...",
+      invalidAmount: "Invalid Amount",
+      enterValidAmount: "Please enter a valid amount greater than 0",
+      paymentRecorded: "Payment Recorded",
+      paymentSuccess: "Payment recorded successfully",
+      error: "Error",
+      paymentFailed: "Failed to record payment",
+      orderApproved: "Order Approved",
+      orderRejected: "Order Rejected",
+      orderCompleted: "Order Completed",
+      orderStatusUpdated: "Order status updated",
+      failedToUpdate: "Failed to update status",
+      lastUpdated: "Last Updated",
+      totalAmount: "Total Amount", 
+      depositAmount: "Deposit Amount",
+      addNote: "Add note (optional)"
+    }
+  };
+
+  const t = content[language];
 
   // State management
   const [orderRequests, setOrderRequests] = useState<OrderRequest[]>([]);
@@ -85,8 +196,8 @@ export default function DealerOrderManagement() {
     const amount = parseFloat(paymentForm.amount);
     if (amount <= 0) {
       toast({
-        title: "Invalid Amount",
-        description: "Please enter a valid amount greater than 0",
+        title: t.invalidAmount,
+        description: t.enterValidAmount,
         variant: "destructive",
       });
       return;
@@ -107,14 +218,14 @@ export default function DealerOrderManagement() {
       setSelectedFarmer(null);
       
       toast({
-        title: "Payment Recorded Successfully",
+        title: t.paymentRecorded,
         description: `₹${amount.toLocaleString()} deposited to ${selectedFarmer.farmerName}'s account`,
       });
     } catch (error) {
       console.error('Payment recording error:', error);
       toast({
-        title: "Payment Recording Failed",
-        description: error instanceof Error ? error.message : "Failed to record payment",
+        title: t.paymentFailed,
+        description: error instanceof Error ? error.message : t.paymentFailed,
         variant: "destructive",
       });
     } finally {
@@ -393,21 +504,32 @@ export default function DealerOrderManagement() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Order Management</h1>
-          <p className="mt-2 text-gray-600">Manage farmer order requests with auto-calculation</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">{t.title}</h1>
+          <p className="mt-2 text-gray-600">{t.subtitle}</p>
         </div>
-        <div className="flex gap-3 sm:gap-4 text-sm">
-          <div className="text-center">
-            <div className="text-xl sm:text-2xl font-bold text-yellow-600">{pendingOrders}</div>
-            <div className="text-gray-600 text-xs sm:text-sm">Pending</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl sm:text-2xl font-bold text-green-600">{approvedOrders}</div>
-            <div className="text-gray-600 text-xs sm:text-sm">Approved</div>
-          </div>
-          <div className="text-center">
-            <div className="text-xl sm:text-2xl font-bold text-blue-600">₹{totalValue.toLocaleString()}</div>
-            <div className="text-gray-600 text-xs sm:text-sm">Total Value</div>
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+            className="flex items-center gap-2"
+          >
+            <Globe className="w-4 h-4" />
+            {language === 'hi' ? 'EN' : 'हिं'}
+          </Button>
+          <div className="flex gap-3 sm:gap-4 text-sm">
+            <div className="text-center">
+              <div className="text-xl sm:text-2xl font-bold text-yellow-600">{pendingOrders}</div>
+              <div className="text-gray-600 text-xs sm:text-sm">{t.pending}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl sm:text-2xl font-bold text-green-600">{approvedOrders}</div>
+              <div className="text-gray-600 text-xs sm:text-sm">{t.approved}</div>
+            </div>
+            <div className="text-center">
+              <div className="text-xl sm:text-2xl font-bold text-blue-600">₹{totalValue.toLocaleString()}</div>
+              <div className="text-gray-600 text-xs sm:text-sm">{t.totalAmount}</div>
+            </div>
           </div>
         </div>
       </div>

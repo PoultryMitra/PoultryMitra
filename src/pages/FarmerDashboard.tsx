@@ -27,9 +27,70 @@ import {
   subscribeToConnectedDealerProducts,
   type Product,
   type RateUpdate 
-} from "@/services/dealerService";export default function FarmerDashboard() {
+} from "@/services/dealerService";
+import { Globe } from "lucide-react";
+
+export default function FarmerDashboard() {
+  const [language, setLanguage] = useState("hi");
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  
+  const content = {
+    hi: {
+      title: "किसान डैशबोर्ड",
+      fcrCalculator: "FCR कैलकुलेटर",
+      transactions: "लेन-देन",
+      vaccineReminders: "टीके की याददाश्त",
+      marketRates: "बाजार भाव",
+      feedIntake: "फीड का सेवन (किलो)",
+      bodyWeight: "शरीर का वजन (किलो)", 
+      calculateFCR: "FCR की गणना करें",
+      fcrResult: "FCR परिणाम",
+      addTransaction: "लेन-देन जोड़ें",
+      transactionType: "लेन-देन का प्रकार",
+      income: "आय",
+      expense: "खर्च",
+      amount: "राशि",
+      note: "नोट",
+      date: "तारीख",
+      addVaccineReminder: "टीके की याददाश्त जोड़ें",
+      vaccineName: "टीके का नाम",
+      reminderDate: "याददाश्त की तारीख",
+      loading: "लोड हो रहा है...",
+      noData: "कोई डेटा उपलब्ध नहीं",
+      totalIncome: "कुल आय",
+      totalExpense: "कुल खर्च",
+      netIncome: "शुद्ध आय"
+    },
+    en: {
+      title: "Farmer Dashboard",
+      fcrCalculator: "FCR Calculator",
+      transactions: "Transactions",
+      vaccineReminders: "Vaccine Reminders",
+      marketRates: "Market Rates",
+      feedIntake: "Feed Intake (kg)",
+      bodyWeight: "Body Weight (kg)",
+      calculateFCR: "Calculate FCR",
+      fcrResult: "FCR Result", 
+      addTransaction: "Add Transaction",
+      transactionType: "Transaction Type",
+      income: "Income",
+      expense: "Expense",
+      amount: "Amount",
+      note: "Note",
+      date: "Date",
+      addVaccineReminder: "Add Vaccine Reminder",
+      vaccineName: "Vaccine Name",
+      reminderDate: "Reminder Date",
+      loading: "Loading...",
+      noData: "No data available",
+      totalIncome: "Total Income",
+      totalExpense: "Total Expense",
+      netIncome: "Net Income"
+    }
+  };
+
+  const t = content[language];
   
   // Loading state
   const [loading, setLoading] = useState(false);

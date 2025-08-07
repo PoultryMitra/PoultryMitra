@@ -10,6 +10,11 @@ import IndexNew from "./pages/IndexNew";
 import Login from "./pages/Login";
 import Register from "./pages/RegisterNew";
 import FarmerDashboard from "./pages/FarmerDashboardSimple";
+import FarmerDashboardFast from "./pages/FarmerDashboardFast";
+import QuickFarmerDashboard from "./pages/QuickFarmerDashboard";
+import QuickBatchManagement from "./pages/QuickBatchManagement";
+import BatchManagementFixed from "./pages/BatchManagementFixed";
+import TranslationExample from "./pages/TranslationExample";
 import DealerDashboard from "./pages/DealerDashboard";
 import AdminPanel from "./pages/admin/AdminPanel";
 import FCRCalculator from "./pages/FCRCalculatorNew";
@@ -53,6 +58,9 @@ import ShedManagement from "./pages/ShedManagement";
 import AdminPostsManagement from "./pages/AdminPostsManagement";
 import PostsAndGuides from "./pages/PostsAndGuides";
 import PostDetail from "./pages/PostDetail";
+import LibreTranslateDemo from "./pages/LibreTranslateDemo";
+import GoogleTranslateDemo from "./pages/GoogleTranslateDemo";
+import GoogleTranslateTestPage from "./pages/GoogleTranslateTestPage";
 import DiseaseRiskCalculator from "./pages/DiseaseRiskCalculator";
 
 // Layouts
@@ -62,7 +70,9 @@ import { AdminLayout } from "./components/layout/AdminLayout";
 
 // Auth Context
 import { AuthProvider } from "./contexts/AuthContext";
-import { LanguageProvider } from "./contexts/LanguageContext";
+import { LanguageProvider } from "./contexts/LanguageContext"; 
+import { TranslationProvider } from "./contexts/TranslationContext";
+import { EnhancedTranslationProvider } from "./contexts/EnhancedTranslationContext";
 import ProtectedRoute from "./components/ProtectedRoute";
 import ProfileGuard from "./components/ProfileGuard";
 
@@ -72,10 +82,12 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <LanguageProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
+        <TranslationProvider>
+          <EnhancedTranslationProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
         <Routes>
           {/* Public Routes */}
           <Route path="/" element={<IndexNew />} />
@@ -86,7 +98,12 @@ const App = () => (
           <Route path="/dealer-login" element={<DealerLogin />} />
           <Route path="/admin-login" element={<AdminLogin />} />
           <Route path="/fcr-calculator" element={<FreeFCRCalculatorPage />} />
-          <Route path="/batch-management" element={<BatchManagement />} />
+          <Route path="/batch-management" element={<QuickBatchManagement />} />
+          <Route path="/batch-management-fixed" element={<BatchManagementFixed />} />
+          <Route path="/translation-example" element={<TranslationExample />} />
+          <Route path="/libretranslate-demo" element={<LibreTranslateDemo />} />
+          <Route path="/google-translate-demo" element={<GoogleTranslateDemo />} />
+          <Route path="/google-translate-test" element={<GoogleTranslateTestPage />} />
           <Route path="/fcr-reports" element={<FCRReports />} />
           <Route path="/complete-profile" element={<ProfileCompletion />} />
           <Route path="/farmer-connect" element={<FarmerConnect />} />
@@ -112,6 +129,9 @@ const App = () => (
           
           {/* Free Dashboards for Testing - No ProfileGuard */}
           <Route path="/farmer-dashboard" element={<FarmerDashboard />} />
+          <Route path="/farmer-dashboard-fast" element={<FarmerDashboardFast />} />
+          <Route path="/quick-farmer-dashboard" element={<QuickFarmerDashboard />} />
+          <Route path="/quick-batch-management" element={<QuickBatchManagement />} />
           <Route path="/dealer-dashboard" element={<DealerDashboard />} />
           
           {/* Farmer Routes */}
@@ -165,6 +185,8 @@ const App = () => (
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
+          </EnhancedTranslationProvider>
+        </TranslationProvider>
       </LanguageProvider>
     </AuthProvider>
   </QueryClientProvider>

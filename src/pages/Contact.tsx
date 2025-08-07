@@ -1,19 +1,84 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Link } from "react-router-dom";
+import { Globe } from "lucide-react";
 
 const Contact = () => {
+  const [language, setLanguage] = useState("hi");
+  
   const scrollToTop = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  const content = {
+    hi: {
+      header: {
+        title: "पोल्ट्री मित्र",
+        about: "हमारे बारे में",
+        services: "सेवाएं",
+        contact: "संपर्क",
+        login: "लॉग इन",
+        register: "रजिस्टर करें"
+      },
+      hero: {
+        title: "संपर्क करें",
+        subtitle: "हमारी टीम से जुड़ें और अपने सवालों के जवाब पाएं"
+      },
+      form: {
+        title: "हमें संदेश भेजें",
+        subtitle: "हम यहाँ मदद के लिए हैं",
+        name: "नाम",
+        namePlaceholder: "आपका नाम",
+        email: "ईमेल",
+        emailPlaceholder: "आपका ईमेल",
+        subject: "विषय",
+        subjectPlaceholder: "संदेश का विषय",
+        message: "संदेश",
+        messagePlaceholder: "आपका संदेश...",
+        send: "संदेश भेजें",
+        thankYou: "आपके संदेश के लिए धन्यवाद! हम जल्द ही आपसे संपर्क करेंगे।"
+      }
+    },
+    en: {
+      header: {
+        title: "Poultry Mitra",
+        about: "About",
+        services: "Services",
+        contact: "Contact",
+        login: "Login",
+        register: "Register"
+      },
+      hero: {
+        title: "Contact Us",
+        subtitle: "Get in touch with our team and get answers to your questions"
+      },
+      form: {
+        title: "Send us a message",
+        subtitle: "We're here to help",
+        name: "Name",
+        namePlaceholder: "Your name",
+        email: "Email",
+        emailPlaceholder: "Your email",
+        subject: "Subject",
+        subjectPlaceholder: "Message subject",
+        message: "Message",
+        messagePlaceholder: "Your message...",
+        send: "Send Message",
+        thankYou: "Thank you for your message! We'll get back to you soon."
+      }
+    }
+  };
+
+  const t = content[language];
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle form submission
-    alert("Thank you for your message! We'll get back to you soon.");
+    alert(t.form.thankYou);
   };
 
   return (
@@ -24,20 +89,31 @@ const Contact = () => {
           <div className="flex justify-between items-center py-6">
             <div className="flex items-center">
               <Link to="/">
-                <h1 className="text-2xl font-bold text-green-600">Poultry Mitra</h1>
+                <h1 className="text-2xl font-bold text-green-600">{t.header.title}</h1>
               </Link>
             </div>
             <nav className="hidden md:flex space-x-8">
-              <Link to="/about" className="text-gray-500 hover:text-gray-900">About</Link>
-              <Link to="/services" className="text-gray-500 hover:text-gray-900">Services</Link>
-              <Link to="/contact" className="text-gray-900 font-medium">Contact</Link>
+              <Link to="/about" className="text-gray-500 hover:text-gray-900">{t.header.about}</Link>
+              <Link to="/services" className="text-gray-500 hover:text-gray-900">{t.header.services}</Link>
+              <Link to="/contact" className="text-gray-900 font-medium">{t.header.contact}</Link>
             </nav>
-            <div className="flex space-x-4">
+            <div className="flex items-center space-x-4">
+              {/* Language Toggle */}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+                className="flex items-center gap-2"
+              >
+                <Globe className="w-4 h-4" />
+                {language === 'hi' ? 'EN' : 'हिं'}
+              </Button>
+              
               <Link to="/login">
-                <Button variant="outline">Login</Button>
+                <Button variant="outline">{t.header.login}</Button>
               </Link>
               <Link to="/register">
-                <Button className="bg-green-600 hover:bg-green-700">Register</Button>
+                <Button className="bg-green-600 hover:bg-green-700">{t.header.register}</Button>
               </Link>
             </div>
           </div>
@@ -48,10 +124,10 @@ const Contact = () => {
       <section className="py-20">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
-            Contact <span className="text-green-600">Us</span>
+            <span className="text-green-600">{t.hero.title}</span>
           </h1>
           <p className="text-xl text-gray-600 mb-8 max-w-3xl mx-auto">
-            Get in touch with our team. We're here to help you succeed with your poultry farming operations.
+            {t.hero.subtitle}
           </p>
         </div>
       </section>
@@ -64,27 +140,27 @@ const Contact = () => {
             <div>
               <Card>
                 <CardHeader>
-                  <CardTitle className="text-2xl text-green-600">Send us a Message</CardTitle>
+                  <CardTitle className="text-2xl text-green-600">{t.form.title}</CardTitle>
                   <CardDescription>
-                    Fill out the form below and we'll get back to you within 24 hours.
+                    {t.form.subtitle}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <form onSubmit={handleSubmit} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <Label htmlFor="firstName">First Name</Label>
-                        <Input id="firstName" placeholder="John" required />
+                        <Label htmlFor="firstName">{t.form.name}</Label>
+                        <Input id="firstName" placeholder={t.form.namePlaceholder} required />
                       </div>
                       <div>
-                        <Label htmlFor="lastName">Last Name</Label>
-                        <Input id="lastName" placeholder="Doe" required />
+                        <Label htmlFor="lastName">{t.form.name}</Label>
+                        <Input id="lastName" placeholder={t.form.namePlaceholder} required />
                       </div>
                     </div>
                     
                     <div>
-                      <Label htmlFor="email">Email</Label>
-                      <Input id="email" type="email" placeholder="john@example.com" required />
+                      <Label htmlFor="email">{t.form.email}</Label>
+                      <Input id="email" type="email" placeholder={t.form.emailPlaceholder} required />
                     </div>
                     
                     <div>
@@ -93,22 +169,22 @@ const Contact = () => {
                     </div>
                     
                     <div>
-                      <Label htmlFor="subject">Subject</Label>
-                      <Input id="subject" placeholder="How can we help you?" required />
+                      <Label htmlFor="subject">{t.form.subject}</Label>
+                      <Input id="subject" placeholder={t.form.subjectPlaceholder} required />
                     </div>
                     
                     <div>
-                      <Label htmlFor="message">Message</Label>
+                      <Label htmlFor="message">{t.form.message}</Label>
                       <Textarea 
                         id="message" 
-                        placeholder="Tell us more about your inquiry..." 
+                        placeholder={t.form.messagePlaceholder} 
                         rows={5}
                         required 
                       />
                     </div>
                     
                     <Button type="submit" className="w-full bg-green-600 hover:bg-green-700">
-                      Send Message
+                      {t.form.send}
                     </Button>
                   </form>
                 </CardContent>

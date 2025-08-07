@@ -24,10 +24,73 @@ import * as dealerService from "@/services/dealerService";
 import type { Product, RateUpdate } from "@/services/dealerService";
 import { getFarmerDealers } from "@/services/connectionService";
 import { RefreshCw, Edit, Plus, DollarSign } from "lucide-react";
+import { useEnhancedTranslation } from "@/contexts/EnhancedTranslationContext";
 
 export default function Rates() {
   const { toast } = useToast();
   const { currentUser } = useAuth();
+  const { language, t } = useEnhancedTranslation();
+  
+  // Enhanced translation helper that prioritizes Google Translate
+  const bt = (key: string): string => {
+    // First try Enhanced Translation Context (Google Translate)
+    const dynamicTranslation = t(key);
+    if (dynamicTranslation && dynamicTranslation !== key) {
+      console.log(`🌍 Google Translate used for Rates: ${key} -> ${dynamicTranslation}`);
+      return dynamicTranslation;
+    }
+
+    // Fallback to local content
+    const localContent = content[key as keyof typeof content];
+    if (localContent && typeof localContent === 'object') {
+      const translatedValue = localContent[language as keyof typeof localContent];
+      if (translatedValue) {
+        console.log(`📚 Static content used for Rates: ${key} -> ${translatedValue}`);
+        return translatedValue as string;
+      }
+    }
+    
+    const result = key;
+    console.log(`⚠️ No translation found for Rates: ${key}`);
+    return result;
+  };
+
+  // Content object for translations
+  const content = {
+    // Page headers
+    feedPrices: { en: "Feed Prices & Rates", hi: "चारा मूल्य और दरें" },
+    managePricing: { en: "Manage your product pricing", hi: "अपने उत्पाद की कीमत का प्रबंधन करें" },
+    currentFeedPrices: { en: "View current product prices from connected dealers", hi: "जुड़े डीलरों से वर्तमान उत्पाद की कीमतें देखें" },
+    rateUpdates: { en: "Rate Updates", hi: "दर अपडेट" },
+    recentPriceChanges: { en: "Recent price changes and market updates", hi: "हाल की मूल्य परिवर्तन और बाजार अपडेट" },
+    realTimeUpdates: { en: "Real-time updates", hi: "रियल-टाइम अपडेट" },
+    
+    // Actions
+    updateRate: { en: "Update Rate", hi: "दर अपडेट करें" },
+    addProduct: { en: "Add Product", hi: "उत्पाद जोड़ें" },
+    refreshPrices: { en: "Refresh Prices", hi: "मूल्य रीफ्रेश करें" },
+    
+    // Tab navigation
+    yourProducts: { en: "Your Products", hi: "आपके उत्पाद" },
+    availableProducts: { en: "Available Products", hi: "उपलब्ध उत्पाद" },
+    
+    // Product details
+    productName: { en: "Product Name", hi: "उत्पाद का नाम" },
+    category: { en: "Category", hi: "श्रेणी" },
+    price: { en: "Price", hi: "मूल्य" },
+    unit: { en: "Unit", hi: "इकाई" },
+    stock: { en: "Stock", hi: "स्टॉक" },
+    supplier: { en: "Supplier", hi: "आपूर्तिकर्ता" },
+    
+    // Empty states
+    noProductsAvailable: { en: "No Products Available", hi: "कोई उत्पाद उपलब्ध नहीं" },
+    connectToDealer: { en: "Connect to a dealer to view feed prices", hi: "चारा मूल्य देखने के लिए किसी डीलर से जुड़ें" },
+    noRateUpdates: { en: "No Recent Updates", hi: "कोई हाल की अपडेट नहीं" },
+    
+    // Loading
+    loadingPrices: { en: "Loading prices...", hi: "मूल्य लोड कर रहे हैं..." }
+  };
+
   const [products, setProducts] = useState<Product[]>([]);
   const [rateUpdates, setRateUpdates] = useState<RateUpdate[]>([]);
   const [isUpdateDialogOpen, setIsUpdateDialogOpen] = useState(false);
@@ -161,20 +224,20 @@ export default function Rates() {
     <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-foreground">Feed Prices & Rates</h1>
+          <h1 className="text-3xl font-bold text-foreground">{bt('feedPrices')}</h1>
           <p className="text-muted-foreground">
-            {userRole === 'dealer' ? 'Manage your product pricing' : 'View current product prices from connected dealers'}
+            {userRole === 'dealer' ? bt('managePricing') : bt('currentFeedPrices')}
           </p>
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <RefreshCw className="h-4 w-4" />
-            Real-time updates
+            {bt('realTimeUpdates')}
           </div>
           {userRole === 'dealer' && (
             <Button onClick={() => setIsUpdateDialogOpen(true)}>
               <Plus className="h-4 w-4 mr-2" />
-              Update Rate
+              {bt('updateRate')}
             </Button>
           )}
         </div>
@@ -190,7 +253,7 @@ export default function Rates() {
               : "border-transparent text-gray-500 hover:text-gray-700"
           }`}
         >
-          {userRole === 'dealer' ? 'Your Products' : 'Available Products'}
+          {userRole === 'dealer' ? bt('yourProducts') : bt('availableProducts')}
         </button>
         {userRole === 'dealer' && (
           <button

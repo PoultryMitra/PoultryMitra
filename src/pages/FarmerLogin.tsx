@@ -7,9 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Separator } from "@/components/ui/separator";
-import { Mail, Lock, AlertCircle, Tractor } from "lucide-react";
+import { Mail, Lock, AlertCircle, Tractor, Globe } from "lucide-react";
 
 const FarmerLogin = () => {
+  const [language, setLanguage] = useState("hi");
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -19,6 +20,47 @@ const FarmerLogin = () => {
   const { login, loginWithGoogle, resetPassword } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+
+  const content = {
+    hi: {
+      title: "किसान लॉगिन",
+      subtitle: "अपने फार्म प्रबंधन डैशबोर्ड तक पहुंचें",
+      email: "ईमेल",
+      emailPlaceholder: "अपना ईमेल दर्ज करें",
+      password: "पासवर्ड",
+      passwordPlaceholder: "अपना पासवर्ड दर्ज करें",
+      signIn: "साइन इन करें",
+      signingIn: "साइन इन हो रहे हैं...",
+      forgotPassword: "अपना पासवर्ड भूल गए?",
+      continueWithGoogle: "Google के साथ जारी रखें",
+      noAccount: "कोई खाता नहीं है?",
+      registerHere: "यहाँ रजिस्टर करें",
+      backToLogin: "← मुख्य लॉगिन पर वापस जाएं",
+      fillAllFields: "कृपया सभी फ़ील्ड भरें",
+      enterEmailFirst: "कृपया पहले अपना ईमेल पता दर्ज करें",
+      resetEmailSent: "पासवर्ड रीसेट ईमेल भेजा गया! अपना इनबॉक्स चेक करें।"
+    },
+    en: {
+      title: "Farmer Login",
+      subtitle: "Access your farm management dashboard",
+      email: "Email",
+      emailPlaceholder: "Enter your email",
+      password: "Password",
+      passwordPlaceholder: "Enter your password",
+      signIn: "Sign In",
+      signingIn: "Signing in...",
+      forgotPassword: "Forgot your password?",
+      continueWithGoogle: "Continue with Google",
+      noAccount: "Don't have an account?",
+      registerHere: "Register here",
+      backToLogin: "← Back to main login",
+      fillAllFields: "Please fill in all fields",
+      enterEmailFirst: "Please enter your email address first",
+      resetEmailSent: "Password reset email sent! Check your inbox."
+    }
+  };
+
+  const t = content[language];
 
   // Check for dealer code in URL params or localStorage
   useEffect(() => {
@@ -44,7 +86,7 @@ const FarmerLogin = () => {
     e.preventDefault();
     
     if (!email || !password) {
-      setError('Please fill in all fields');
+      setError(t.fillAllFields);
       return;
     }
 
@@ -76,7 +118,7 @@ const FarmerLogin = () => {
 
   const handleResetPassword = async () => {
     if (!email) {
-      setError('Please enter your email address first');
+      setError(t.enterEmailFirst);
       return;
     }
 
@@ -93,11 +135,24 @@ const FarmerLogin = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-green-50 to-blue-50 p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
+          {/* Language Toggle */}
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setLanguage(language === 'hi' ? 'en' : 'hi')}
+              className="flex items-center gap-2"
+            >
+              <Globe className="w-4 h-4" />
+              {language === 'hi' ? 'EN' : 'हिं'}
+            </Button>
+          </div>
+          
           <div className="mx-auto w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mb-4">
             <Tractor className="w-6 h-6 text-green-600" />
           </div>
-          <CardTitle className="text-2xl font-bold text-green-700">Farmer Login</CardTitle>
-          <CardDescription>Access your farm management dashboard</CardDescription>
+          <CardTitle className="text-2xl font-bold text-green-700">{t.title}</CardTitle>
+          <CardDescription>{t.subtitle}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           {error && (
@@ -111,20 +166,20 @@ const FarmerLogin = () => {
             <Alert>
               <Mail className="h-4 w-4" />
               <AlertDescription>
-                Password reset email sent! Check your inbox.
+                {t.resetEmailSent}
               </AlertDescription>
             </Alert>
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="email">{t.email}</Label>
               <div className="relative">
                 <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="email"
                   type="email"
-                  placeholder="Enter your email"
+                  placeholder={t.emailPlaceholder}
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10"
@@ -134,13 +189,13 @@ const FarmerLogin = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <Label htmlFor="password">{t.password}</Label>
               <div className="relative">
                 <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
                   id="password"
                   type="password"
-                  placeholder="Enter your password"
+                  placeholder={t.passwordPlaceholder}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10"
@@ -154,7 +209,7 @@ const FarmerLogin = () => {
               className="w-full bg-green-600 hover:bg-green-700"
               disabled={loading}
             >
-              {loading ? 'Signing in...' : 'Sign In as Farmer'}
+              {loading ? t.signingIn : t.signIn}
             </Button>
           </form>
 
@@ -164,7 +219,7 @@ const FarmerLogin = () => {
               onClick={handleResetPassword}
               className="text-sm text-green-600 hover:text-green-700 underline"
             >
-              Forgot your password?
+              {t.forgotPassword}
             </button>
           </div>
 
@@ -183,19 +238,18 @@ const FarmerLogin = () => {
               <path fill="currentColor" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
               <path fill="currentColor" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
             </svg>
-            Continue with Google
+            {t.continueWithGoogle}
           </Button>
 
-          <div className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="text-green-600 hover:text-green-700 font-medium">
-              Sign up
-            </Link>
-          </div>
-
-          <div className="text-center">
-            <Link to="/login" className="text-sm text-gray-500 hover:text-gray-700">
-              ← Back to login options
+          <div className="text-center text-sm text-gray-600 space-y-2">
+            <p>
+              {t.noAccount}{" "}
+              <Link to="/register" className="text-green-600 hover:text-green-700 font-medium">
+                {t.registerHere}
+              </Link>
+            </p>
+            <Link to="/login" className="block text-green-600 hover:text-green-700">
+              {t.backToLogin}
             </Link>
           </div>
         </CardContent>

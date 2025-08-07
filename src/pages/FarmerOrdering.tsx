@@ -40,12 +40,79 @@ import {
   History,
   TrendingUp,
   TrendingDown,
-  Plus
+  Plus,
+  Globe
 } from 'lucide-react';
 
 export default function FarmerOrdering() {
+  const [language, setLanguage] = useState("hi");
   const { toast } = useToast();
   const { currentUser } = useAuth();
+
+  const content = {
+    hi: {
+      title: "उत्पाद ऑर्डर करें",
+      subtitle: "अपने जुड़े हुए डीलरों से फीड, दवाई, और चूजे मंगवाएं",
+      products: "उत्पाद",
+      orders: "ऑर्डर",
+      account: "खाता",
+      history: "इतिहास",
+      availableProducts: "उपलब्ध उत्पाद",
+      myOrders: "मेरे ऑर्डर",
+      accountBalance: "खाता शेष",
+      transactionHistory: "लेन-देन का इतिहास",
+      orderNow: "अभी ऑर्डर करें",
+      quantity: "मात्रा",
+      notes: "टिप्पणी",
+      placeOrder: "ऑर्डर दें",
+      pending: "लंबित",
+      approved: "स्वीकृत",
+      delivered: "डिलीवर",
+      cancelled: "रद्द",
+      noProducts: "कोई उत्पाद उपलब्ध नहीं",
+      noOrders: "कोई ऑर्डर नहीं",
+      loadingProducts: "उत्पाद लोड हो रहे हैं...",
+      loadingOrders: "ऑर्डर लोड हो रहे हैं...",
+      price: "कीमत",
+      unit: "यूनिट",
+      dealer: "डीलर",
+      status: "स्थिति",
+      date: "तारीख",
+      total: "कुल"
+    },
+    en: {
+      title: "Order Products",
+      subtitle: "Order feed, medicine, and chicks from your connected dealers",
+      products: "Products",
+      orders: "Orders", 
+      account: "Account",
+      history: "History",
+      availableProducts: "Available Products",
+      myOrders: "My Orders",
+      accountBalance: "Account Balance",
+      transactionHistory: "Transaction History",
+      orderNow: "Order Now",
+      quantity: "Quantity",
+      notes: "Notes",
+      placeOrder: "Place Order",
+      pending: "Pending",
+      approved: "Approved",
+      delivered: "Delivered",
+      cancelled: "Cancelled",
+      noProducts: "No products available",
+      noOrders: "No orders",
+      loadingProducts: "Loading products...",
+      loadingOrders: "Loading orders...",
+      price: "Price",
+      unit: "Unit",
+      dealer: "Dealer",
+      status: "Status",
+      date: "Date",
+      total: "Total"
+    }
+  };
+
+  const t = content[language];
 
   // State management
   const [connectedDealers, setConnectedDealers] = useState<FarmerDealerData[]>([]);
