@@ -27,7 +27,8 @@ const ProfileGuard: React.FC<ProfileGuardProps> = ({ children }) => {
     'admin@example.com', 
     'admin@poultrymitra.com',
     'nareshkumarbalamurugan1@gmail.com',
-    'nareshkumarbalamurugan@gmail.com'
+    'nareshkumarbalamurugan@gmail.com',
+    'contactpoultrymitra@gmail.com'
   ];
   
   const isAdminUser = currentUser?.email && adminEmails.includes(currentUser.email.toLowerCase());
