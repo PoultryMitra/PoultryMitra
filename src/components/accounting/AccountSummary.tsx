@@ -33,26 +33,22 @@ export function AccountSummary({ dealerId }: AccountSummaryProps) {
   useEffect(() => {
     if (!currentUser) return;
 
-    let unsubscribeTransactions: (() => void) | undefined;
-    let unsubscribeFarmers: (() => void) | undefined;
+    const unsubscribeTransactions: (() => void) | undefined =
+      orderService.subscribeFarmerTransactions(
+        '',
+        (allTransactions) => {
+          // Filter transactions for this dealer
+          const dealerTransactions = allTransactions.filter(t => t.dealerId === (dealerId || currentUser.uid));
+          setTransactions(dealerTransactions);
+          
+          // Calculate balances
+          const balanceData = orderService.calculateFarmerBalances(dealerTransactions);
+          setBalances(balanceData);
+          setLoading(false);
+        }
+      );
 
-    // Subscribe to transactions for this dealer
-    unsubscribeTransactions = orderService.subscribeFarmerTransactions(
-      '', // Empty for all farmers
-      (allTransactions) => {
-        // Filter transactions for this dealer
-        const dealerTransactions = allTransactions.filter(t => t.dealerId === (dealerId || currentUser.uid));
-        setTransactions(dealerTransactions);
-        
-        // Calculate balances
-        const balanceData = orderService.calculateFarmerBalances(dealerTransactions);
-        setBalances(balanceData);
-        setLoading(false);
-      }
-    );
-
-    // Get connected farmers
-    unsubscribeFarmers = getDealerFarmers(dealerId || currentUser.uid, (farmers) => {
+    const unsubscribeFarmers: (() => void) | undefined = getDealerFarmers(dealerId || currentUser.uid, (farmers) => {
       setConnectedFarmers(farmers);
     });
 

@@ -13,6 +13,7 @@ import {
   doc,
   writeBatch
 } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 import { db } from '../lib/firebase';
 
 export interface FarmerData {
@@ -153,6 +154,7 @@ export const addProduct = async (
 ): Promise<void> => {
   try {
     const productsRef = collection(db, 'dealerProducts');
+    if (!dealerId) throw new Error('addProduct: dealerId required');
     
     await addDoc(productsRef, {
       ...productData,
@@ -248,7 +250,8 @@ export const addRateUpdate = async (
 ): Promise<void> => {
   try {
     const ratesRef = collection(db, 'dealerRateUpdates');
-    
+    if (!dealerId) throw new Error('addRateUpdate: dealerId required');
+
     await addDoc(ratesRef, {
       ...rateData,
       dealerId,
@@ -644,15 +647,31 @@ export const createInvitationCode = async (dealerId: string): Promise<string> =>
   const inviteCode = `${dealerId}_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   
   // Store invitation code in Firestore for validation
-  await addDoc(collection(db, 'dealerInvitations'), {
-    inviteCode,
-    dealerId,
-    createdAt: serverTimestamp(),
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-    isActive: true
-  });
-  
-  return inviteCode;
+  // Ensure the client is authenticated and matches the dealerId to avoid silent permission failures
+  const auth = getAuth();
+  const current = auth.currentUser;
+  if (!current) throw new Error('Authentication required to generate invitation code');
+  if (current.uid !== dealerId) {
+    // This could be a mismatched session; throw an explicit error to help debugging
+    throw new Error('Authenticated user does not match dealerId');
+  }
+
+  // Use Firestore Timestamp for expiresAt to avoid client-side serialization issues
+  try {
+    await addDoc(collection(db, 'dealerInvitations'), {
+      inviteCode,
+      dealerId,
+      createdAt: serverTimestamp(),
+      expiresAt: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), // 7 days
+      isActive: true
+    });
+
+    return inviteCode;
+  } catch (error) {
+    // Log uid + dealerId to help debug security rule mismatches (do not leak this in production logs)
+    console.error('createInvitationCode: Firestore write failed', { uid: current?.uid, dealerId, error });
+    throw error;
+  }
 };
 
 export const validateInvitationCode = async (inviteCode: string): Promise<{valid: boolean, dealerId?: string}> => {

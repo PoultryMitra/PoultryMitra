@@ -1,0 +1,7 @@
+# Ignore long-running or legacy test files and corrupted pages
+node_modules/
+build/
+dist/
+src/pages/Customers_corrupted.tsx
+test-auto-calculation-system.test.js
+src/pages/FeedPricesOld.tsx

@@ -59,7 +59,7 @@ service cloud.firestore {
       // Anyone authenticated can read products
       allow read: if isAuthenticated();
       
-      // Only users with dealer role can create/update/delete products
+      // Only a dealer may create a product and dealerId must match authenticated uid
       allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid;
       allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
     }
@@ -84,15 +84,25 @@ service cloud.firestore {
     }
     
     // Invitation code rules
+    // Generic invitations (legacy)
     match /invitations/{invitationId} {
-      // Allow anyone authenticated to read invitations
       allow read: if isAuthenticated();
-      
-      // Allow any authenticated user to create invitations (we'll check role in app)
       allow create: if isAuthenticated();
-      
-      // Only the creator can update or delete
       allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
+    }
+
+    // Dealer-specific invitations used by dealer dashboard
+    match /dealerInvitations/{invitationId} {
+      // Dealers may read their own invitations; admins may read all
+      allow read: if isAuthenticated() && (isAdmin() || resource.data.dealerId == request.auth.uid);
+
+      // Only the dealer themselves can create an invitation for their dealerId
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid
+        && request.resource.data.inviteCode is string
+        && request.resource.data.expiresAt is timestamp;
+
+      // Only the dealer who created the doc or an admin may update/delete
+      allow update, delete: if isAuthenticated() && (resource.data.dealerId == request.auth.uid || isAdmin());
     }
     
     // Rate update rules
@@ -106,6 +116,15 @@ service cloud.firestore {
       // Only the creator can modify or delete
       allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
     }
+
+    // Market rates (admin-managed)
+    match /marketRates/{rateId} {
+      // Authenticated users can read market rates (admin UI and users)
+      allow read: if isAuthenticated();
+
+      // Only admins may create, update or delete market rates
+      allow create, update, delete: if isAdmin();
+    }
     
     // Dealer-specific collections
     match /dealerFarmers/{farmerId} {
@@ -113,7 +132,12 @@ service cloud.firestore {
     }
     
     match /dealerProducts/{productId} {
-      allow read, write: if isAuthenticated();
+      // Authenticated users can read dealer products
+      allow read: if isAuthenticated();
+
+      // Only the dealer who owns the dealerId field may create/update/delete their product
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
     }
     
     match /dealerOrders/{orderId} {
@@ -125,7 +149,26 @@ service cloud.firestore {
     }
     
     match /dealerRateUpdates/{rateId} {
-      allow read, write: if isAuthenticated();
+      allow read: if isAuthenticated();
+
+      // Only the dealer themselves may create a rate update for their dealerId
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid;
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
+    }
+
+    // Dealer product pricing (per-dealer sell price / markup)
+    // Documents are stored as dealerId_productId (id) but we still verify the dealerId field
+    match /dealerProductPrices/{priceId} {
+      // Any authenticated user can read dealer prices (UI decides visibility)
+      allow read: if isAuthenticated();
+
+      // Only the dealer themselves can create a pricing document for their dealerId
+      allow create: if isAuthenticated() && request.resource.data.dealerId == request.auth.uid
+        && request.resource.data.purchasePrice is number
+        && request.resource.data.sellPrice is number;
+
+      // Only the dealer owning the existing doc can update or delete it
+      allow update, delete: if isAuthenticated() && resource.data.dealerId == request.auth.uid;
     }
     
     match /dealerTransactions/{transactionId} {

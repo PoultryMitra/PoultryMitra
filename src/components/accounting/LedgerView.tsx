@@ -105,17 +105,20 @@ export function LedgerView({ farmerId, dealerId, userRole }: LedgerViewProps) {
       const now = new Date();
       
       switch (dateFilter) {
-        case 'today':
+        case 'today': {
           if (transactionDate.toDateString() !== now.toDateString()) return false;
           break;
-        case 'week':
+        }
+        case 'week': {
           const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
           if (transactionDate < weekAgo) return false;
           break;
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
           if (transactionDate < monthAgo) return false;
           break;
+        }
       }
     }
 

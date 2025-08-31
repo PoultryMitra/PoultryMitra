@@ -293,24 +293,28 @@ export default function DealerOrderManagement() {
       const orderDate = order.requestDate.toDate();
       
       switch (dateFilter) {
-        case 'today':
+        case 'today': {
           matchesDate = orderDate.toDateString() === now.toDateString();
           break;
-        case 'yesterday':
+        }
+        case 'yesterday': {
           const yesterday = new Date(now);
           yesterday.setDate(yesterday.getDate() - 1);
           matchesDate = orderDate.toDateString() === yesterday.toDateString();
           break;
-        case 'week':
+        }
+        case 'week': {
           const weekAgo = new Date(now);
           weekAgo.setDate(weekAgo.getDate() - 7);
           matchesDate = orderDate >= weekAgo;
           break;
-        case 'month':
+        }
+        case 'month': {
           const monthAgo = new Date(now);
           monthAgo.setMonth(monthAgo.getMonth() - 1);
           matchesDate = orderDate >= monthAgo;
           break;
+        }
       }
     }
     

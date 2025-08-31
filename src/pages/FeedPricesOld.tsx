@@ -188,22 +188,8 @@ function FeedPrices() {
     // Expand feed category by default
     setExpandedCategories(new Set(['feed']));
   }, [currentUser?.uid]);
-        bagWeight: 50,
-        stock: 120,
-        lastUpdated: new Date(),
-        isAvailable: true
-      },
-      {
-        id: '3',
-        dealerId: currentUser.uid,
-        feedType: 'finisher',
-        supplierCompany: 'Suguna Foods',
-        pricePerBag: 1100,
-        bagWeight: 50,
-        stock: 80,
-        lastUpdated: new Date(),
-        isAvailable: true
-      },
+
+    const sampleFeeds: FeedProduct[] = [
       {
         id: '4',
         dealerId: currentUser.uid,
