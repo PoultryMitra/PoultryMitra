@@ -4,7 +4,9 @@ import {
   query, 
   orderBy, 
   limit, 
-  Timestamp 
+  Timestamp,
+  addDoc,
+  onSnapshot
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 
@@ -107,6 +109,38 @@ export class AdminService {
     } catch (error) {
       console.error('Error fetching admin stats:', error);
       throw error;
+    }
+  }
+
+  // Market rates (admin-managed) - add a market rate and subscribe to market rates
+  static async addMarketRate(rateData: { category: string; subcategory: string; rate: number; previousRate?: number; region: string; status?: string; }) {
+    try {
+      const ratesRef = collection(db, 'marketRates');
+      await addDoc(ratesRef, {
+        ...rateData,
+        status: rateData.status || 'active',
+        updatedAt: Timestamp.now()
+      });
+    } catch (error) {
+      console.error('Error adding market rate:', error);
+      throw error;
+    }
+  }
+
+  static getMarketRates(callback: (rates: any[]) => void) {
+    try {
+      const q = query(collection(db, 'marketRates'), orderBy('updatedAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const rates: any[] = [];
+        snapshot.forEach(doc => {
+          rates.push({ id: doc.id, ...doc.data() });
+        });
+        callback(rates);
+      });
+      return unsubscribe;
+    } catch (error) {
+      console.error('Error subscribing to market rates:', error);
+      return () => {};
     }
   }
 

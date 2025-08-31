@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,13 +9,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Plus, Edit, TrendingUp, TrendingDown, Eye } from "lucide-react";
 
 const BroilerRate = () => {
-  const [rates, setRates] = useState([
-    { id: 1, category: "Broiler", subcategory: "Live Weight", rate: 85, previousRate: 82, region: "Mumbai", lastUpdated: "2024-01-15", status: "active" },
-    { id: 2, category: "Broiler", subcategory: "Dressed", rate: 165, previousRate: 168, region: "Mumbai", lastUpdated: "2024-01-15", status: "active" },
-    { id: 3, category: "Eggs", subcategory: "White Shell", rate: 420, previousRate: 415, region: "Mumbai", lastUpdated: "2024-01-15", status: "active" },
-    { id: 4, category: "Eggs", subcategory: "Brown Shell", rate: 450, previousRate: 445, region: "Mumbai", lastUpdated: "2024-01-15", status: "active" },
-    { id: 5, category: "Feed", subcategory: "Starter", rate: 45, previousRate: 44, region: "Delhi", lastUpdated: "2024-01-14", status: "active" },
-  ]);
+  const [rates, setRates] = useState<any[]>([]);
 
   const [newRate, setNewRate] = useState({
     category: "",
@@ -23,6 +17,27 @@ const BroilerRate = () => {
     rate: "",
     region: "",
   });
+
+  // Subscribe to market rates from Firestore
+  useEffect(() => {
+    let unsub: (() => void) | null = null;
+    import('@/services/adminService').then(({ AdminService }) => {
+      unsub = AdminService.getMarketRates((fetched) => {
+        setRates(fetched.map(r => ({
+          id: r.id,
+          category: r.category,
+          subcategory: r.subcategory,
+          rate: r.rate,
+          previousRate: r.previousRate ?? r.rate,
+          region: r.region,
+          lastUpdated: r.updatedAt?.toDate?.() ? r.updatedAt.toDate().toISOString().split('T')[0] : '',
+          status: r.status || 'active'
+        })));
+      });
+    }).catch(e => console.error(e));
+
+    return () => { if (unsub) unsub(); };
+  }, []);
 
   const handleAddRate = () => {
     if (newRate.category && newRate.subcategory && newRate.rate && newRate.region) {
@@ -117,15 +132,36 @@ const BroilerRate = () => {
                       <SelectValue placeholder="Select region" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Mumbai">Mumbai</SelectItem>
-                      <SelectItem value="Delhi">Delhi</SelectItem>
-                      <SelectItem value="Bangalore">Bangalore</SelectItem>
-                      <SelectItem value="Chennai">Chennai</SelectItem>
-                      <SelectItem value="Hyderabad">Hyderabad</SelectItem>
-                    </SelectContent>
+                          <SelectItem value="Mumbai">Mumbai</SelectItem>
+                          <SelectItem value="Delhi">Delhi</SelectItem>
+                          <SelectItem value="Bangalore">Bangalore</SelectItem>
+                          <SelectItem value="Chennai">Chennai</SelectItem>
+                          <SelectItem value="Hyderabad">Hyderabad</SelectItem>
+                          <SelectItem value="Bihar">Bihar</SelectItem>
+                          <SelectItem value="Jharkhand">Jharkhand</SelectItem>
+                          <SelectItem value="West Bengal">West Bengal</SelectItem>
+                          <SelectItem value="Kolkata">Kolkata</SelectItem>
+                        </SelectContent>
                   </Select>
                 </div>
-                <Button onClick={handleAddRate} className="w-full">Add Rate</Button>
+                    <Button onClick={async () => {
+                      // persist to Firestore via AdminService
+                      try {
+                        const svc = await import('@/services/adminService');
+                        await svc.AdminService.addMarketRate({
+                          category: newRate.category,
+                          subcategory: newRate.subcategory,
+                          rate: parseFloat(newRate.rate || '0'),
+                          previousRate: undefined,
+                          region: newRate.region,
+                          status: 'active'
+                        });
+                        setNewRate({ category: '', subcategory: '', rate: '', region: '' });
+                      } catch (e) {
+                        console.error('Error saving market rate', e);
+                        alert('Failed to save market rate');
+                      }
+                    }} className="w-full">Add Rate</Button>
               </div>
             </DialogContent>
           </Dialog>
@@ -190,8 +226,8 @@ const BroilerRate = () => {
                   <tr key={rate.id} className="border-b hover:bg-gray-50">
                     <td className="py-3 px-4">{rate.category}</td>
                     <td className="py-3 px-4">{rate.subcategory}</td>
-                    <td className="py-3 px-4 font-semibold">₹{rate.rate}</td>
-                    <td className="py-3 px-4 text-gray-600">₹{rate.previousRate}</td>
+            <td className="py-3 px-4 font-semibold">₹{rate.rate}</td>
+          <td className="py-3 px-4 text-gray-600">₹{rate.previousRate}</td>
                     <td className="py-3 px-4">
                       <div className="flex items-center space-x-1">
                         {getTrendIcon(rate.rate, rate.previousRate)}
