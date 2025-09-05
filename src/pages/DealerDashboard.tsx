@@ -51,8 +51,10 @@ import {
   Minus,
   ShoppingCart,
   CheckCircle,
-  XCircle
+  XCircle,
+  Wallet
 } from 'lucide-react';
+import { WalletManagement } from '@/components/WalletManagement';
 
 const DealerDashboard: React.FC = () => {
   const { currentUser } = useAuth();
@@ -281,45 +283,69 @@ const DealerDashboard: React.FC = () => {
     pendingRecovery: 0          // Amount still to be recovered
   });
 
+  // State for error handling
+  const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
+
   // Firebase listeners setup
   useEffect(() => {
     if (!currentUser?.uid) return;
 
     const dealerId = currentUser.uid;
     
-    // Load dealer profile
-    loadDealerProfile();
-    
-    // Set up real-time listeners
-    const unsubscribeFarmers = getDealerFarmers(dealerId, (farmers) => {
-      setConnectedFarmers(farmers);
-      updateStats(farmers, dealerProducts);
-    });
+    const initializeDashboard = async () => {
+      try {
+        setError(null);
+        setIsLoading(true);
+        
+        // Load dealer profile
+        await loadDealerProfile();
+        
+        // Set up real-time listeners with error handling
+        const unsubscribeFarmers = getDealerFarmers(dealerId, (farmers) => {
+          setConnectedFarmers(farmers);
+          updateStats(farmers, dealerProducts);
+        });
 
-    const unsubscribeProducts = getDealerProducts(dealerId, (products) => {
-      setDealerProducts(products);
-      updateStats(connectedFarmers, products);
-    });
+        const unsubscribeProducts = getDealerProducts(dealerId, (products) => {
+          setDealerProducts(products);
+          updateStats(connectedFarmers, products);
+        });
 
-    // Set up inventory listener
-    const unsubscribeInventory = inventoryService.subscribeToInventory(dealerId, (inventory) => {
-      setInventoryItems(inventory);
-    });
+        // Set up inventory listener
+        const unsubscribeInventory = inventoryService.subscribeToInventory(dealerId, (inventory) => {
+          setInventoryItems(inventory);
+        });
 
-    // Set up order requests listener
-    const unsubscribeOrders = orderService.subscribeDealerOrderRequests(dealerId, (orders) => {
-      setDealerOrderRequests(orders);
-    });
+        // Set up order requests listener  
+        const unsubscribeOrders = orderService.subscribeDealerOrderRequests(dealerId, (orders) => {
+          setDealerOrderRequests(orders);
+        });
 
-    setIsLoading(false);
+        setIsLoading(false);
 
-    return () => {
-      unsubscribeFarmers();
-      unsubscribeProducts();
-      unsubscribeInventory();
-      unsubscribeOrders();
+        return () => {
+          unsubscribeFarmers();
+          unsubscribeProducts();
+          unsubscribeInventory();
+          unsubscribeOrders();
+        };
+      } catch (error) {
+        console.error('Error initializing dealer dashboard:', error);
+        setError(error instanceof Error ? error.message : 'Failed to load dashboard');
+        setIsLoading(false);
+        
+        // Auto-retry logic (up to 3 times)
+        if (retryCount < 3) {
+          setTimeout(() => {
+            setRetryCount(prev => prev + 1);
+          }, 2000 * (retryCount + 1)); // Exponential backoff
+        }
+      }
     };
-  }, [currentUser?.uid]);
+
+    initializeDashboard();
+  }, [currentUser?.uid, retryCount]);
 
   // Update statistics
   const updateStats = (farmers: DealerFarmerData[], products: Product[]) => {
@@ -886,11 +912,15 @@ const DealerDashboard: React.FC = () => {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-2 md:grid-cols-5">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-6">
           <TabsTrigger value="overview">{bt('products')}</TabsTrigger>
           <TabsTrigger value="inventory">{bt('inventory')}</TabsTrigger>
           <TabsTrigger value="orders">{bt('orders')}</TabsTrigger>
           <TabsTrigger value="farmers">{bt('farmers')}</TabsTrigger>
+          <TabsTrigger value="wallet">
+            <Wallet className="w-4 h-4 mr-2" />
+            Wallet
+          </TabsTrigger>
           <TabsTrigger value="guides">{bt('guides')}</TabsTrigger>
         </TabsList>
         
@@ -1292,6 +1322,10 @@ const DealerDashboard: React.FC = () => {
               )}
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="wallet" className="space-y-6">
+          <WalletManagement />
         </TabsContent>
 
         <TabsContent value="guides" className="space-y-6">

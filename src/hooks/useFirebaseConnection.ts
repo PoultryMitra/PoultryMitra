@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { db, FirebaseConnectionManager } from '@/lib/firebase';
+import { db } from '@/lib/firebase';
 import { enableNetwork, disableNetwork } from 'firebase/firestore';
 
 interface ConnectionState {
@@ -9,7 +9,7 @@ interface ConnectionState {
   retryCount: number;
 }
 
-export function useFirebaseConnection() {
+export function useFirebaseConnection(): ConnectionState & { forceReconnect: () => Promise<void> } {
   const [connectionState, setConnectionState] = useState<ConnectionState>({
     isOnline: navigator.onLine,
     isConnected: true,

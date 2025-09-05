@@ -51,14 +51,9 @@ const ProfileGuard: React.FC<ProfileGuardProps> = ({ children }) => {
     }
   }
 
-  // For non-admin routes, check profile completion more flexibly
+  // For non-admin routes, check profile completion
   // If user profile exists but is not complete, redirect to profile completion
   if (userProfile && userProfile.profileComplete === false) {
-    // For Google users, allow them to access dashboard but encourage profile completion
-    if (!userProfile.hasPassword) {
-      console.log('Google user with incomplete profile - allowing dashboard access');
-      return <>{children}</>;
-    }
     return <Navigate to="/complete-profile" replace />;
   }
 

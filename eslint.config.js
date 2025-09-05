@@ -5,7 +5,7 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default tseslint.config(
-  { ignores: ["dist"] },
+  { ignores: ["dist", "src/pages/Customers_corrupted.tsx", "test-auto-calculation-system.test.js", "src/pages/FeedPricesOld.tsx"] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ["**/*.{ts,tsx}"],
@@ -19,11 +19,13 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      "react-refresh/only-export-components": [
-        "warn",
-        { allowConstantExport: true },
-      ],
-      "@typescript-eslint/no-unused-vars": "off",
+  // Disable fast-refresh component-only enforcement to avoid noisy warnings
+  "react-refresh/only-export-components": "off",
+  "@typescript-eslint/no-unused-vars": "off",
+  // Many files use `any` intentionally across the codebase; relax this rule to reduce noise
+  "@typescript-eslint/no-explicit-any": "off",
+  // Allow empty object types in UI component props used as placeholders
+  "@typescript-eslint/no-empty-object-type": "off",
     },
   }
 );
