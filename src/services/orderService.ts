@@ -16,6 +16,43 @@ import {
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 
+// Input validation utilities
+const validateOrderRequest = (orderData: any): void => {
+  if (!orderData.farmerId || !orderData.dealerId) {
+    throw new Error('Farmer ID and Dealer ID are required');
+  }
+  
+  if (!orderData.orderType || !['Feed', 'Medicine', 'Chicks'].includes(orderData.orderType)) {
+    throw new Error('Invalid order type. Must be Feed, Medicine, or Chicks');
+  }
+  
+  if (!orderData.quantity || orderData.quantity <= 0) {
+    throw new Error('Quantity must be a positive number');
+  }
+  
+  if (orderData.quantity > 10000) {
+    throw new Error('Quantity exceeds maximum limit');
+  }
+  
+  if (!orderData.unit || orderData.unit.trim().length === 0) {
+    throw new Error('Unit is required');
+  }
+};
+
+const validateUpdateData = (status: string, actualCost?: number, estimatedCost?: number): void => {
+  if (!['approved', 'rejected', 'completed'].includes(status)) {
+    throw new Error('Invalid status');
+  }
+  
+  if (actualCost !== undefined && actualCost < 0) {
+    throw new Error('Actual cost cannot be negative');
+  }
+  
+  if (estimatedCost !== undefined && estimatedCost < 0) {
+    throw new Error('Estimated cost cannot be negative');
+  }
+};
+
 // Notification interface for the ordering system
 export interface OrderNotification {
   id: string;
@@ -183,6 +220,21 @@ export const submitOrderRequest = async (
     notes?: string;
   }
 ): Promise<void> => {
+  // Validate input data
+  validateOrderRequest({
+    farmerId,
+    dealerId,
+    ...orderData
+  });
+
+  if (!farmerName || farmerName.trim().length === 0) {
+    throw new Error('Farmer name is required');
+  }
+  
+  if (!dealerName || dealerName.trim().length === 0) {
+    throw new Error('Dealer name is required');
+  }
+
   try {
     const orderRef = collection(db, 'orderRequests');
     
@@ -279,6 +331,13 @@ export const updateOrderRequestStatus = async (
   estimatedCost?: number,
   actualCost?: number
 ): Promise<void> => {
+  // Validate inputs
+  if (!orderId || orderId.trim().length === 0) {
+    throw new Error('Order ID is required');
+  }
+  
+  validateUpdateData(status, actualCost, estimatedCost);
+
   try {
     const orderRef = doc(db, 'orderRequests', orderId);
     
@@ -289,6 +348,15 @@ export const updateOrderRequestStatus = async (
     }
     
     const orderData = orderDoc.data() as OrderRequest;
+    
+    // Prevent invalid status transitions
+    if (orderData.status === 'completed') {
+      throw new Error('Cannot modify a completed order');
+    }
+    
+    if (orderData.status === 'rejected' && status !== 'rejected') {
+      throw new Error('Cannot change status of a rejected order');
+    }
     
     // Update the order
     await updateDoc(orderRef, {

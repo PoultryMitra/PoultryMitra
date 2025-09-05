@@ -261,6 +261,45 @@ service cloud.firestore {
       allow read, write: if true; // Temporary for migration
     }
 
+    // Wallet system rules
+    match /wallets/{walletId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid);
+      allow create, update: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
+    // Transaction system rules
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() && 
+        (request.auth.uid == resource.data.createdBy ||
+         isAdmin());
+      allow update, delete: if isAdmin();
+    }
+
+    // Enhanced order request rules
+    match /orderRequests/{orderId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() && 
+        (request.auth.uid == resource.data.farmerId ||
+         isAdmin());
+      allow update: if isAuthenticated() && 
+        (request.auth.uid == resource.data.dealerId || 
+         request.auth.uid == resource.data.farmerId ||
+         isAdmin());
+      allow delete: if isAdmin();
+    }
+
     // Batch Management rules
     match /batches/{batchId} {
       allow read: if isAuthenticated();
@@ -274,6 +313,29 @@ service cloud.firestore {
       allow read: if isAuthenticated();
       allow create, update: if isFarmer();
       allow delete: if isFarmer() || isAdmin();
+    }
+
+    // Wallet rules - dealers can manage their farmers' wallets, farmers can view their wallets
+    match /wallets/{walletId} {
+      allow read: if isAuthenticated() && 
+        (walletId.split('_')[1] == request.auth.uid || // dealer can read
+         walletId.split('_')[0] == request.auth.uid);  // farmer can read
+      allow write: if isAuthenticated() && 
+        (walletId.split('_')[1] == request.auth.uid || // dealer can write
+         isAdmin()); // admin can write for management
+    }
+
+    // Transaction rules - users can view their own transactions, dealers can create transactions
+    match /transactions/{transactionId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.dealerId == request.auth.uid || 
+         resource.data.farmerId == request.auth.uid ||
+         isAdmin());
+      allow create: if isAuthenticated() && 
+        (request.resource.data.createdBy == request.auth.uid ||
+         isAdmin());
+      allow update: if isAdmin(); // Only admin can update transactions
+      allow delete: if isAdmin(); // Only admin can delete transactions
     }
 
     // Default rule - allow reads for authenticated users, deny writes

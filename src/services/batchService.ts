@@ -12,6 +12,38 @@ import {
   Timestamp 
 } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
+import { withPerformanceMonitoring } from '@/utils/performanceMonitor';
+
+// Validation utilities
+const validateBatchData = (batchData: any): void => {
+  if (!batchData.farmerId || batchData.farmerId.trim().length === 0) {
+    throw new Error('Farmer ID is required');
+  }
+  
+  if (!batchData.initialBirds || batchData.initialBirds <= 0) {
+    throw new Error('Initial birds count must be a positive number');
+  }
+  
+  if (batchData.initialBirds > 100000) {
+    throw new Error('Initial birds count exceeds maximum limit');
+  }
+  
+  if (batchData.currentBirds < 0) {
+    throw new Error('Current birds count cannot be negative');
+  }
+  
+  if (batchData.currentBirds > batchData.initialBirds) {
+    throw new Error('Current birds count cannot exceed initial birds count');
+  }
+  
+  if (batchData.feedUsed < 0) {
+    throw new Error('Feed used cannot be negative');
+  }
+  
+  if (batchData.avgWeight < 0) {
+    throw new Error('Average weight cannot be negative');
+  }
+};
 
 export interface Batch {
   id?: string;
@@ -81,7 +113,10 @@ class BatchService {
 
   // Create new batch
   async createBatch(batchData: Omit<Batch, 'id' | 'createdAt' | 'updatedAt' | 'fcr'>): Promise<string> {
-    try {
+    // Validate input data
+    validateBatchData(batchData);
+    
+    return withPerformanceMonitoring('createBatch', async () => {
       const now = new Date();
       const totalWeight = batchData.currentBirds * batchData.avgWeight;
       const fcr = this.calculateFCR(batchData.feedUsed, totalWeight);
@@ -101,10 +136,7 @@ class BatchService {
       });
 
       return docRef.id;
-    } catch (error) {
-      console.error('Error creating batch:', error);
-      throw new Error('Failed to create batch');
-    }
+    })();
   }
 
   // Update existing batch
