@@ -803,6 +803,81 @@ export const checkFarmerBalance = async (
   }
 };
 
+// Submit order from dealer to farmer (CALL TO ORDER)
+export const submitDealerOrderToFarmer = async (
+  dealerId: string,
+  dealerName: string,
+  farmerId: string,
+  farmerName: string,
+  orderData: {
+    orderType: 'Feed' | 'Medicine' | 'Chicks';
+    quantity: number;
+    unit: string;
+    estimatedCost?: number;
+    notes?: string;
+    isCallToOrder?: boolean; // Flag to indicate this is a dealer-initiated order
+  }
+): Promise<void> => {
+  // Validate input data
+  validateOrderRequest({
+    farmerId,
+    dealerId,
+    ...orderData
+  });
+
+  if (!farmerName || farmerName.trim().length === 0) {
+    throw new Error('Farmer name is required');
+  }
+  
+  if (!dealerName || dealerName.trim().length === 0) {
+    throw new Error('Dealer name is required');
+  }
+
+  try {
+    const orderRef = collection(db, 'orderRequests');
+    
+    const docRef = await addDoc(orderRef, {
+      farmerId,
+      farmerName,
+      dealerId,
+      dealerName,
+      ...orderData,
+      status: 'pending',
+      requestDate: Timestamp.now(),
+      isDealerInitiated: true, // Mark this order as dealer-initiated
+      estimatedCost: orderData.estimatedCost || 0
+    });
+
+    // Send notification to farmer
+    await sendOrderNotification(
+      farmerId,
+      'farmer',
+      'order_request',
+      'New Order from Dealer',
+      `${dealerName} wants to send you ${orderData.quantity} ${orderData.unit} of ${orderData.orderType}${orderData.estimatedCost ? ` for ₹${orderData.estimatedCost}` : ''}`,
+      docRef.id,
+      {
+        farmerName,
+        dealerName,
+        orderType: orderData.orderType,
+        quantity: orderData.quantity,
+        unit: orderData.unit
+      }
+    );
+
+    console.log('📞 Call to order sent with notification:', {
+      orderId: docRef.id,
+      dealerName,
+      farmerName,
+      orderType: orderData.orderType,
+      estimatedCost: orderData.estimatedCost
+    });
+  } catch (error) {
+    console.error('Error sending call to order:', error);
+    throw error;
+  }
+};
+
 // Export service object
 export const orderService = {
   submitOrderRequest,

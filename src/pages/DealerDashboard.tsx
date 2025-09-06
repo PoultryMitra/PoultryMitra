@@ -164,6 +164,7 @@ const DealerDashboard: React.FC = () => {
     farmersConnectedToDealer: { en: "Farmers connected to your dealership", hi: "आपकी डीलरशिप से जुड़े किसान" },
     noConnectedFarmers: { en: "No Connected Farmers", hi: "कोई जुड़े हुए किसान नहीं" },
     generateInviteCodeMsg: { en: "Generate an invite code to connect with farmers or create demo data", hi: "किसानों से जुड़ने के लिए इनवाइट कोड बनाएं या डेमो डेटा बनाएं" },
+    sendOrder: { en: "Send Order", hi: "ऑर्डर भेजें" },
     
     // Guides section
     poultryBusinessGuides: { en: "Poultry Business Guides", hi: "पोल्ट्री बिजनेस गाइड्स" },
@@ -218,6 +219,17 @@ const DealerDashboard: React.FC = () => {
   const [showProductModal, setShowProductModal] = useState(false);
   const [showContactModal, setShowContactModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showSendOrderModal, setShowSendOrderModal] = useState(false);
+  const [selectedFarmerForOrder, setSelectedFarmerForOrder] = useState<DealerFarmerData | null>(null);
+  
+  // Send order form state
+  const [sendOrderForm, setSendOrderForm] = useState({
+    orderType: 'Feed' as 'Feed' | 'Medicine' | 'Chicks',
+    quantity: '',
+    unit: 'bags',
+    estimatedCost: '',
+    notes: ''
+  });
   const [showPriceModal, setShowPriceModal] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
@@ -747,6 +759,72 @@ const DealerDashboard: React.FC = () => {
       toast({
         title: "Error",
         description: "Failed to respond to order request. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Send order to farmer handler
+  const handleSendOrderToFarmer = (farmer: DealerFarmerData) => {
+    setSelectedFarmerForOrder(farmer);
+    setSendOrderForm({
+      orderType: 'Feed',
+      quantity: '',
+      unit: 'bags',
+      estimatedCost: '',
+      notes: ''
+    });
+    setShowSendOrderModal(true);
+  };
+
+  // Submit send order handler
+  const handleSubmitSendOrder = async () => {
+    if (!selectedFarmerForOrder || !currentUser || !sendOrderForm.quantity) {
+      toast({
+        title: "Error",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      await orderService.submitDealerOrderToFarmer(
+        currentUser.uid,
+        dealerProfile?.businessName || 'Dealer',
+        selectedFarmerForOrder.farmerId,
+        selectedFarmerForOrder.farmerName,
+        {
+          orderType: sendOrderForm.orderType,
+          quantity: parseInt(sendOrderForm.quantity),
+          unit: sendOrderForm.unit,
+          estimatedCost: sendOrderForm.estimatedCost ? parseFloat(sendOrderForm.estimatedCost) : undefined,
+          notes: sendOrderForm.notes,
+          isCallToOrder: true
+        }
+      );
+
+      // Reset form and close modal
+      setSendOrderForm({
+        orderType: 'Feed',
+        quantity: '',
+        unit: 'bags',
+        estimatedCost: '',
+        notes: ''
+      });
+      setSelectedFarmerForOrder(null);
+      setShowSendOrderModal(false);
+
+      toast({
+        title: "Success",
+        description: `Order sent to ${selectedFarmerForOrder.farmerName} successfully!`,
+      });
+
+    } catch (error) {
+      console.error('Error sending order to farmer:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send order. Please try again.",
         variant: "destructive",
       });
     }
@@ -1314,6 +1392,16 @@ const DealerDashboard: React.FC = () => {
                               ₹{farmer.accountBalance.toLocaleString()}
                             </span>
                           </div>
+                        </div>
+                        <div className="mt-4 pt-3 border-t">
+                          <Button 
+                            onClick={() => handleSendOrderToFarmer(farmer)}
+                            className="w-full bg-green-600 hover:bg-green-700 text-white"
+                            size="sm"
+                          >
+                            <ShoppingCart className="w-4 h-4 mr-2" />
+                            {bt('sendOrder')}
+                          </Button>
                         </div>
                       </CardContent>
                     </Card>
@@ -1992,6 +2080,102 @@ const DealerDashboard: React.FC = () => {
               className={orderResponseForm.status === 'approved' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}
             >
               {orderResponseForm.status === 'approved' ? 'Approve Order' : 'Reject Order'}
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Send Order to Farmer Modal */}
+      <Dialog open={showSendOrderModal} onOpenChange={setShowSendOrderModal}>
+        <DialogContent className="sm:max-w-[500px]">
+          <DialogHeader>
+            <DialogTitle>Send Order to {selectedFarmerForOrder?.farmerName}</DialogTitle>
+            <DialogDescription>
+              Send a product order request to this farmer
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div>
+              <Label htmlFor="orderType">Order Type</Label>
+              <Select
+                value={sendOrderForm.orderType}
+                onValueChange={(value: 'Feed' | 'Medicine' | 'Chicks') => 
+                  setSendOrderForm(prev => ({ ...prev, orderType: value }))
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select order type" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Feed">Feed</SelectItem>
+                  <SelectItem value="Medicine">Medicine</SelectItem>
+                  <SelectItem value="Chicks">Chicks</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div>
+                <Label htmlFor="quantity">Quantity</Label>
+                <Input
+                  id="quantity"
+                  type="number"
+                  placeholder="Enter quantity"
+                  value={sendOrderForm.quantity}
+                  onChange={(e) => setSendOrderForm(prev => ({ ...prev, quantity: e.target.value }))}
+                />
+              </div>
+              <div>
+                <Label htmlFor="unit">Unit</Label>
+                <Select
+                  value={sendOrderForm.unit}
+                  onValueChange={(value) => 
+                    setSendOrderForm(prev => ({ ...prev, unit: value }))
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select unit" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="bags">Bags</SelectItem>
+                    <SelectItem value="pieces">Pieces</SelectItem>
+                    <SelectItem value="bottles">Bottles</SelectItem>
+                    <SelectItem value="kg">Kg</SelectItem>
+                    <SelectItem value="liters">Liters</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            <div>
+              <Label htmlFor="estimatedCost">Estimated Cost (₹)</Label>
+              <Input
+                id="estimatedCost"
+                type="number"
+                placeholder="Enter estimated cost"
+                value={sendOrderForm.estimatedCost}
+                onChange={(e) => setSendOrderForm(prev => ({ ...prev, estimatedCost: e.target.value }))}
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="notes">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Add any special instructions or notes"
+                value={sendOrderForm.notes}
+                onChange={(e) => setSendOrderForm(prev => ({ ...prev, notes: e.target.value }))}
+              />
+            </div>
+          </div>
+          
+          <div className="flex justify-end gap-2 mt-6">
+            <Button variant="outline" onClick={() => setShowSendOrderModal(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSubmitSendOrder} className="bg-green-600 hover:bg-green-700">
+              <ShoppingCart className="w-4 h-4 mr-2" />
+              Send Order
             </Button>
           </div>
         </DialogContent>
